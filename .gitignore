@@ -1,0 +1,22 @@
+# ---- archives / regenerable temp (do NOT commit) ----
+*.zip
+base/
+de201/
+probe_skill/
+
+# ---- secrets ----
+.token
+.env
+*.key
+
+# ---- debug / one-off probe scripts (not part of the pipeline) ----
+probe_summary.py
+probe_summary2.py
+repub.py
+scan_summary.py
+spec.py
+online.json
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
