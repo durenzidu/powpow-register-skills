@@ -1,7 +1,7 @@
 ---
 name: powpow-register
 description: Hilft Nutzer:innen, PowPow- (Bubble-)Registrierung, Alipay-/PayPal-Abonnement-Aktivierung und Ein-Klick-Login komplett im Chat abzuschließen. Der agent füllt Formulare (inkl. Avatar-Upload), sendet den E-Mail-Verifizierungscode, erstellt den Zahlungsauftrag und verfolgt den Zahlungseingang; die Nutzer:innen geben nur Basisinformationen an, rufen einmal den Verifizierungscode ab und zahlen an der Alipay-/PayPal-Kasse — ohne den Chat zu verlassen. Auslöser: „Bubble registrieren", „PowWow-Konto registrieren", „Wie registriere ich mich bei Bubble?", „Hilf mir, ein powpow-Konto anzulegen", „sign up powpow"; behandelt auch Feststeckendes bei der Registrierung (kein Verifizierungscode, Benutzername/E-Mail vergeben) und Aktivierungsprobleme (Login meldet „Konto nicht aktiviert" / pending_payment, wie abonnieren/bezahlen). Benötigt Node ≥ 18; falls nicht verfügbar, automatischer Rückfall in den reinen Anleitungsmodus. Keine Beiträge/kein Erstellen digitaler Menschen (das macht powpow-simple), keine Code-Entwicklung.
-version: 2.1.0
+version: 2.1.1
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -12,7 +12,7 @@ metadata:
 
 Führt neue Nutzer:innen von „Ich weiß nicht, was Bubble ist" bis zu „Konto aktiviert, Ein-Klick-Login, loslegen" — alles im Chat. Nur zweimal muss der Chat kurz verlassen werden: **um im Postfach den Verifizierungscode zu suchen** und **um an der Kasse zu zahlen** (Alipay oder PayPal — der agent öffnet die Kassenseite automatisch).
 
-**Version 2.1.0** · 2026-10-11 (ab v2 agent-gestützter Modus: Skript-Vertrag und vollständige Sequenz siehe `references/agent-flow.md`; Feldregeln, Rate Limits und Fehlerbehebung siehe `references/registration-flow.md`; Zahlungskanäle siehe `references/payment-and-activation.md`; Screenshot-Liste siehe `references/screenshots.md`. Ab v2.1.0 kann der agent auch PayPal-Abos übernehmen, als Option neben Alipay)
+**Version 2.1.1** · 2026-10-12 (ab v2 agent-gestützter Modus: Skript-Vertrag und vollständige Sequenz siehe `references/agent-flow.md`; Feldregeln, Rate Limits und Fehlerbehebung siehe `references/registration-flow.md`; Zahlungskanäle siehe `references/payment-and-activation.md`; Screenshot-Liste siehe `references/screenshots.md`. Ab v2.1.0 kann der agent auch PayPal-Abos übernehmen, als Option neben Alipay)
 
 ## Laufzeitumgebung
 
