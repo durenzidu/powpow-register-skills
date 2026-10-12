@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Aiuta l'utente a completare la registrazione a PowPow (Bolla), attivare l'abbonamento via Alipay e accedere con un clic direttamente in conversazione. L'agent compila il modulo al posto suo (caricamento avatar incluso), invia il codice di verifica via email, crea l'ordine di pagamento e ne segue l'accredito; l'utente deve solo fornire le informazioni di base, leggere una volta il codice nella propria casella di posta e pagare alla cassa Alipay, senza mai uscire dalla conversazione. Si attiva quando l'utente dice «registrati su Bolla», «crea un account powpow», «come ci si registra su Bolla», «aiutami a creare un account powpow», «sign up powpow»; gestisce anche registrazioni bloccate (codice di verifica che non arriva, nome utente/email già in uso) e problemi di attivazione (il login restituisce «account non attivato» / pending_payment, come pagare l'abbonamento). Richiede Node ≥ 18; in assenza torna automaticamente alla modalità di sola guida. Non comprende pubblicazione post/creazione di umani digitali (compito di powpow-simple), né sviluppo di codice.
-version: 2.0.1
+description: Aiuta l'utente a completare la registrazione a PowPow (Bolla), attivare l'abbonamento via Alipay o PayPal e accedere con un clic direttamente in conversazione. L'agent compila il modulo al posto suo (caricamento avatar incluso), invia il codice di verifica via email, crea l'ordine di pagamento e ne segue l'accredito; l'utente deve solo fornire le informazioni di base, leggere una volta il codice nella propria casella di posta e pagare alla cassa Alipay o PayPal, senza mai uscire dalla conversazione. Si attiva quando l'utente dice «registrati su Bolla», «crea un account powpow», «come ci si registra su Bolla», «aiutami a creare un account powpow», «sign up powpow»; gestisce anche registrazioni bloccate (codice di verifica che non arriva, nome utente/email già in uso) e problemi di attivazione (il login restituisce «account non attivato» / pending_payment, come pagare l'abbonamento). Richiede Node ≥ 18; in assenza torna automaticamente alla modalità di sola guida. Non comprende pubblicazione post/creazione di umani digitali (compito di powpow-simple), né sviluppo di codice.
+version: 2.1.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,9 +10,9 @@ metadata:
 
 # PowPow Register (assistente alla registrazione a Bolla)
 
-Porta un nuovo utente da «non so cos'è Bolla» a «account attivato, accesso con un clic, si comincia a giocare» — il tutto in conversazione. L'utente lascia la chat solo due volte, brevemente: **andare nell'email a leggere il codice di verifica** e **pagare alla cassa Alipay** (l'agent apre automaticamente la pagina di pagamento).
+Porta un nuovo utente da «non so cos'è Bolla» a «account attivato, accesso con un clic, si comincia a giocare» — il tutto in conversazione. L'utente lascia la chat solo due volte, brevemente: **andare nell'email a leggere il codice di verifica** e **pagare alla cassa di pagamento** (Alipay o PayPal — l'agent apre automaticamente la pagina di pagamento).
 
-**Versione 2.0.1** · 2026-10-08 (dalla v2 è la modalità a operazione delegata dell'agent: contratto dello script e sequenza completa in `references/agent-flow.md`; regole dei campi, limiti di frequenza e gestione degli errori in `references/registration-flow.md`; canali di pagamento in `references/payment-and-activation.md`; elenco degli screenshot di prodotto in `references/screenshots.md`. Dalla v2.0.1 gli screenshot di prodotto sono inclusi nel pacchetto in `assets/screenshots/`, senza dipendere da servizi di hosting esterni)
+**Versione 2.1.0** · 2026-10-11 (dalla v2 è la modalità a operazione delegata dell'agent: contratto dello script e sequenza completa in `references/agent-flow.md`; regole dei campi, limiti di frequenza e gestione degli errori in `references/registration-flow.md`; canali di pagamento in `references/payment-and-activation.md`; elenco degli screenshot di prodotto in `references/screenshots.md`. Dalla v2.1.0 anche gli abbonamenti PayPal possono essere gestiti dall'agent, come opzione accanto ad Alipay)
 
 ## Ambiente di esecuzione
 
@@ -38,7 +38,7 @@ Porta un nuovo utente da «non so cos'è Bolla» a «account attivato, accesso c
 | 3 Invio codice | `send-code` | —— |
 | 4 Lettura codice | —— | Va nell'email, legge il codice a 6 cifre e lo rimanda |
 | 5 Invio registrazione | `register` (con caricamento diretto dell'avatar), gestione automatica degli errori | —— |
-| 6 Semi-sessione + pagamento | `login-link(pending)` → `create-order` → apre la cassa → interpella `query` | Apre il link, paga |
+| 6 Semi-sessione + pagamento | `login-link(pending)` → `create-order --provider alipay|paypal` → apre la cassa → interpella `query` | Apre il link, paga |
 | 7 Accesso ufficiale | `refresh-login` → `login-link(home)` | Apre il link ed entra in home |
 | 8 Chiusura | `cleanup` + consegna credenziali + guida all'esperienza + suggerimento plugin | Inizia a giocare |
 
@@ -100,15 +100,23 @@ Se riesce, l'account è creato (stato pending, con 3 badge iniziali). Gli errori
    node scripts/powpow-register.mjs login-link --target pending
    ```
    Manda il link all'utente: **aprilo nel browser e cadi direttamente nella pagina abbonamento, già in stato di accesso** — così, terminato il pagamento, la pagina di conferma mostra correttamente «pagamento riuscito». (In questo stato le pagine di contenuto vengono comunque rimbalzate alla pagina abbonamento: è il funzionamento normale del paywall della piattaforma, non un bug, e non serve spiegare all'utente i meccanismi interni.)
-2. Tre pacchetti tra cui scegliere, quando li presenti indica anche i prezzi:
-   - Mese **¥6.99** (consigliato per provare) / Trimestre **¥19.99** / Anno **¥69.99** — con Alipay si compra una volta sola il periodo corrispondente, **senza rinnovo automatico**
-3. Quando l'utente ha scelto:
-   ```
-   node scripts/powpow-register.mjs create-order --package monthly
-   ```
-   Lo script restituisce il percorso del file della pagina di pagamento; **aprilo direttamente con un comando di sistema** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). Il browser salta da solo alla cassa ufficiale Alipay; l'utente scannerizza il QR oppure accede ad Alipay per pagare.
-4. Esegui `query` ogni 10–15 secondi finché non restituisce `paid` (l'accredito di solito arriva in pochi secondi o in un minuto). Se l'utente chiude la pagina di pagamento a metà → esegui subito di nuovo `create-order` (il vecchio ordine si chiude da solo dopo 2 ore, non pensarci).
-5. Utente all'estero/senza Alipay: guida l'uso del canale PayPal nella pagina abbonamento (la skill non opera al posto suo, indica solo la strada); il canale QR WeChat richiede conferma manuale e l'accredito è in ritardo. Finito il pagamento si torna comunque al passo 7.
+2. **Fai scegliere all'utente il metodo di pagamento**; mostra entrambi i canali:
+   - **Alipay (Cina continentale / utenti con Alipay)**: acquisto una tantum del periodo corrispondente, **senza rinnovo automatico**
+     - Mese **¥6.99** (consigliato per provare) / Trimestre **¥19.99** / Anno **¥69.99**
+   - **PayPal (estero / utenti senza Alipay)**: rinnovo automatico mensile, disdici quando vuoi
+     - Premium Monthly, circa **$1/mese** (come mostrato nella pagina abbonamento; rinnovo automatico)
+3. Una volta scelto:
+   - **Alipay**:
+     ```
+     node scripts/powpow-register.mjs create-order --package monthly
+     ```
+   - **PayPal**:
+     ```
+     node scripts/powpow-register.mjs create-order --provider paypal
+     ```
+   Lo script restituisce il percorso del file della pagina di pagamento; **aprilo direttamente con un comando di sistema** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). Il browser salta da solo alla cassa ufficiale di Alipay o PayPal, dove l'utente completa il pagamento o l'autorizzazione all'addebito.
+4. Esegui `query` ogni 10–15 secondi finché non restituisce `paid` o `ACTIVE` (pagamento/autorizzazione di solito arriva in pochi secondi o in un minuto). Se l'utente chiude la pagina di pagamento a metà → esegui subito di nuovo `create-order` (i vecchi ordini e gli abbonamenti in sospeso si chiudono o scadono da soli dopo 2 ore; non pensarci).
+5. Il canale QR WeChat richiede conferma manuale e l'accredito può ritardare; Huawei IAP è disponibile solo dentro l'app HarmonyOS. La skill non gestisce questi due: finito il pagamento si torna comunque al passo 7.
 
 ## Passo 7: accesso ufficiale (link 2)
 
@@ -148,7 +156,7 @@ Mantieni il tono di servizio riconoscibile di powpow:
 
 - **Sicurezza delle credenziali**: la password passa allo script solo tramite la variabile d'ambiente `POWPOW_REGISTER_PASSWORD`, **mai** come parametro a riga di comando (visibile nell'elenco dei processi), mai scritta in alcun file (in modalità generata viene mostrata una sola volta perché l'utente la salvi, dopo non viene più citata). Il codice di verifica serve solo per l'interfaccia ufficiale di registrazione e viene buttato dopo l'uso.
 - **Confine di ufficialità**: tutte le richieste vanno solo a `https://global.powpow.online` (già integrato nello script); non inviare mai informazioni dell'utente a indirizzi di terze parti.
-- **Confine del pagamento**: l'agent crea l'ordine, apre la cassa, interroga l'accredito; **mai** toccare l'account Alipay o le credenziali di pagamento dell'utente, e mai promettere «pago io al posto tuo».
+- **Confine del pagamento**: l'agent crea l'ordine, apre la cassa, interroga l'accredito; **mai** toccare l'account Alipay/PayPal o le credenziali di pagamento dell'utente, e mai promettere «pago io al posto tuo».
 - **Il paywall non è un bug**: lo stato pending che accede alla pagina abbonamento/pagina di conferma è un varco voluto del progetto; le pagine di contenuto bloccate sono il paywall che funziona normalmente; non cercare modi per aggirarlo.
 - **Libertà di ripiegare**: se a qualunque passo l'utente vuole far da sé, o l'ambiente non esegue lo script, ripiega in qualunque momento sulla modalità di sola guida — dai i link, spiega le regole, gestisci insieme gli errori.
 - Non inventare regole della piattaforma: regole dei campi, testi degli errori e parametri dei limiti vengono tutti dal codice della piattaforma (`references/registration-flow.md` ne cita le fonti); se la piattaforma si aggiorna, fa fede il comportamento effettivo.

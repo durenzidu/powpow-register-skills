@@ -2,11 +2,11 @@
 
 The PowPow Bubble registration assistant (OpenClaw edition): takes a new user from "I don't know what Bubble is" to
 "account activated, one-click logged in, ready to play" — product intro (with UI screenshots), agent-assisted registration
-(including avatar upload), Alipay subscription order creation with arrival tracking, dual-link one-click login, and error troubleshooting.
+(including avatar upload), Alipay/PayPal subscription order creation with arrival tracking, dual-link one-click login, and error troubleshooting.
 
-**Since v2.0.0 this is agent-assisted mode**: the core script `scripts/powpow-register.mjs` is zero-dependency
+**Since v2.0.0 this is agent-assisted mode, and since v2.1.0 PayPal can be handled too**: the core script `scripts/powpow-register.mjs` is zero-dependency
 (Node ≥ 18); the user never leaves the conversation except twice: checking the verification code in their inbox, and paying
-at the Alipay cashier. Without Node, or when the user prefers to do it themselves, it automatically falls back to pure guidance mode.
+at the Alipay/PayPal cashier. Without Node, or when the user prefers to do it themselves, it automatically falls back to pure guidance mode.
 
 ## Installation
 
@@ -23,8 +23,8 @@ openclaw skills install @durenzidu/powpow-register
 3. **One-click login (dual links)**: right after successful registration, a "half-logged-in" link lands the user on the subscription page;
    once payment arrives, a fresh login state is exchanged and a full-membership link lands them on the home page
    (via the platform's official `me?token=` bridge, which plants the HttpOnly cookie automatically).
-4. **Subscription payment**: the agent handles Alipay order creation (monthly ¥6.99 / quarterly ¥19.99 / yearly ¥69.99,
-   one-time purchase, no auto-renewal) + polls for arrival; overseas users fall back to PayPal; WeChat QR code / Huawei IAP are pointed to.
+4. **Subscription payment**: both Alipay (monthly ¥6.99 / quarterly ¥19.99 / yearly ¥69.99,
+   one-time purchase, no auto-renewal) and PayPal (Premium Monthly, about $1/month, auto-renews, cancel anytime) are handled by the agent with order creation + arrival polling; WeChat QR code / Huawei IAP are pointed to.
 5. **Error troubleshooting**: verification code not received, username/email taken, 403 not activated, account locked and other
    common issues — all taken from the platform source code with citations.
 
@@ -52,8 +52,8 @@ powpow-register/
   an agent-generated password is shown once for the user to save.
 - **The verification code** is used only for the official registration API and discarded after use; the state file (email/username/token/order number)
   lives in the system temp directory and is removed with one `cleanup` at the end of the flow.
-- **Payment**: the agent only creates orders, opens the cashier and queries arrival; it never touches the user's Alipay account
-  or payment credentials, and never pays on their behalf. Payment always happens between the user and the official Alipay cashier.
+- **Payment**: the agent only creates orders, opens the cashier and queries arrival; it never touches the user's Alipay/PayPal account
+  or payment credentials, and never pays on their behalf. Payment always happens between the user and the official cashier.
 - All requests go to the official domain `https://global.powpow.online` only; contains no secrets.
 
 ## License

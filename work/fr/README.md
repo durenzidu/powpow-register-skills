@@ -3,11 +3,11 @@
 Assistant d'inscription à PowPow Bulle (édition OpenClaw) : accompagne un nouvel utilisateur depuis « je ne
 sais pas ce qu'est Bulle » jusqu'à « compte activé, connecté en un clic, on joue » — présentation du produit
 (captures d'écran comprises), inscription déléguée à l'agent (upload de l'avatar compris), commande
-d'abonnement Alipay et suivi de l'encaissement, connexion en un clic à double lien, diagnostic des erreurs.
+d'abonnement Alipay/PayPal et suivi de l'encaissement, connexion en un clic à double lien, diagnostic des erreurs.
 
-**Depuis la v2.0.0, mode prise en charge déléguée par l'agent** : le script principal `scripts/powpow-register.mjs` est
+**Depuis la v2.0.0, mode prise en charge déléguée par l'agent, et depuis la v2.1.0 PayPal aussi** : le script principal `scripts/powpow-register.mjs` est
 zéro dépendance (Node ≥ 18), l'utilisateur ne quitte jamais la conversation, à part deux courtes sorties :
-aller chercher le code dans sa boîte mail, et payer à la caisse Alipay. Sans Node, ou si l'utilisateur
+aller chercher le code dans sa boîte mail, et payer à la caisse Alipay/PayPal. Sans Node, ou si l'utilisateur
 préfère faire lui-même, repli automatique en mode guide pure.
 
 ## Installation
@@ -28,9 +28,9 @@ openclaw skills install @durenzidu/powpow-register
    directement à la page d'abonnement ; après encaissement du paiement, on échange contre un nouvel état de
    connexion puis un lien de membership complet mène directement à l'accueil (via le pont officiel
    `me?token=` de la plateforme, qui pose automatiquement le cookie HttpOnly).
-4. **Paiement de l'abonnement** : canal Alipay, commande déléguée à l'agent (mensuel ¥6.99 / trimestriel
-   ¥19.99 / annuel ¥69.99, achat unique sans renouvellement automatique) + interrogation en boucle jusqu'à
-   l'encaissement ; repli vers PayPal pour les utilisateurs à l'étranger ; QR code WeChat / Huawei IAP : on montre le chemin.
+4. **Paiement de l'abonnement** : Alipay (mensuel ¥6.99 / trimestriel
+   ¥19.99 / annuel ¥69.99, achat unique sans renouvellement automatique) comme PayPal (Premium Monthly, environ $1/mois, renouvellement automatique, annulable à tout moment) sont gérés par l'agent : commande + interrogation en boucle jusqu'à
+   l'encaissement ; QR code WeChat / Huawei IAP : on montre le chemin.
 5. **Diagnostic des erreurs** : code de vérification non reçu, nom d'utilisateur/e-mail déjà pris, 403 non
    activé, compte verrouillé, etc. — tout vient du code source de la plateforme, sources citées.
 
@@ -61,8 +61,8 @@ powpow-register/
   usage ; le fichier d'état (e-mail/nom d'utilisateur/token/numéro de commande) est stocké dans le
   répertoire temporaire système, effacé d'un coup par `cleanup` en fin de flux.
 - **Paiement** : l'agent ne fait que créer la commande, ouvrir la caisse et consulter l'encaissement ; il
-  ne touche jamais au compte Alipay de l'utilisateur ni à ses moyens de paiement, et ne paie jamais à sa
-  place. Le paiement se fait toujours entre l'utilisateur et la caisse officielle Alipay.
+  ne touche jamais au compte Alipay/PayPal de l'utilisateur ni à ses moyens de paiement, et ne paie jamais à sa
+  place. Le paiement se fait toujours entre l'utilisateur et la caisse officielle.
 - Toutes les requêtes ne partent que vers le domaine officiel `https://global.powpow.online` ; aucune clé n'est incluse.
 
 ## Licence

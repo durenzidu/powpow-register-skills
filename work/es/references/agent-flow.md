@@ -23,8 +23,8 @@ el script es de **cero dependencias** y requiere **Node ≥ 18**; todas las peti
 | `send-code` | `--email` | Dispara el envío por la plataforma del código de verificación de 6 dígitos (válido 10 minutos, enfriamiento de 60s) |
 | `register` | `--code` (obligatorio); `--username --nickname --avatar --phone` (opcionales, se omiten si ya están en el archivo de estado) | Crea la cuenta pending; la contraseña va por la variable de entorno `POWPOW_REGISTER_PASSWORD`; tras el éxito el JWT se guarda automáticamente en el archivo de estado |
 | `login-link` | `--target pending` o `--target home` | Genera un enlace de inicio de sesión con un clic (diseño de doble enlace, ver abajo) |
-| `create-order` | `--package monthly\|quarterly\|yearly` | Crea el pedido de Alipay; devuelve la ruta del archivo de la página de pago + outTradeNo (anotado automáticamente en el archivo de estado) |
-| `query` | —— | Consulta el estado del pedido `paid / pending / closed / unknown` (el outTradeNo se toma del archivo de estado), sondeo cada 10–15s |
+| `create-order` | `--package monthly\|quarterly\|yearly` (Alipay por defecto)<br>`--provider alipay\|paypal` | Crea el pedido de pago; Alipay devuelve la ruta del archivo de la página de pago + outTradeNo; PayPal devuelve la ruta del archivo de la página de autorización + subscriptionId (anotado automáticamente en el archivo de estado) |
+| `query` | —— | Consulta el estado del pedido/suscripción. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; sondeo cada 10–15s |
 | `refresh-login` | La contraseña por variable de entorno | Vuelve a iniciar sesión y obtiene un **JWT nuevo** (la declaración de suscripción pasa de NONE a ACTIVE); obligatorio tras confirmar el cobro |
 | `whoami` | —— | Consulta con el token del archivo de estado el estado de la cuenta y de la suscripción (para verificar si la activación surtió efecto) |
 | `cleanup` | —— | Borra el archivo de estado (obligatorio al cerrar) |
@@ -63,10 +63,12 @@ redirect (solo rutas que empiezan con una sola barra, prohibidos `//` y la barra
 4.  send-code --email E             # → el usuario va al correo a mirar el código (única salida de la conversación, momento ①)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
 6.  login-link --target pending     # → enlace 1 enviado al usuario
-7.  (el usuario elige plan) create-order --package monthly
+7.  (el usuario elige método de pago)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
 8.  start <archivo de la página de pago>   # Windows; en macOS usar open, en Linux xdg-open
-     # → el usuario paga en la caja de Alipay (salida de la conversación, momento ②)
-9.  query (cada 10–15s) hasta paid
+     # → el usuario completa el pago/autorización en la caja de Alipay/PayPal (salida de la conversación, momento ②)
+9.  query (cada 10–15s) hasta paid / ACTIVE
 10. refresh-login                   # cambio por el JWT nuevo con declaración ACTIVE
 11. login-link --target home        # → enlace 2 enviado al usuario
 12. whoami                          # confirmar subscriptionStatus: ACTIVE (opcional)
@@ -80,8 +82,8 @@ redirect (solo rutas que empiezan con una sola barra, prohibidos `//` y la barra
 | `send-code` | `POST /api/auth/register/send-code` |
 | `register` | `POST /api/auth/register` (multipart, subida directa del avatar) |
 | `login-link` | `GET /api/auth/me?token=…&redirect=…` (el enlace en sí, surte efecto al pulsarlo en el navegador) |
-| `create-order` | `POST /api/payment/alipay/create-order` (Bearer) |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer) |
+| `create-order` | `POST /api/payment/alipay/create-order` (Bearer, Alipay)<br>`GET /api/subscription/plans` + `POST /api/subscription/create` (Bearer, PayPal) |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer, Alipay)<br>`GET /api/subscription/create` (Bearer, PayPal) |
 | `refresh-login` | `POST /api/auth/login` (`{step:1, username, password}`) |
 | `whoami` | `GET /api/auth/me?token=…` |
 
@@ -96,9 +98,10 @@ Fuente de las reglas: campos de registro y límites de frecuencia en `registrati
 | Error de red / timeout | Reintenta una vez; si sigue fallando, que el usuario revise la red y continúa (el archivo de estado sigue ahí; recupera desde el principio ejecutando `status`) |
 | register devuelve un error de negocio (nombre de usuario ya existe, etc.) | Trátalo según la tabla del paso 5 de SKILL.md, **no hace falta reenviar el código de verificación** (sigue siendo válido durante 10 minutos) |
 | register devuelve 「邮箱验证码错误或已过期」 (código de verificación incorrecto o caducado) | Si pasó el tiempo → volver a `send-code` |
-| El usuario cerró la página de pago tras `create-order` | Vuelve a ejecutar `create-order` directamente (el pedido viejo se cierra solo a las 2h) |
-| `query` sigue en pending | Puede que el usuario no haya pagado; pregunta. Si de verdad pagó → sigue la tabla de diagnóstico de payment-and-activation.md |
-| `refresh-login` da 403 `pending_payment` | El cobro aún no ha llegado; vuelve al paso 9 y sigue sondeando |
+| El usuario cerró la página de pago tras `create-order` | Vuelve a ejecutar `create-order` directamente (el pedido viejo se cierra solo a las 2h; las suscripciones PENDING de PayPal expiran a la 1h) |
+| `create-order --provider paypal` devuelve 409 | Ya hay una suscripción de PayPal sin terminar; espera 1h a que expire o completa la autorización antigua en el navegador |
+| `query` sigue en pending / PENDING | Puede que el usuario no haya pagado; pregunta. Si de verdad pagó → sigue la tabla de diagnóstico de payment-and-activation.md |
+| `refresh-login` da 403 `pending_payment` | El cobro o la autorización aún no ha llegado; vuelve al paso 9 y sigue sondeando |
 | Archivo de estado perdido (borrado por error / cambio de máquina) | `whoami`/`refresh-login` dejan de servir; que el usuario actualice directamente la página de suscripción en el navegador donde abrió el enlace 1 para confirmar el estado, o inicie sesión de nuevo (modo web) |
 
 ## Modo de retroceso (guía pura)

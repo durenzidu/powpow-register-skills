@@ -23,8 +23,8 @@ script **không phụ thuộc**, cần **Node ≥ 18**, mọi request chỉ gử
 | `send-code` | `--email` | Kích hoạt nền tảng gửi mã xác minh 6 chữ số (hiệu lực 10 phút, thời gian chờ 60s) |
 | `register` | `--code` (bắt buộc); `--username --nickname --avatar --phone` (không bắt buộc, file trạng thái có thì khỏi truyền) | Tạo tài khoản pending; mật khẩu đi qua biến môi trường `POWPOW_REGISTER_PASSWORD`; thành công thì JWT tự lưu vào file trạng thái |
 | `login-link` | `--target pending` hoặc `--target home` | Sinh link đăng nhập một chạm (thiết kế link kép, xem dưới) |
-| `create-order` | `--package monthly\|quarterly\|yearly` | Tạo đơn Alipay; trả về đường dẫn file trang thanh toán + outTradeNo (tự ghi vào file trạng thái) |
-| `query` | —— | Tra trạng thái đơn `paid / pending / closed / unknown` (outTradeNo lấy từ file trạng thái), luân phiên 10–15s |
+| `create-order` | `--package monthly\|quarterly\|yearly` (mặc định là Alipay)<br>`--provider alipay\|paypal` | Tạo đơn thanh toán; Alipay trả về đường dẫn file trang thanh toán + outTradeNo; PayPal trả về đường dẫn file trang ủy quyền + subscriptionId (tự ghi vào file trạng thái) |
+| `query` | —— | Tra trạng thái đơn/gói. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; luân phiên 10–15s |
 | `refresh-login` | Mật khẩu qua biến môi trường | Đăng nhập lại đổi **JWT mới** (tuyên bố gói từ NONE thành ACTIVE), sau khi tiền về bắt buộc phải chạy |
 | `whoami` | —— | Dùng token trong file trạng thái tra tài khoản và trạng thái gói (kiểm tra kích hoạt đã ăn chưa) |
 | `cleanup` | —— | Xóa file trạng thái (buộc chạy khi thu dọn) |
@@ -65,10 +65,12 @@ cùng nguồn) → 307 tạm thời chuyển hướng đến trang đích.
 4.  send-code --email E             # → Người dùng vào email xem mã (khúc duy nhất rời hội thoại ①)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
 6.  login-link --target pending     # → Link 1 gửi cho người dùng
-7.  (Người dùng chọn gói) create-order --package monthly
+7.  (Người dùng chọn phương thức thanh toán)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
 8.  start <file trang thanh toán>   # Windows; macOS dùng open, Linux dùng xdg-open
-    # → Người dùng trả tiền tại trang thu ngân Alipay (khúc rời hội thoại ②)
-9.  query (cứ 10–15s) cho đến khi paid
+    # → Người dùng hoàn tất thanh toán/ủy quyền tại trang thu ngân Alipay/PayPal (khúc rời hội thoại ②)
+9.  query (cứ 10–15s) cho đến khi paid / ACTIVE
 10. refresh-login                   # Đổi JWT mới mang tuyên bố ACTIVE
 11. login-link --target home        # → Link 2 gửi cho người dùng
 12. whoami                          # Xác nhận subscriptionStatus: ACTIVE (không bắt buộc)
@@ -82,8 +84,8 @@ cùng nguồn) → 307 tạm thời chuyển hướng đến trang đích.
 | `send-code` | `POST /api/auth/register/send-code` |
 | `register` | `POST /api/auth/register` (multipart, tải thẳng ảnh đại diện) |
 | `login-link` | `GET /api/auth/me?token=…&redirect=…` (chính bản thân link, hiệu lực khi trình duyệt click) |
-| `create-order` | `POST /api/payment/alipay/create-order` (Bearer) |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer) |
+| `create-order` | `POST /api/payment/alipay/create-order` (Bearer, Alipay)<br>`GET /api/subscription/plans` + `POST /api/subscription/create` (Bearer, PayPal) |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer, Alipay)<br>`GET /api/subscription/create` (Bearer, PayPal) |
 | `refresh-login` | `POST /api/auth/login` (`{step:1, username, password}`) |
 | `whoami` | `GET /api/auth/me?token=…` |
 
@@ -98,9 +100,10 @@ Xuất xứ quy tắc: trường đăng ký và giới hạn tần suất xem `r
 | Lỗi mạng / quá thời gian chờ | Thử lại một lần; vẫn thất bại thì nhờ người dùng kiểm tra mạng rồi tiếp tục (file trạng thái còn, chạy `status` từ đầu để khôi phục) |
 | register báo lỗi nghiệp vụ (tên người dùng đã tồn tại v.v.) | Xử lý theo bảng ở bước 5 SKILL.md, **mã xác minh không cần gửi lại** (trong 10 phút vẫn còn hiệu lực) |
 | register báo «mã xác minh sai hoặc hết hạn» | Quá thời hạn → `send-code` lại |
-| Sau `create-order` người dùng đóng trang thanh toán | Chạy lại `create-order` thẳng (đơn cũ 2h tự đóng) |
-| `query` mãi pending | Người dùng có thể chưa trả; hỏi một câu. Thật sự đã trả → đi theo bảng xử lý trong payment-and-activation.md |
-| `refresh-login` 403 `pending_payment` | Tiền chưa về, quay lại bước 9 tiếp tục luân phiên |
+| Sau `create-order` người dùng đóng trang thanh toán | Chạy lại `create-order` thẳng (đơn cũ 2h tự đóng; gói PENDING của PayPal hết hạn sau 1h) |
+| `create-order --provider paypal` báo 409 | Đã có một gói PayPal chưa hoàn tất; đợi 1h cho hết hạn, hoặc hoàn tất ủy quyền cũ trong trình duyệt |
+| `query` mãi pending / PENDING | Người dùng có thể chưa trả; hỏi một câu. Thật sự đã trả → đi theo bảng xử lý trong payment-and-activation.md |
+| `refresh-login` 403 `pending_payment` | Tiền/ủy quyền chưa về, quay lại bước 9 tiếp tục luân phiên |
 | File trạng thái mất (tay lỡ xóa / đổi máy) | `whoami`/`refresh-login` không dùng được; nhờ người dùng mở trình duyệt đã từng mở link 1, trực tiếp tải lại trang gói để xác nhận trạng thái, hoặc đăng nhập lại (chế độ trang web) |
 
 ## Chế độ lùi (hướng dẫn thuần)

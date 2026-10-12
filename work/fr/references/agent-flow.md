@@ -23,8 +23,8 @@ le script est **zéro dépendance** et requiert **Node ≥ 18** ; toutes les req
 | `send-code` | `--email` | Déclenche l'envoi par la plateforme du code de vérification à 6 chiffres (valable 10 minutes, refroidissement 60s) |
 | `register` | `--code` (obligatoire) ; `--username --nickname --avatar --phone` (optionnels, omis s'ils sont déjà dans le fichier d'état) | Crée le compte pending ; le mot de passe passe par la variable d'environnement `POWPOW_REGISTER_PASSWORD` ; en cas de succès, le JWT est automatiquement stocké dans le fichier d'état |
 | `login-link` | `--target pending` ou `--target home` | Génère un lien de connexion en un clic (conception à double lien, voir plus bas) |
-| `create-order` | `--package monthly\|quarterly\|yearly` | Crée la commande Alipay ; renvoie le chemin du fichier de la page de paiement + outTradeNo (noté automatiquement dans le fichier d'état) |
-| `query` | —— | Consulte l'état de la commande `paid / pending / closed / unknown` (outTradeNo pris dans le fichier d'état), interrogation toutes les 10–15s |
+| `create-order` | `--package monthly\|quarterly\|yearly` (Alipay par défaut)<br>`--provider alipay\|paypal` | Crée la commande de paiement ; Alipay renvoie le chemin du fichier de la page de paiement + outTradeNo ; PayPal renvoie le chemin du fichier de la page d'autorisation + subscriptionId (noté automatiquement dans le fichier d'état) |
+| `query` | —— | Consulte l'état de la commande / de l'abonnement. Alipay : `paid / pending / closed / unknown` ; PayPal : `ACTIVE / PENDING` ; interrogation toutes les 10–15s |
 | `refresh-login` | Mot de passe par variable d'environnement | Reconnexion pour un **JWT neuf** (la déclaration d'abonnement passe de NONE à ACTIVE) ; obligatoire après encaissement |
 | `whoami` | —— | Consulte avec le token du fichier d'état l'état du compte et de l'abonnement (vérifier si l'activation a pris effet) |
 | `cleanup` | —— | Supprime le fichier d'état (obligatoire à la clôture) |
@@ -68,10 +68,12 @@ obligatoire) → 307 redirection temporaire vers la page cible.
 4.  send-code --email E             # → l'utilisateur va lire le code dans sa boîte mail (seule sortie de la conversation, moment ①)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
 6.  login-link --target pending     # → lien 1 envoyé à l'utilisateur
-7.  (l'utilisateur choisit sa formule) create-order --package monthly
+7.  (l'utilisateur choisit son moyen de paiement)
+    # Alipay : create-order --package monthly|quarterly|yearly
+    # PayPal : create-order --provider paypal
 8.  start <fichier de la page de paiement>   # Windows ; sur macOS utiliser open, sur Linux xdg-open
-     # → l'utilisateur paie à la caisse Alipay (sortie de la conversation, moment ②)
-9.  query (toutes les 10–15s) jusqu'à paid
+     # → l'utilisateur finalise le paiement/l'autorisation à la caisse Alipay/PayPal (sortie de la conversation, moment ②)
+9.  query (toutes les 10–15s) jusqu'à paid / ACTIVE
 10. refresh-login                   # échange contre le JWT neuf avec déclaration ACTIVE
 11. login-link --target home        # → lien 2 envoyé à l'utilisateur
 12. whoami                          # confirmer subscriptionStatus: ACTIVE (facultatif)
@@ -85,8 +87,8 @@ obligatoire) → 307 redirection temporaire vers la page cible.
 | `send-code` | `POST /api/auth/register/send-code` |
 | `register` | `POST /api/auth/register` (multipart, upload direct de l'avatar) |
 | `login-link` | `GET /api/auth/me?token=…&redirect=…` (le lien lui-même, prend effet au clic dans le navigateur) |
-| `create-order` | `POST /api/payment/alipay/create-order` (Bearer) |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer) |
+| `create-order` | `POST /api/payment/alipay/create-order` (Bearer, Alipay)<br>`GET /api/subscription/plans` + `POST /api/subscription/create` (Bearer, PayPal) |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer, Alipay)<br>`GET /api/subscription/create` (Bearer, PayPal) |
 | `refresh-login` | `POST /api/auth/login` (`{step:1, username, password}`) |
 | `whoami` | `GET /api/auth/me?token=…` |
 
@@ -102,9 +104,10 @@ plateforme).
 | Erreur réseau / timeout | Réessaie une fois ; si ça échoue encore, l'utilisateur vérifie son réseau puis on continue (le fichier d'état est toujours là ; relance `status` depuis le début pour reprendre) |
 | register renvoie une erreur métier (nom d'utilisateur déjà existant, etc.) | Traite selon le tableau de l'étape 5 de SKILL.md, **pas besoin de renvoyer le code de vérification** (encore valable pendant 10 minutes) |
 | register renvoie 「邮箱验证码错误或已过期」 (code de vérification erroné ou expiré) | Délai dépassé → relancer `send-code` |
-| L'utilisateur a fermé la page de paiement après `create-order` | Relance directement `create-order` (l'ancienne commande se ferme seule au bout de 2h) |
-| `query` reste en pending | L'utilisateur n'a peut-être pas payé ; pose la question. S'il a vraiment payé → suis le tableau de diagnostic de payment-and-activation.md |
-| `refresh-login` renvoie 403 `pending_payment` | Le paiement n'est pas encore encaissé ; retourne à l'étape 9 et continue d'interroger |
+| L'utilisateur a fermé la page de paiement après `create-order` | Relance directement `create-order` (l'ancienne commande se ferme seule au bout de 2h ; les abonnements PENDING PayPal expirent au bout de 1h) |
+| `create-order --provider paypal` renvoie 409 | Il existe déjà un abonnement PayPal non finalisé ; attends 1h qu'il expire, ou finalise l'ancienne autorisation dans le navigateur |
+| `query` reste en pending / PENDING | L'utilisateur n'a peut-être pas payé ; pose la question. S'il a vraiment payé → suis le tableau de diagnostic de payment-and-activation.md |
+| `refresh-login` renvoie 403 `pending_payment` | Le paiement/l'autorisation n'est pas encore encaissé ; retourne à l'étape 9 et continue d'interroger |
 | Fichier d'état perdu (supprimé par erreur / changement de machine) | `whoami`/`refresh-login` inutilisables ; l'utilisateur actualise directement la page d'abonnement dans le navigateur où il a ouvert le lien 1 pour vérifier l'état, ou se reconnecte (mode Web) |
 
 ## Mode de repli (guide pure)

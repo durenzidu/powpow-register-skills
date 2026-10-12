@@ -23,8 +23,8 @@ das Skript hat **null Abhängigkeiten** und benötigt **Node ≥ 18**; alle Anfr
 | `send-code` | `--email` | Löst den Versand des 6-stelligen Verifizierungscodes durch die Plattform aus (10 Minuten gültig, 60 s Abklingzeit) |
 | `register` | `--code` (Pflicht); `--username --nickname --avatar --phone` (optional; wenn in der Statusdatei vorhanden, keine erneute Übergabe nötig) | Legt ein pending-Konto an; das Passwort läuft über die Umgebungsvariable `POWPOW_REGISTER_PASSWORD`; nach Erfolg wird das JWT automatisch in der Statusdatei gespeichert |
 | `login-link` | `--target pending` oder `--target home` | Erzeugt einen Ein-Klick-Login-Link (Dual-Link-Design, siehe unten) |
-| `create-order` | `--package monthly\|quarterly\|yearly` | Erstellt die Alipay-Bestellung; liefert den Dateipfad der Zahlungsseite + outTradeNo (wird automatisch in die Statusdatei eingetragen) |
-| `query` | —— | Fragt den Bestellstatus ab: `paid / pending / closed / unknown` (outTradeNo kommt aus der Statusdatei); alle 10–15 s pollen |
+| `create-order` | `--package monthly\|quarterly\|yearly` (Standard: Alipay)<br>`--provider alipay\|paypal` | Legt die Zahlungsbestellung an; Alipay liefert den Dateipfad der Zahlungsseite + outTradeNo, PayPal den Dateipfad der Autorisierungsseite + subscriptionId (automatisch in die Statusdatei eingetragen) |
+| `query` | —— | Fragt den Status von Bestellung/Abo ab. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; alle 10–15 s pollen |
 | `refresh-login` | Passwort über Umgebungsvariable | Erneutes Login für ein **neues JWT** (der Abo-Anspruch wechselt von NONE zu ACTIVE); nach dem Zahlungseingang zwingend ausführen |
 | `whoami` | —— | Prüft mit dem Token aus der Statusdatei Konto- und Abo-Status (verifiziert, ob die Aktivierung gegriffen hat) |
 | `cleanup` | —— | Löscht die Statusdatei (zum Abschluss zwingend ausführen) |
@@ -63,10 +63,12 @@ redirect (nur mit einfachem Schrägstrich beginnend; `//` und Backslash verboten
 4.  send-code --email E             # → der Nutzer holt den Code im Postfach ab (einziges Verlassen des Chats, Stelle ①)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
 6.  login-link --target pending     # → Link 1 an den Nutzer senden
-7.  (der Nutzer wählt den Plan) create-order --package monthly
+7.  (der Nutzer wählt die Zahlungsart)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
 8.  start <Zahlungsseitendatei>     # Windows; macOS: open, Linux: xdg-open
-    # → der Nutzer zahlt an der Alipay-Kasse (Verlassen des Chats, Stelle ②)
-9.  query (alle 10–15 s) bis paid
+    # → der Nutzer schließt Zahlung/Autorisierung an der Alipay-/PayPal-Kasse ab (Verlassen des Chats, Stelle ②)
+9.  query (alle 10–15 s) bis paid / ACTIVE
 10. refresh-login                   # neues JWT mit ACTIVE-Anspruch holen
 11. login-link --target home        # → Link 2 an den Nutzer senden
 12. whoami                          # subscriptionStatus: ACTIVE bestätigen (optional)
@@ -80,8 +82,8 @@ redirect (nur mit einfachem Schrägstrich beginnend; `//` und Backslash verboten
 | `send-code` | `POST /api/auth/register/send-code` |
 | `register` | `POST /api/auth/register` (multipart, Avatar-Direktupload) |
 | `login-link` | `GET /api/auth/me?token=…&redirect=…` (der Link selbst; wird beim Klick im Browser wirksam) |
-| `create-order` | `POST /api/payment/alipay/create-order` (Bearer) |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer) |
+| `create-order` | `POST /api/payment/alipay/create-order` (Bearer, Alipay)<br>`GET /api/subscription/plans` + `POST /api/subscription/create` (Bearer, PayPal) |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer, Alipay)<br>`GET /api/subscription/create` (Bearer, PayPal) |
 | `refresh-login` | `POST /api/auth/login` (`{step:1, username, password}`) |
 | `whoami` | `GET /api/auth/me?token=…` |
 
@@ -96,9 +98,10 @@ Quellen der Regeln: Registrierungsfelder und Rate Limits siehe `registration-flo
 | Netzwerkfehler / Timeout | Einmal wiederholen; wenn es weiterhin scheitert, den Nutzer das Netzwerk prüfen lassen und dann weitermachen (die Statusdatei ist noch da — mit `status` von vorn herstellen) |
 | `register` meldet einen Business-Fehler (「用户名已存在」(Der Benutzername existiert bereits) usw.) | Nach der Tabelle in SKILL.md Schritt 5 behandeln; **den Verifizierungscode nicht erneut senden** (innerhalb von 10 Minuten weiterhin gültig) |
 | `register` meldet 「邮箱验证码错误或已过期」(Der E-Mail-Verifizierungscode ist falsch oder abgelaufen) | Abgelaufen → `send-code` erneut |
-| Nach `create-order` hat der Nutzer die Zahlungsseite geschlossen | Einfach erneut `create-order` (die alte Bestellung schließt sich nach 2 h automatisch) |
-| `query` bleibt dauerhaft pending | Der Nutzer hat eventuell nicht bezahlt; kurz nachfragen. Wirklich bezahlt → nach der Troubleshooting-Tabelle in payment-and-activation.md vorgehen |
-| `refresh-login` 403 `pending_payment` | Die Zahlung ist noch nicht eingegangen; zurück zu Schritt 9 und weiter pollen |
+| Nach `create-order` hat der Nutzer die Zahlungsseite geschlossen | Einfach erneut `create-order` (die alte Bestellung schließt sich nach 2 h automatisch; PayPal-PENDING-Abos laufen nach 1 h ab) |
+| `create-order --provider paypal` meldet 409 | Es gibt schon ein unfertiges PayPal-Abo; 1 h warten, bis es abläuft, oder die alte Autorisierung im Browser abschließen |
+| `query` bleibt dauerhaft pending / PENDING | Der Nutzer hat eventuell nicht bezahlt; kurz nachfragen. Wirklich bezahlt → nach der Troubleshooting-Tabelle in payment-and-activation.md vorgehen |
+| `refresh-login` 403 `pending_payment` | Die Zahlung/Autorisierung ist noch nicht eingegangen; zurück zu Schritt 9 und weiter pollen |
 | Statusdatei verloren (versehentlich gelöscht / Rechnerwechsel) | `whoami`/`refresh-login` funktionieren nicht; den Nutzer im Browser, in dem Link 1 geöffnet wurde, die Abo-Seite neu laden und den Status prüfen lassen — oder neu einloggen (Web-Modus) |
 
 ## Rückfallmodus (reine Anleitung)

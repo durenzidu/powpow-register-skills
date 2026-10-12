@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Pomaga użytkownikowi dokończyć w rozmowie rejestrację PowPow (Bańka), aktywację subskrypcji Alipay i logowanie jednym kliknięciem. Agent wypełnia formularz w jego imieniu (łącznie z wgrywaniem avatara), wysyła kod weryfikacyjny e-mailem, tworzy zamówienie płatności i śledzi księgowanie; użytkownik podaje tylko podstawowe dane, raz zagląda do skrzynki po kod i płaci w kasie Alipay — bez wychodzenia z rozmowy. Wyzwalane zdaniami „zarejestruj Bańkę", „załóż konto powpow", „jak się rejestruje w Bańce", „pomóż mi założyć konto powpow", „sign up powwow"; obsługuje też utknięcie rejestracji (kod nie dochodzi, nazwa użytkownika/e-mail zajęte) i problemy z aktywacją (login mówi „konto nieaktywne" / pending_payment, jak opłacić subskrypcję). Wymaga Node ≥ 18; przy braku automatycznie przechodzi w tryb czystych wskazówek. Nie obejmuje publikowania postów/tworzenia cyfrowych ludzi (to robota powpow-simple) ani developmentu kodu.
-version: 2.0.1
+description: Pomaga użytkownikowi dokończyć w rozmowie rejestrację PowPow (Bańka), aktywację subskrypcji Alipay lub PayPal i logowanie jednym kliknięciem. Agent wypełnia formularz w jego imieniu (łącznie z wgrywaniem avatara), wysyła kod weryfikacyjny e-mailem, tworzy zamówienie płatności i śledzi księgowanie; użytkownik podaje tylko podstawowe dane, raz zagląda do skrzynki po kod i płaci w kasie Alipay lub PayPal — bez wychodzenia z rozmowy. Wyzwalane zdaniami „zarejestruj Bańkę", „załóż konto powpow", „jak się rejestruje w Bańce", „pomóż mi założyć konto powpow", „sign up powwow"; obsługuje też utknięcie rejestracji (kod nie dochodzi, nazwa użytkownika/e-mail zajęte) i problemy z aktywacją (login mówi „konto nieaktywne" / pending_payment, jak opłacić subskrypcję). Wymaga Node ≥ 18; przy braku automatycznie przechodzi w tryb czystych wskazówek. Nie obejmuje publikowania postów/tworzenia cyfrowych ludzi (to robota powpow-simple) ani developmentu kodu.
+version: 2.1.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,9 +10,9 @@ metadata:
 
 # PowPow Register (asystent rejestracji w Bańce)
 
-Przeprowadzamy nowego użytkownika od „nie wiem, czym jest Bańka" do „konto aktywne, logowanie jednym kliknięciem, można zaczynać" — w całości w rozmowie. Użytkownik tylko dwa razy musi na chwilę wyjść z rozmowy: **wejść do skrzynki e-mail po kod weryfikacyjny** i **zapłacić w kasie Alipay** (agent sam otworzy stronę kasy).
+Przeprowadzamy nowego użytkownika od „nie wiem, czym jest Bańka" do „konto aktywne, logowanie jednym kliknięciem, można zaczynać" — w całości w rozmowie. Użytkownik tylko dwa razy musi na chwilę wyjść z rozmowy: **wejść do skrzynki e-mail po kod weryfikacyjny** i **zapłacić w kasie** (Alipay lub PayPal — agent sam otworzy stronę kasy).
 
-**Wersja 2.0.1** · 2026-10-08 (od v2 tryb agenta działającego w imieniu użytkownika: kontrakt skryptu i pełna sekwencja w `references/agent-flow.md`; reguły pól, limity i rozwiązywanie błędów w `references/registration-flow.md`; kanały płatności w `references/payment-and-activation.md`; lista zrzutów ekranu produktu w `references/screenshots.md`. Od v2.0.1 zrzuty ekranu produktu są pakowane razem ze skillem w `assets/screenshots/` i nie zależą od zewnętrznego hostingu obrazków)
+**Wersja 2.1.0** · 2026-10-11 (od v2 tryb agenta działającego w imieniu użytkownika: kontrakt skryptu i pełna sekwencja w `references/agent-flow.md`; reguły pól, limity i rozwiązywanie błędów w `references/registration-flow.md`; kanały płatności w `references/payment-and-activation.md`; lista zrzutów ekranu produktu w `references/screenshots.md`. Od v2.1.0 subskrypcje PayPal też może obsługiwać agent, jako opcję obok Alipay)
 
 ## Środowisko uruchomieniowe
 
@@ -38,7 +38,7 @@ Przeprowadzamy nowego użytkownika od „nie wiem, czym jest Bańka" do „konto
 | 3 Wysyłka kodu | `send-code` | —— |
 | 4 Odczyt kodu | —— | Wchodzi do skrzynki, odczytuje 6-cyfrowy kod, odsyła go |
 | 5 Zgłoszenie rejestracji | `register` (z bezpośrednim wgraniem avatara), błędy obsługuje automatycznie | —— |
-| 6 Półzalogowanie + płatność | `login-link(pending)` → `create-order` → otwiera kasę → odpytuje `query` | Klika link, płaci |
+| 6 Półzalogowanie + płatność | `login-link(pending)` → `create-order --provider alipay|paypal` → otwiera kasę → odpytuje `query` | Klika link, płaci |
 | 7 Pełne logowanie | `refresh-login` → `login-link(home)` | Klika link i wchodzi na stronę główną |
 | 8 Zamknięcie | `cleanup` + przekazanie danych konta + wprowadzenie do zabawy + polecenie wtyczki | Zaczyna zabawę |
 
@@ -100,15 +100,23 @@ Sukces = konto założone (stan pending, z 3 odznakami startowymi). Częste bł�
    node scripts/powpow-register.mjs login-link --target pending
    ```
    Wyślij link użytkownikowi: **po otwarciu przeglądarka ląduje wprost na stronie subskrypcji, już zalogowana** — dzięki temu po zapłaceniu strona powrotu poprawnie pokaże „płatność zakończona". (W tym stanie strony treści nadal są odsyłane do strony subskrypcji: to normalna praca paywalla platformy, nie bug, i nie trzeba tłumaczyć użytkownikowi mechaniki wewnętrznej.)
-2. Trzy pakiety do wyboru, przy prezentacji podaj ceny:
-   - Miesięczny **¥6.99** (polecany na start) / Kwartalny **¥19.99** / Roczy **¥69.99** — Alipay, jednorazowy zakup na dany okres, **bez automatycznego odnawiania**
+2. **Poproś użytkownika o wybór metody płatności** — pokaż oba kanały:
+   - **Alipay (Chiny / użytkownicy z Alipay)**: jednorazowy zakup odpowiedniego okresu, **bez automatycznego odnawiania**
+     - Miesięcznie **¥6.99** (polecany na start) / Kwartalnie **¥19.99** / Rocznie **¥69.99**
+   - **PayPal (zagranica / bez Alipay)**: automatyczne odnawianie co miesiąc, rezygnacja w każdej chwili
+     - Premium Monthly, ok. **$1/mies.** (zgodnie z tym, co pokazuje strona subskrypcji; automatyczne odnawianie)
 3. Gdy użytkownik wybierze:
-   ```
-   node scripts/powpow-register.mjs create-order --package monthly
-   ```
-   Skrypt zwróci ścieżkę pliku strony płatności; **otwórz ją bezpośrednio poleceniem systemowym** (Windows: `start <plik>`; macOS: `open <plik>`; Linux: `xdg-open <plik>`). Przeglądarka sama przeskoczy do oficjalnej kasy Alipay; użytkownik skanuje kod albo loguje się w Alipay i płaci.
-4. Co 10–15 sekund uruchamiaj `query`, aż zwróci `paid` (księgowanie zwykle trwa od kilku sekund do minuty). Użytkownik zamknie stronę płatności w trakcie → po prostu ponów `create-order` (stare zamówienie zamknie się automatycznie po 2 godzinach, nie musisz się nim przejmować).
-5. Użytkownicy spoza Chin / bez Alipay: skieruj na kanał PayPal na stronie subskrypcji (skill tego nie załatwia, tylko wskazuje drogę); kanał skanowania WeChat to potwierdzenie ręczne, księgowanie bywa opóźnione. Po zapłacie tak samo wracają do kroku 7.
+   - **Alipay**:
+     ```
+     node scripts/powpow-register.mjs create-order --package monthly
+     ```
+   - **PayPal**:
+     ```
+     node scripts/powpow-register.mjs create-order --provider paypal
+     ```
+   Skrypt zwróci ścieżkę pliku strony płatności; **otwórz ją bezpośrednio poleceniem systemowym** (Windows: `start <plik>`; macOS: `open <plik>`; Linux: `xdg-open <plik>`). Przeglądarka sama przejdzie do oficjalnej kasy Alipay lub PayPal, gdzie użytkownik sfinalizuje płatność albo autoryzację obciążenia.
+4. Co 10–15 sekund uruchamiaj `query`, aż zwróci `paid` lub `ACTIVE` (księgowanie/autoryzacja zwykle trwa od kilku sekund do minuty). Jeśli użytkownik zamknie stronę płatności w trakcie → po prostu ponów `create-order` (stare zamówienia i wiszące subskrypcje zamykają się lub wygasają po 2 godzinach; nie przejmuj się nimi).
+5. Kanał skanowania WeChat wymaga ręcznego potwierdzenia i księgowanie może się opóźnić; Huawei IAP działa tylko w aplikacji HarmonyOS. Tych dwóch skill nie załatwia — po zapłacie i tak wracają do kroku 7.
 
 ## Krok 7: pełne logowanie (link 2)
 
@@ -148,7 +156,7 @@ Utrzymuj charakterystyczny dla powpow ton nastawiony na obsługę:
 
 - **Bezpieczeństwo poświadczeń**: hasło trafia do skryptu wyłącznie przez zmienną środowiskową `POWPOW_REGISTER_PASSWORD`, **nigdy** przez argumenty wiersza poleceń (widoczne w liście procesów) i nigdy do żadnego pliku (w trybie generowania pokazane raz, żeby użytkownik zapisał, potem nie wraca). Kod weryfikacyjny służy tylko oficjalnemu interfejsowi rejestracji i po użyciu przepada.
 - **Granica oficjalności**: wszystkie zapytania idą wyłącznie do `https://global.powpow.online` (wbudowane w skrypt); nigdy nie wysyłaj danych użytkownika pod żaden adres trzeciej strony.
-- **Granica płatności**: agent tylko tworzy zamówienie, otwiera kasę, sprawdza księgowanie; **nigdy** nie dotyka konta Alipay/dowodów płatności użytkownika i nigdy nie obiecuje „zapłacenia za niego".
+- **Granica płatności**: agent tylko tworzy zamówienie, otwiera kasę, sprawdza księgowanie; **nigdy** nie dotyka konta Alipay/PayPal/dowodów płatności użytkownika i nigdy nie obiecuje „zapłacenia za niego".
 - **Paywall to nie bug**: dostęp stanu pending do strony subskrypcji/strony powrotu to świadome przepuszczenie w projekcie; blokowanie stron treści to normalna praca paywalla platformy, nie próbuj tego obchodzić.
 - **Wolność cofnięcia**: gdy na dowolnym kroku użytkownik chce zrobić coś sam albo środowisko nie wspiera skryptu, w każdej chwili wracaj do trybu czystych wskazówek — daj linki, opowiedz zasady, rozwiązuj błędy razem z nim.
 - Nie zmyślaj reguł platformy: reguły pól, teksty błędów i parametry limitów pochodzą w całości z kodu platformy (`references/registration-flow.md` podaje źródła); przy aktualizacji platformy obowiązuje rzeczywiste zachowanie.

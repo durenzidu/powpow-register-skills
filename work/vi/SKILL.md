@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Giúp người dùng hoàn tất đăng ký PowPow (Bong Bóng), kích hoạt gói thành viên qua Alipay và đăng nhập một chạm ngay trong hội thoại. agent điền mẫu giúp người dùng (kèm tải ảnh đại diện), gửi mã xác minh qua email, tạo đơn thanh toán và theo dõi đến khi tiền về; người dùng chỉ cần cung cấp thông tin cơ bản, xem mã một lần trong hộp thư và thanh toán tại trang thu ngân Alipay, cả quá trình không rời hội thoại. Kích hoạt khi người dùng nói «đăng ký Bong Bóng», «tạo tài khoản powpow», «Bong Bóng đăng ký thế nào», «giúp tôi tạo tài khoản powpow», «sign up powpow»; cũng xử lý các vấn đề đăng ký bị kẹt (không nhận được mã xác minh, tên người dùng/email bị trùng) và vấn đề kích hoạt (đăng nhập báo «tài khoản chưa kích hoạt» / pending_payment, thanh toán gói thế nào). Cần Node ≥ 18; khi không có sẽ tự động lùi về chế độ hướng dẫn thuần. Không bao gồm đăng bài/tạo nhân vật số (đó là việc của powpow-simple), không bao gồm phát triển code.
-version: 2.0.1
+description: Giúp người dùng hoàn tất đăng ký PowPow (Bong Bóng), kích hoạt gói thành viên qua Alipay hoặc PayPal và đăng nhập một chạm ngay trong hội thoại. agent điền mẫu giúp người dùng (kèm tải ảnh đại diện), gửi mã xác minh qua email, tạo đơn thanh toán và theo dõi đến khi tiền về; người dùng chỉ cần cung cấp thông tin cơ bản, xem mã một lần trong hộp thư và thanh toán tại trang thu ngân Alipay hoặc PayPal, cả quá trình không rời hội thoại. Kích hoạt khi người dùng nói «đăng ký Bong Bóng», «tạo tài khoản powpow», «Bong Bóng đăng ký thế nào», «giúp tôi tạo tài khoản powpow», «sign up powpow»; cũng xử lý các vấn đề đăng ký bị kẹt (không nhận được mã xác minh, tên người dùng/email bị trùng) và vấn đề kích hoạt (đăng nhập báo «tài khoản chưa kích hoạt» / pending_payment, thanh toán gói thế nào). Cần Node ≥ 18; khi không có sẽ tự động lùi về chế độ hướng dẫn thuần. Không bao gồm đăng bài/tạo nhân vật số (đó là việc của powpow-simple), không bao gồm phát triển code.
+version: 2.1.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,9 +10,9 @@ metadata:
 
 # PowPow Register (trợ lý đăng ký Bong Bóng)
 
-Đưa một người dùng mới từ «không biết Bong Bóng là gì» đến «tài khoản đã kích hoạt, đăng nhập một chạm, bắt đầu chơi» — tất cả trong hội thoại. Người dùng chỉ cần rời hội thoại hai lần ngắn ngủi: **vào email xem mã xác minh** và **thanh toán tại trang thu ngân Alipay** (agent sẽ tự mở trang thanh toán).
+Đưa một người dùng mới từ «không biết Bong Bóng là gì» đến «tài khoản đã kích hoạt, đăng nhập một chạm, bắt đầu chơi» — tất cả trong hội thoại. Người dùng chỉ cần rời hội thoại hai lần ngắn ngủi: **vào email xem mã xác minh** và **thanh toán tại trang thu ngân** (Alipay hoặc PayPal — agent sẽ tự mở trang thanh toán).
 
-**Phiên bản 2.0.1** · 2026-10-08 (từ v2 là chế độ agent thao tác hộ: hợp đồng script và trình tự đầy đủ nằm trong `references/agent-flow.md`; quy tắc trường, giới hạn tần suất và xử lý lỗi trong `references/registration-flow.md`; kênh thanh toán trong `references/payment-and-activation.md`; danh sách ảnh chụp sản phẩm trong `references/screenshots.md`. Từ v2.0.1 ảnh chụp sản phẩm đi kèm skill trong `assets/screenshots/`, không phụ thuộc dịch vụ lưu ảnh bên ngoài)
+**Phiên bản 2.1.0** · 2026-10-11 (từ v2 là chế độ agent thao tác hộ: hợp đồng script và trình tự đầy đủ nằm trong `references/agent-flow.md`; quy tắc trường, giới hạn tần suất và xử lý lỗi trong `references/registration-flow.md`; kênh thanh toán trong `references/payment-and-activation.md`; danh sách ảnh chụp sản phẩm trong `references/screenshots.md`. Từ v2.1.0 gói PayPal cũng do agent thao tác hộ được, thành một lựa chọn ngang hàng với Alipay)
 
 ## Môi trường chạy
 
@@ -38,7 +38,7 @@ metadata:
 | 3 Gửi mã | `send-code` | —— |
 | 4 Đọc lại mã | —— | Vào email xem mã 6 chữ số, gửi lại |
 | 5 Gửi đăng ký | `register` (kèm tải thẳng ảnh đại diện), tự xử lý lỗi | —— |
-| 6 Phiên nửa + thanh toán | `login-link(pending)` → `create-order` → mở trang thu ngân → hỏi `query` | Mở link, thanh toán |
+| 6 Phiên nửa + thanh toán | `login-link(pending)` → `create-order --provider alipay|paypal` → mở trang thu ngân → hỏi `query` | Mở link, thanh toán |
 | 7 Đăng nhập chính thức | `refresh-login` → `login-link(home)` | Mở link vào trang chủ |
 | 8 Kết thúc | `cleanup` + giao thông tin tài khoản + hướng dẫn trải nghiệm + gợi ý plugin | Bắt đầu chơi |
 
@@ -100,15 +100,23 @@ Thành công là tài khoản được tạo (trạng thái pending, kèm 3 huy 
    node scripts/powpow-register.mjs login-link --target pending
    ```
    Gửi link cho người dùng: **mở ra trình duyệt rơi thẳng vào trang gói thành viên, đã ở trạng thái đăng nhập** — nhờ vậy khi thanh toán xong, trang hoàn tất hiển thị đúng «thanh toán thành công». (Ở trạng thái này các trang nội dung vẫn bị chặn về trang gói thành viên: đó là hoạt động bình thường của bức tường phí của nền tảng, không phải bug, cũng không cần giải thích cơ chế bên trong cho người dùng.)
-2. Ba gói để chọn, khi giới thiệu kèm giá:
-   - Tháng **¥6.99** (khuyên dùng khi mới thử) / Quý **¥19.99** / Năm **¥69.99** — Alipay mua đứt thời gian tương ứng một lần, **không tự động gia hạn**
+2. **Bảo người dùng chọn phương thức thanh toán** — đưa ra cả hai kênh:
+   - **Alipay (Trung Quốc đại lục / người dùng có Alipay)**: mua đứt thời gian tương ứng một lần, **không tự động gia hạn**
+     - Tháng **¥6.99** (khuyên dùng khi mới thử) / Quý **¥19.99** / Năm **¥69.99**
+   - **PayPal (nước ngoài / người dùng không có Alipay)**: tự động gia hạn theo tháng, hủy bất cứ lúc nào
+     - Premium Monthly, khoảng **$1/tháng** (theo hiển thị trên trang gói; tự động gia hạn)
 3. Khi người dùng chọn xong:
-   ```
-   node scripts/powpow-register.mjs create-order --package monthly
-   ```
-   Script trả về đường dẫn file trang thanh toán; **dùng lệnh hệ thống mở thẳng** (Windows: `start <tệp>`; macOS: `open <tệp>`; Linux: `xdg-open <tệp>`). Trình duyệt tự nhảy sang trang thu ngân chính thức của Alipay; người dùng quét mã QR hoặc đăng nhập Alipay để thanh toán.
-4. Cứ 10–15 giây chạy `query` một lần cho đến khi trả về `paid` (tiền về thường từ vài giây đến một phút). Người dùng đóng trang thanh toán giữa chừng → chạy lại `create-order` luôn (đơn cũ tự đóng sau 2 tiếng, khỏi bận tâm).
-5. Người dùng ở nước ngoài/không có Alipay: hướng dẫn dùng kênh PayPal trên trang gói thành viên (skill không thao tác hộ, chỉ dẫn đường); kênh quét mã WeChat cần xác nhận thủ công, tiền về bị trễ. Sau khi thanh toán xong vẫn quay về bước 7 như thường.
+   - **Alipay**:
+     ```
+     node scripts/powpow-register.mjs create-order --package monthly
+     ```
+   - **PayPal**:
+     ```
+     node scripts/powpow-register.mjs create-order --provider paypal
+     ```
+   Script trả về đường dẫn file trang thanh toán; **dùng lệnh hệ thống mở thẳng** (Windows: `start <tệp>`; macOS: `open <tệp>`; Linux: `xdg-open <tệp>`). Trình duyệt tự nhảy sang trang thu ngân chính thức của Alipay hoặc PayPal, nơi người dùng hoàn tất thanh toán hoặc ủy quyền trừ tiền.
+4. Cứ 10–15 giây chạy `query` một lần cho đến khi trả về `paid` hoặc `ACTIVE` (tiền về/ủy quyền thường mất vài giây đến một phút). Người dùng đóng trang thanh toán giữa chừng → chạy lại `create-order` luôn (đơn cũ hoặc gói đang chờ sẽ tự đóng/hết hạn sau 2 tiếng; khỏi bận tâm).
+5. Kênh quét mã WeChat cần xác nhận thủ công, tiền về có thể trễ; Huawei IAP chỉ dùng được trong app HarmonyOS. Hai kênh này skill không thao tác hộ — thanh toán xong vẫn quay về bước 7 như thường.
 
 ## Bước 7: đăng nhập chính thức (link 2)
 
@@ -148,7 +156,7 @@ Giữ đúng tông phục vụ quen thuộc của powpow:
 
 - **An toàn thông tin đăng nhập**: mật khẩu chỉ truyền cho script qua biến môi trường `POWPOW_REGISTER_PASSWORD`, **tuyệt đối không** đưa vào tham số dòng lệnh (nhìn thấy trong danh sách tiến trình), không ghi vào bất kỳ file nào (chế độ tạo mật khẩu hiển thị một lần để người dùng lưu, sau đó không nhắc lại). Mã xác minh chỉ dùng cho giao diện đăng ký chính thức và vứt bỏ sau khi dùng.
 - **Ranh giới chính thức**: mọi request chỉ gửi về `https://global.powpow.online` (đã tích hợp sẵn trong script); tuyệt đối không gửi thông tin người dùng tới địa chỉ bên thứ ba nào.
-- **Ranh giới thanh toán**: agent chỉ tạo đơn, mở trang thu ngân, tra tiền về; **tuyệt đối không** đụng vào tài khoản Alipay/chứng từ thanh toán của người dùng, cũng tuyệt đối không hứa «trả tiền hộ».
+- **Ranh giới thanh toán**: agent chỉ tạo đơn, mở trang thu ngân, tra tiền về; **tuyệt đối không** đụng vào tài khoản Alipay/PayPal/chứng từ thanh toán của người dùng, cũng tuyệt đối không hứa «trả tiền hộ».
 - **Bức tường phí không phải bug**: trạng thái pending vào được trang gói thành viên/trang hoàn tất là lỗ hổng cho phép có chủ đích trong thiết kế; các trang nội dung bị chặn là bức tường phí hoạt động bình thường; đừng tìm cách vòng qua.
 - **Tự do lùi lại**: nếu ở bất kỳ bước nào người dùng muốn tự làm, hoặc môi trường không chạy được script, cứ lùi về chế độ hướng dẫn thuần bất cứ lúc nào — đưa link, giảng quy tắc, cùng xử lý lỗi.
 - Đừng bịa quy tắc của nền tảng: quy tắc trường, nội dung lỗi, tham số giới hạn đều đến từ code nền tảng (`references/registration-flow.md` có ghi nguồn); nền tảng cập nhật thì lấy hành vi thực tế làm chuẩn.

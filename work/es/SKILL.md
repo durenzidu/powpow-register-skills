@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Ayuda al usuario a completar en la conversación el registro en PowPow (Burbuja), la activación de la suscripción con Alipay y el inicio de sesión con un clic. El agent rellena el formulario en su nombre (incluida la subida del avatar), envía el código de verificación por correo, crea el pedido de pago y hace seguimiento hasta que llega el cobro; el usuario solo proporciona la información básica, consulta una vez el código en su correo y paga en la caja de Alipay, sin salir en ningún momento de la conversación. Se activa cuando el usuario dice «regístrate en Burbuja», «crear una cuenta de powpow», «cómo me registro en Burbuja», «ayúdame a crear una cuenta de powpow», «sign up powpow»; también resuelve atascos del registro (no llega el código de verificación, nombre de usuario o correo ocupados) y problemas de activación (al iniciar sesión aparece «cuenta no activada» / pending_payment, cómo pagar la suscripción). Requiere Node ≥ 18; si no está disponible, retrocede automáticamente al modo de guía pura. No incluye publicar posts ni crear humanos digitales (eso es cosa de powpow-simple) ni desarrollo de código.
-version: 2.0.1
+description: Ayuda al usuario a completar en la conversación el registro en PowPow (Burbuja), la activación de la suscripción con Alipay o PayPal y el inicio de sesión con un clic. El agent rellena el formulario en su nombre (incluida la subida del avatar), envía el código de verificación por correo, crea el pedido de pago y hace seguimiento hasta que llega el cobro; el usuario solo proporciona la información básica, consulta una vez el código en su correo y paga en la caja de Alipay o PayPal, sin salir en ningún momento de la conversación. Se activa cuando el usuario dice «regístrate en Burbuja», «crear una cuenta de powpow», «cómo me registro en Burbuja», «ayúdame a crear una cuenta de powpow», «sign up powpow»; también resuelve atascos del registro (no llega el código de verificación, nombre de usuario o correo ocupados) y problemas de activación (al iniciar sesión aparece «cuenta no activada» / pending_payment, cómo pagar la suscripción). Requiere Node ≥ 18; si no está disponible, retrocede automáticamente al modo de guía pura. No incluye publicar posts ni crear humanos digitales (eso es cosa de powpow-simple) ni desarrollo de código.
+version: 2.1.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,9 +10,9 @@ metadata:
 
 # PowPow Register (asistente de registro en Burbuja)
 
-Lleva a un usuario nuevo desde «no sé qué es Burbuja» hasta «cuenta activada, sesión iniciada con un clic, a jugar» — todo dentro de la conversación. El usuario solo tiene que salir de la conversación dos veces: **ir al correo a mirar el código de verificación** y **pagar en la caja de Alipay** (el agent abre automáticamente la página de pago).
+Lleva a un usuario nuevo desde «no sé qué es Burbuja» hasta «cuenta activada, sesión iniciada con un clic, a jugar» — todo dentro de la conversación. El usuario solo tiene que salir de la conversación dos veces: **ir al correo a mirar el código de verificación** y **pagar en la caja de pago** (Alipay o PayPal — el agent abre automáticamente la página de pago).
 
-**Versión 2.0.1** · 2026-10-08 (desde v2 el modo es de gestión delegada en el agent: el contrato del script y la secuencia completa están en `references/agent-flow.md`; las reglas de campos, límites de frecuencia y resolución de errores en `references/registration-flow.md`; los canales de pago en `references/payment-and-activation.md`; el inventario de capturas del producto en `references/screenshots.md`. Desde v2.0.1 las capturas del producto viajan con la habilidad en `assets/screenshots/`, sin depender de un hospedaje externo de imágenes)
+**Versión 2.1.0** · 2026-10-11 (desde v2 el modo es de gestión delegada en el agent: el contrato del script y la secuencia completa están en `references/agent-flow.md`; las reglas de campos, límites de frecuencia y resolución de errores en `references/registration-flow.md`; los canales de pago en `references/payment-and-activation.md`; el inventario de capturas del producto en `references/screenshots.md`. Desde v2.1.0 el agent también puede gestionar las suscripciones PayPal, como opción junto a Alipay)
 
 ## Entorno de ejecución
 
@@ -38,7 +38,7 @@ Lleva a un usuario nuevo desde «no sé qué es Burbuja» hasta «cuenta activad
 | 3 Envío del código | `send-code` | —— |
 | 4 Lectura del código | —— | Va al correo, busca el código de 6 dígitos y lo envía de vuelta |
 | 5 Envío del registro | `register` (con subida directa del avatar), gestiona errores automáticamente | —— |
-| 6 Semi-sesión + pago | `login-link(pending)` → `create-order` → abre la caja → sondea `query` | Abre el enlace, paga |
+| 6 Semi-sesión + pago | `login-link(pending)` → `create-order --provider alipay|paypal` → abre la caja → sondea `query` | Abre el enlace, paga |
 | 7 Inicio de sesión formal | `refresh-login` → `login-link(home)` | Abre el enlace y entra al inicio |
 | 8 Cierre | `cleanup` + entrega de credenciales + guía de uso + recomendación de plugins | Empieza a jugar |
 
@@ -100,15 +100,23 @@ Si tiene éxito, la cuenta queda creada (estado pending, con 3 insignias inicial
    node scripts/powpow-register.mjs login-link --target pending
    ```
    Envía el enlace al usuario: **al abrirlo, el navegador cae directamente en la página de suscripción, ya con la sesión iniciada** — así la página de retorno puede mostrar correctamente «pago completado» cuando termine el pago. (En este estado, las páginas de contenido siguen redirigiéndose a la de suscripción: es el funcionamiento normal del muro de pago de la plataforma, no es un bug, y tampoco hace falta explicarle al usuario el mecanismo interno.)
-2. Tres planes a elegir; muéstralos con su precio:
-   - Mensual **¥6.99** (recomendado para empezar a probar) / Trimestral **¥19.99** / Anual **¥69.99** — Alipay compra una sola vez el periodo correspondiente, **sin renovación automática**
+2. **Haz que el usuario elija un método de pago**; muéstrale los dos canales:
+   - **Alipay (China continental / usuarios con Alipay)**: compra única del periodo correspondiente, **sin renovación automática**
+     - Mensual **¥6.99** (recomendado para empezar a probar) / Trimestral **¥19.99** / Anual **¥69.99**
+   - **PayPal (extranjero / usuarios sin Alipay)**: renovación automática mensual, se puede cancelar cuando se quiera
+     - Premium Monthly, unos **$1/mes** (según lo que muestre la página de suscripción; con renovación automática)
 3. Cuando el usuario elija:
-   ```
-   node scripts/powpow-register.mjs create-order --package monthly
-   ```
-   El script devuelve la ruta del archivo de la página de pago; **ábrela directamente con un comando del sistema** (Windows: `start <archivo>`; macOS: `open <archivo>`; Linux: `xdg-open <archivo>`). El navegador saltará automáticamente a la caja oficial de Alipay; el usuario escanea el código QR o inicia sesión en Alipay para pagar.
-4. Ejecuta `query` cada 10–15 segundos hasta que devuelva `paid` (el cobro suele tardar de unos segundos a un minuto). Si el usuario cierra la página de pago a medias → vuelve a ejecutar `create-order` directamente (el pedido viejo se cierra solo a las 2 horas, no hay que ocuparse de él).
-5. Usuarios en el extranjero o sin Alipay: guíalos hacia el canal PayPal de la página de suscripción (la habilidad no lo gestiona, solo indica el camino); el canal de código QR de WeChat es de confirmación manual y el cobro tarda en reflejarse. Cuando hayan pagado, siguen igualmente por el paso 7.
+   - **Alipay**:
+     ```
+     node scripts/powpow-register.mjs create-order --package monthly
+     ```
+   - **PayPal**:
+     ```
+     node scripts/powpow-register.mjs create-order --provider paypal
+     ```
+   El script devuelve la ruta del archivo de la página de pago; **ábrela directamente con un comando del sistema** (Windows: `start <archivo>`; macOS: `open <archivo>`; Linux: `xdg-open <archivo>`). El navegador salta automáticamente a la caja oficial de Alipay o PayPal, donde el usuario completa el pago o la autorización de cargo.
+4. Ejecuta `query` cada 10–15 segundos hasta que devuelva `paid` o `ACTIVE` (el cobro o la autorización suelen tardar de unos segundos a un minuto). Si el usuario cierra la página de pago a medias → vuelve a ejecutar `create-order` sin más (los pedidos viejos caducan y las suscripciones pendientes expiran solas a las 2 horas; no hay que ocuparse de ellos).
+5. El canal de código QR de WeChat es de confirmación manual y el cobro puede retrasarse; Huawei IAP solo está disponible dentro de la app de HarmonyOS. La habilidad no gestiona esos dos: una vez pagado, se vuelve igualmente al paso 7.
 
 ## Paso 7: inicio de sesión formal (enlace 2)
 
@@ -148,7 +156,7 @@ Mantén el tono de servicio habitual de powpow:
 
 - **Seguridad de las credenciales**: la contraseña se pasa al script solo mediante la variable de entorno `POWPOW_REGISTER_PASSWORD`, **nunca** como argumento de la línea de comandos (visible en la lista de procesos) ni escrita en ningún archivo (en modo generación se muestra una vez para que el usuario la guarde y no se vuelve a repetir). El código de verificación solo se usa en la interfaz oficial de registro y se descarta tras usarse.
 - **Límite oficial**: todas las peticiones van únicamente a `https://global.powpow.online` (ya integrado en el script); jamás envíes información del usuario a direcciones de terceros.
-- **Límite de pago**: el agent solo crea el pedido, abre la caja y consulta el cobro; **jamás** toca la cuenta Alipay del usuario ni sus credenciales de pago, y jamás promete «pagar por él».
+- **Límite de pago**: el agent solo crea el pedido, abre la caja y consulta el cobro; **jamás** toca la cuenta Alipay/PayPal del usuario ni sus credenciales de pago, y jamás promete «pagar por él».
 - **El muro de pago no es un bug**: que en estado pending se pueda entrar a la página de suscripción / de retorno es una apertura prevista por diseño; que las páginas de contenido estén bloqueadas es el muro de pago funcionando con normalidad; no intentes saltártelo.
 - **Libertad de retroceso**: si en cualquier paso el usuario quiere hacerlo por sí mismo, o el entorno no soporta el script, retrocede en cualquier momento al modo de guía pura — da los enlaces, explica las reglas y acompaña en la resolución de errores.
 - No inventes reglas de la plataforma: las reglas de campos, los textos de error y los parámetros de límite provienen del código de la plataforma (`references/registration-flow.md` cita las fuentes); si la plataforma se actualiza, manda el comportamiento real.

@@ -2,11 +2,12 @@
 
 ## 結論（先に答え）
 
-**Alipay チャネルは稼働中（2026-10-07〜）で、本 skill の主力決済方式です。agent が発注と着金トラッキングを代行できます。**
-海外/Alipay を持たないユーザーは PayPal へフォールバック。WeChat スキャン（手動確認）と華為 IAP も残っていますが、skill は代行しません。
+**Alipay と PayPal のサブスクはどちらも、agent が発注と着金トラッキングを代行できます。**
+Alipay は一括買い切りで自動更新なし。中国国内 / Alipay を持っているユーザー向け。PayPal は月次の自動更新でいつでも解約可能、
+海外 / Alipay を持たないユーザー向けです。WeChat スキャン（手動確認）と華為 IAP も残っていますが、skill は代行しません。
 
-決済における責任の境界：agent ができるのは**注文の作成、レジを開くこと、着金の確認**まで。**絶対に**ユーザーの Alipay
-アカウント/決済証憑には触れず、「代行支払い」も約束しません。支払いの動作は常にユーザー本人が Alipay 公式レジで行います。
+決済における責任の境界：agent ができるのは**注文の作成、レジを開くこと、着金の確認**まで。**絶対に**ユーザーの Alipay / PayPal
+アカウント/決済証憑には触れず、「代行支払い」も約束しません。支払いの動作は常にユーザー本人が公式レジで行います。
 
 ## Alipay チャネル（vibepay、主力）
 
@@ -42,8 +43,38 @@ notify の署名検証を通過 → `paymentOrders` を支払い済みにマー�
 
 JWT にはサブスク宣言が入っています（pending アカウントは `NONE`）。**支払いの着金は DB だけを更新し、発行済みの
 JWT は書き換えません**——古い token の宣言は NONE のままで、それでログインリンクを生成すると「会員じゃない」ように見えます。
-そこで skill は `paid` を確認した後、まず `refresh-login` を実行し（再ログインで新しい JWT に交換、宣言が ACTIVE になる）、
+そこで skill は `paid` / PayPal の `ACTIVE` を確認した後、まず `refresh-login` を実行し（再ログインで新しい JWT に交換、宣言が ACTIVE になる）、
 それからリンク2を生成します。これは設計上の挙動で、脆弱性の修正ではありません。
+
+## PayPal サブスクチャネル（skill が代行、Web 版かつ非 HarmonyOS）
+
+プランは Premium Monthly の1つのみ（約 $1/月、`/api/subscription/plans` の返り値に準拠）。**月次の自動更新**で、
+ユーザーはいつでも PayPal 側で解約できます。
+
+### インターフェース契約（skill スクリプトがラップ済み。agent が直接リクエストを組み立てることはない）
+
+| インターフェース | メソッド | 説明 |
+|---|---|---|
+| `/api/subscription/plans` | GET | Bearer 認証。利用可能なプラン一覧を返す（現在は1つのみ） |
+| `/api/subscription/create` | POST | body `{planId}` → `{subscriptionId, approveUrl, status}` を返す。`status` は通常 `APPROVAL_PENDING` |
+| `/api/subscription/create` | GET | Bearer 認証。`{activeSubscription, allSubscriptions}` を返す。agent は `activeSubscription.subscription.status === 'ACTIVE'` をポーリング |
+| `/api/subscription/verify` | POST | 成功ページが自動呼び出し（cookie 付き）。webhook 未着時に PayPal API で直接アクティベート |
+| `/subscription/success` | ブラウザの戻りページ | PayPal 承認後の着地ページ。verify を自動ポーリングし、アクティベート後にホーム/元のページへ戻る |
+| `/subscription/cancel` | ブラウザページ | ユーザーがキャンセルまたは失敗した場合の着地ページ。やり直し可能 |
+
+### 代行フロー
+
+```
+create-order --provider paypal  # → approveUrl を返し、ローカル HTML ファイルに書き込む
+HTML ファイルを開く             # → ブラウザが PayPal 承認ページへ遷移
+query（10〜15秒ごと）            # → ACTIVE になるまでポーリング
+refresh-login                   # → 新しい JWT に交換（サブスク宣言が ACTIVE）
+login-link --target home        # → 正式なログインリンクを生成
+```
+
+- 1時間以内に完了しなかった PENDING サブスクはバックエンドが自動クリーンアップします。やり直せばOK。
+- ユーザーが `create-order` を繰り返した場合、バックエンドは仍有効な `APPROVAL_PENDING` サブスクを再利用し、409 を回避します。
+- Alipay と同じく：支払いの着金は DB を更新するだけで、古い JWT は自動的に更新されません。ホームページのリンクを送る前に**必ず** `refresh-login` を実行してください。
 
 ## サブスクページの4チャネル
 
@@ -71,6 +102,9 @@ PayPal のプランと価格は `/api/subscription/plans` から動的に読み�
 |---|---|
 | Alipay で支払ったのに `query` が pending のまま | notify が遅れることはまれにあります。30秒待ってもう一度照会。それでもダメならユーザーにブラウザの戻りページの状態を見てもらい、それでもダメならプラットフォームサポート（dongtao@outlook.com）へ `outTradeNo` を添えて連絡 |
 | Alipay で支払ったのに、リンク2で入ってもまだ弾かれる | `refresh-login` が抜けている（古い JWT の宣言が未更新）——先に `refresh-login`、それから `login-link` |
+| PayPal の `query` がずっと PENDING | ユーザーが PayPal での承認を完了していません。ブラウザで承認リンクが開かれたか確認を。承認済みなのに PENDING なら webhook 遅延の可能性あり。成功ページで数秒待つか再読み込みしてもらう |
+| PayPal の `query` が 409 を返す | 未完了の PENDING サブスクが既に存在します。1時間待てば自動失効。またはブラウザで旧リンクの承認を完了 |
+| PayPal で支払ったのに、リンク2で入ってもまだ弾かれる | Alipay と同じ：先に `refresh-login`、それから `login-link` |
 | 支払ったのにまだ 403（PayPal） | Webhook に遅延が出ることがあります。再ログインで状態を更新 |
 | WeChat で払ったのに開通しない | 手動確認は非同期です。数時間経っても開通しなければプラットフォームサポートへ |
 | サブスクページに "No subscription plans available" と表示 | `/api/subscription/plans` に利用可能な PayPal プランがなく、プラットフォーム側の設定問題。中国国内のユーザーは Alipay を使えばOK |

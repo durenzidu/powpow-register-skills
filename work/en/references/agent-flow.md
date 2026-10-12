@@ -23,8 +23,8 @@ the script is **zero-dependency** and requires **Node ≥ 18**, and all requests
 | `send-code` | `--email` | Trigger the platform to send the 6-digit code (valid 10 minutes, 60s cooldown) |
 | `register` | `--code` (required); `--username --nickname --avatar --phone` (optional; skip if already in the state file) | Create the pending account; the password goes through the `POWPOW_REGISTER_PASSWORD` environment variable; on success the JWT is stored into the state file automatically |
 | `login-link` | `--target pending` or `--target home` | Generate the one-click login link (dual-link design, see below) |
-| `create-order` | `--package monthly\|quarterly\|yearly` | Create the Alipay order; returns the payment page file path + outTradeNo (recorded into the state file automatically) |
-| `query` | —— | Check order status `paid / pending / closed / unknown` (outTradeNo comes from the state file); poll every 10–15s |
+| `create-order` | `--package monthly\|quarterly\|yearly` (Alipay default)<br>`--provider alipay\|paypal` | Creates the payment order; Alipay returns the payment page file path + outTradeNo; PayPal returns the authorization page file path + subscriptionId (recorded into the state file automatically) |
+| `query` | —— | Checks the order/subscription status. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; poll every 10–15s |
 | `refresh-login` | password via environment variable | Log in again to get a **new JWT** (subscription claim changes from NONE to ACTIVE); must run after payment arrives |
 | `whoami` | —— | Use the token in the state file to check the account and subscription status (verify the activation took effect) |
 | `cleanup` | —— | Delete the state file (must run at wrap-up) |
@@ -63,10 +63,12 @@ redirect (must start with a single slash, `//` and backslashes forbidden, parsed
 4.  send-code --email E             # → user checks inbox for the code (the only leave-the-conversation moment ①)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
 6.  login-link --target pending     # → Link 1 sent to the user
-7.  (user picks a plan) create-order --package monthly
+7.  (user picks a payment method)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
 8.  start <payment page file>       # Windows; macOS uses open, Linux uses xdg-open
-    # → user pays at the Alipay cashier (leave-the-conversation moment ②)
-9.  query (every 10–15s) until paid
+    # → user completes payment/authorization at the Alipay/PayPal cashier (leave-the-conversation moment ②)
+9.  query (every 10–15s) until paid / ACTIVE
 10. refresh-login                   # get the new JWT with the ACTIVE claim
 11. login-link --target home        # → Link 2 sent to the user
 12. whoami                          # confirm subscriptionStatus: ACTIVE (optional)
@@ -80,8 +82,8 @@ redirect (must start with a single slash, `//` and backslashes forbidden, parsed
 | `send-code` | `POST /api/auth/register/send-code` |
 | `register` | `POST /api/auth/register` (multipart, direct avatar upload) |
 | `login-link` | `GET /api/auth/me?token=…&redirect=…` (the link itself; takes effect when the browser opens it) |
-| `create-order` | `POST /api/payment/alipay/create-order` (Bearer) |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer) |
+| `create-order` | `POST /api/payment/alipay/create-order` (Bearer, Alipay)<br>`GET /api/subscription/plans` + `POST /api/subscription/create` (Bearer, PayPal) |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer, Alipay)<br>`GET /api/subscription/create` (Bearer, PayPal) |
 | `refresh-login` | `POST /api/auth/login` (`{step:1, username, password}`) |
 | `whoami` | `GET /api/auth/me?token=…` |
 
@@ -96,9 +98,10 @@ Where the rules come from: registration fields and rate limits in `registration-
 | Network error / timeout | Retry once; if it still fails, have the user check the network and continue (the state file is still there; run `status` from the top to resume) |
 | register returns a business error (username already exists, etc.) | Handle per the table in Step 5 of SKILL.md; **no need to resend the verification code** (still valid within 10 minutes) |
 | register returns "email verification code incorrect or expired" | Timed out → `send-code` again |
-| User closed the payment page after `create-order` | Just `create-order` again (the old order auto-closes after 2h) |
-| `query` stays pending | The user may not have paid; ask. If they really paid → follow the troubleshooting table in payment-and-activation.md |
-| `refresh-login` 403 `pending_payment` | Payment hasn't arrived yet; go back to step 9 and keep polling |
+| User closed the payment page after `create-order` | Just `create-order` again (the old order auto-closes after 2h; PayPal PENDING subscriptions expire after 1h) |
+| `create-order --provider paypal` returns 409 | There is already an unfinished PayPal subscription; wait 1h for it to expire, or complete the old authorization in the browser |
+| `query` stays pending / PENDING | The user may not have paid; ask. If they really paid → follow the troubleshooting table in payment-and-activation.md |
+| `refresh-login` 403 `pending_payment` | Payment/authorization hasn't arrived yet; go back to step 9 and keep polling |
 | State file lost (accidentally deleted / different machine) | `whoami`/`refresh-login` are unusable; have the user refresh the subscription page directly in the browser that opened Link 1 to check the status, or log in again (web mode) |
 
 ## Fallback Mode (pure guidance)

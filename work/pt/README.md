@@ -2,12 +2,12 @@
 
 Assistente de registro no PowPow Bolha (edição OpenClaw): leva um usuário novo de «não sei o que é a
 Bolha» até «conta ativada, login com um clique, hora de jogar» — apresentação do produto (com capturas de
-tela), registro delegado ao agent (com upload de avatar), pedido de assinatura via Alipay e acompanhamento
+tela), registro delegado ao agent (com upload de avatar), pedido de assinatura via Alipay/PayPal e acompanhamento
 do pagamento, login com um clique de link duplo, diagnóstico de erros.
 
-**Desde a v2.0.0 o modo é de gestão delegada pelo agent**: o script principal `scripts/powpow-register.mjs`
+**Desde a v2.0.0 o modo é de gestão delegada pelo agent, e desde a v2.1.0 o PayPal também**: o script principal `scripts/powpow-register.mjs`
 é zero dependências (Node ≥ 18), o usuário não sai da conversa em nenhum momento, exceto duas brezes
-ausências: ir ao e-mail ver o código de verificação e pagar no caixa do Alipay. Sem Node, ou quando o
+ausências: ir ao e-mail ver o código de verificação e pagar no caixa do Alipay/PayPal. Sem Node, ou quando o
 usuário quer fazer por conta própria, recuo automático para o modo de orientação pura.
 
 ## Instalação
@@ -29,9 +29,9 @@ openclaw skills install @durenzidu/powpow-register
    «semi-sessão» que cai direto na página de assinatura; após cair o pagamento, troca-se por um novo
    estado de sessão e entrega-se o link de membro completo que cai direto na home (pela ponte oficial
    `me?token=` da plataforma, que planta automaticamente o cookie HttpOnly).
-4. **Pagamento da assinatura**: no canal Alipay o agent faz o pedido por delegação (mensal ¥6.99 /
-   trimestral ¥19.99 / anual ¥69.99, compra única sem renovação automática) + consulta em loop até cair;
-   usuários no exterior recuam para o PayPal; QR code WeChat / Huawei IAP apenas indica-se o caminho.
+4. **Pagamento da assinatura**: tanto no Alipay (mensal ¥6.99 /
+   trimestral ¥19.99 / anual ¥69.99, compra única sem renovação automática) como no PayPal (Premium Monthly, cerca de $1/mês, renovação automática, cancele quando quiser) o agent faz o pedido e a consulta em loop até cair;
+   QR code WeChat / Huawei IAP apenas indica-se o caminho.
 5. **Diagnóstico de erros**: código de verificação não chega, nome de usuário/e-mail ocupados, 403 não
    ativado, conta bloqueada e outros problemas comuns, todos vindos do código-fonte da plataforma com as
    fontes citadas.
@@ -63,8 +63,8 @@ powpow-register/
   arquivo de estado (e-mail/nome de usuário/token/número do pedido) fica no diretório temporário do
   sistema, apagado de uma vez pelo `cleanup` ao fim do fluxo.
 - **Pagamento**: o agent só cria o pedido, abre o caixa e consulta o pagamento; jamais toca na conta
-  Alipay do usuário ou nas suas credenciais de pagamento, jamais paga por ele. O pagamento acontece
-  sempre entre o usuário e o caixa oficial do Alipay.
+  Alipay/PayPal do usuário ou nas suas credenciais de pagamento, jamais paga por ele. O pagamento acontece
+  sempre entre o usuário e o caixa oficial.
 - Todas as requisições vão apenas para o domínio oficial `https://global.powpow.online`; nenhuma chave incluída.
 
 ## Licença

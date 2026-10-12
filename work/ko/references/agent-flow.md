@@ -23,8 +23,8 @@ SKILL.md 각 단계의 실행 세부사항. 모든 커맨드는 `node scripts/po
 | `send-code` | `--email` | 플랫폼에 6자리 인증번호 발송 트리거(10분 유효, 60초 쿨다운) |
 | `register` | `--code`(필수); `--username --nickname --avatar --phone`(선택, 상태 파일에 있으면 생략 가능) | pending 계정 생성. 비밀번호는 `POWPOW_REGISTER_PASSWORD` 환경변수로 전달. 성공 후 JWT는 자동으로 상태 파일에 저장 |
 | `login-link` | `--target pending` 또는 `--target home` | 원클릭 로그인 링크 생성(더블 링크 설계, 아래 참조) |
-| `create-order` | `--package monthly\|quarterly\|yearly` | Alipay 주문 생성. 결제 페이지 파일 경로 + outTradeNo 반환(자동으로 상태 파일에 기록) |
-| `query` | —— | 주문 상태 `paid / pending / closed / unknown` 조회(outTradeNo는 상태 파일에서 가져옴). 10~15초 간격 폴링 |
+| `create-order` | `--package monthly\|quarterly\|yearly`(Alipay 기본값)<br>`--provider alipay\|paypal` | 결제 주문 생성. Alipay는 결제 페이지 파일 경로 + outTradeNo, PayPal은 승인 페이지 파일 경로 + subscriptionId 반환(자동으로 상태 파일에 기록) |
+| `query` | —— | 주문/구독 상태 조회. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`. 10~15초 간격 폴링 |
 | `refresh-login` | 비밀번호는 환경변수로 | 재로그인으로 **새 JWT**로 교환(구독 클레임이 NONE → ACTIVE). 결제 입금 후 반드시 실행 |
 | `whoami` | —— | 상태 파일의 token으로 계정과 구독 상태 조회(활성화가 적용됐는지 검증) |
 | `cleanup` | —— | 상태 파일 삭제(마무리에서 반드시 실행) |
@@ -58,10 +58,12 @@ set POWPOW_REGISTER_PASSWORD=<비밀번호> && node scripts/powpow-register.mjs 
 4.  send-code --email E             # → 사용자가 메일함에서 코드 확인(유일한 대화 이탈 ①)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
 6.  login-link --target pending     # → 링크 1을 사용자에게 전송
-7.  (사용자가 플랜 선택)create-order --package monthly
+7.  (사용자가 결제 수단 선택)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
 8.  start <결제 페이지 파일>          # Windows. macOS는 open, Linux는 xdg-open
-    # → 사용자가 Alipay 계산대에서 결제(대화 이탈 ②)
-9.  query(10~15초마다) paid가 될 때까지
+    # → 사용자가 Alipay/PayPal 계산대에서 결제/승인 완료(대화 이탈 ②)
+9.  query(10~15초마다) paid / ACTIVE가 될 때까지
 10. refresh-login                   # ACTIVE 클레임의 새 JWT로 교체
 11. login-link --target home        # → 링크 2를 사용자에게 전송
 12. whoami                          # subscriptionStatus: ACTIVE 확인(선택)
@@ -75,8 +77,8 @@ set POWPOW_REGISTER_PASSWORD=<비밀번호> && node scripts/powpow-register.mjs 
 | `send-code` | `POST /api/auth/register/send-code` |
 | `register` | `POST /api/auth/register`(multipart, 아바타 직접 업로드) |
 | `login-link` | `GET /api/auth/me?token=…&redirect=…`(링크 자체, 브라우저에서 클릭될 때 작동) |
-| `create-order` | `POST /api/payment/alipay/create-order`(Bearer) |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…`(Bearer) |
+| `create-order` | `POST /api/payment/alipay/create-order`(Bearer, Alipay)<br>`GET /api/subscription/plans` + `POST /api/subscription/create`(Bearer, PayPal) |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…`(Bearer, Alipay)<br>`GET /api/subscription/create`(Bearer, PayPal) |
 | `refresh-login` | `POST /api/auth/login`(`{step:1, username, password}`) |
 | `whoami` | `GET /api/auth/me?token=…` |
 
@@ -91,9 +93,10 @@ set POWPOW_REGISTER_PASSWORD=<비밀번호> && node scripts/powpow-register.mjs 
 | 네트워크 오류 / 타임아웃 | 1회 재시도. 그래도 실패하면 사용자에게 네트워크 확인을 부탁하고 계속(상태 파일은 남아 있으므로 처음부터 `status`로 복귀) |
 | register가 비즈니스 오류(사용자 이름 중복 등) | SKILL.md 5단계 표대로 처리. **인증번호 재발송 불필요**(10분 이내면 여전히 유효) |
 | register가 「邮箱验证码错误或已过期」(인증번호 오류/만료) 보고 | 시간 초과 → `send-code` 다시 실행 |
-| `create-order` 후 사용자가 결제 페이지를 닫음 | 그냥 `create-order` 다시 실행(이전 주문은 2시간 후 자동 종료) |
-| `query`가 계속 pending | 사용자가 결제하지 않았을 가능성. 한마디 물어보세요. 실제로 결제했다면 → payment-and-activation.md 해결 표대로 |
-| `refresh-login` 403 `pending_payment` | 결제가 아직 입금되지 않음. 9단계로 돌아가 폴링 계속 |
+| `create-order` 후 사용자가 결제 페이지를 닫음 | 그냥 `create-order` 다시 실행(이전 주문은 2시간 후 자동 종료. PayPal PENDING 구독은 1시간 후 만료) |
+| `create-order --provider paypal`이 409 반환 | 미완료 PayPal 구독이 이미 있습니다. 1시간 기다려 만료시키거나 브라우저에서 이전 승인을 완료 |
+| `query`가 계속 pending / PENDING | 사용자가 결제하지 않았을 가능성. 한마디 물어보세요. 실제로 결제했다면 → payment-and-activation.md 해결 표대로 |
+| `refresh-login` 403 `pending_payment` | 결제/승인이 아직 입금되지 않음. 9단계로 돌아가 폴링 계속 |
 | 상태 파일 유실(실수로 삭제 / 컴퓨터 교체) | `whoami`/`refresh-login` 사용 불가. 링크 1을 열어 본 적 있는 브라우저에서 구독 페이지를 바로 새로고침해 상태를 확인하게 하거나, 다시 로그인(웹 모드) |
 
 ## 폴백 모드(순수 안내)

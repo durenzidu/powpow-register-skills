@@ -1,6 +1,6 @@
 ## Description:
 
-PowPow 가입과 이메일 인증, 구독 결제 주문 및 계정 활성화, 원클릭 로그인을 대화로 안내하고 지원합니다.
+Helps users register a PowPow account, activate a subscription through Alipay or PayPal, and obtain a sign-in link.
 
 This skill is ready for commercial/non-commercial use.
 
@@ -14,7 +14,7 @@ MIT-0
 
 ## Use Case:
 
-PowPow에 가입하려는 사용자가 여행 일기를 지도에 게시하거나 디지털 휴먼과 대화할 수 있도록 계정을 만들고 구독을 활성화하는 과정을 돕습니다. 사용자는 이메일 인증번호를 확인하고 결제 화면에서 직접 결제합니다.
+People signing up for PowPow can use this skill to complete email-verified registration, choose an Alipay or PayPal subscription, check activation, and receive a sign-in link. If automated registration is unavailable, it offers guided steps instead.
 
 ### Deployment Geography for Use:
 
@@ -22,41 +22,35 @@ Global
 
 ## Known Risks and Mitigations:
 
-Risk: The assistant handles a PowPow account password during signup and login refresh.
+Risk: Registration uses personal details, an email verification code, and a temporary PowPow session token.
 
-Mitigation: Pass the password through an environment variable rather than command-line arguments; do not retain or disclose it after use.
+Mitigation: Share the code only for PowPow registration and run cleanup after the flow to remove local session state.
 
-Risk: Temporary session tokens and generated login links can grant access to the new account.
+Risk: Subscription activation opens an Alipay or PayPal checkout page.
 
-Mitigation: Keep login links private and run cleanup when finished to remove temporary session state.
-
-Risk: The assistant creates a payment order and opens an Alipay checkout page.
-
-Mitigation: Have the user verify the checkout details and complete payment themselves; do not collect payment credentials.
+Mitigation: Complete payment directly with the payment provider; do not give the agent payment credentials.
 
 ## Reference(s):
 
-- [PowPow 공식 사이트](https://global.powpow.online)
-- [PowPow 가입 페이지](https://global.powpow.online/register)
-- [PowPow 구독 페이지](https://global.powpow.online/subscription)
-- [에이전트 가입 절차](references/agent-flow.md)
-- [가입 및 오류 해결](references/registration-flow.md)
-- [결제 및 계정 활성화](references/payment-and-activation.md)
-- [제품 스크린샷 안내](references/screenshots.md)
+- [PowPow website](https://global.powpow.online)
+- [PowPow registration](https://global.powpow.online/register)
+- [PowPow subscriptions](https://global.powpow.online/subscription)
+- [Agent registration flow](references/agent-flow.md)
+- [Payment and activation guidance](references/payment-and-activation.md)
 
 ## Skill Output:
 
-**Output Type(s):** [Guidance, Shell commands, Links, Images]
+**Output Type(s):** [Text, Guidance, Shell commands, Links]
 
-**Output Format:** [Markdown text with signup steps, optional product screenshots, and login or payment links]
+**Output Format:** [Markdown guidance and sign-in or checkout links]
 
 **Output Parameters:** [1D]
 
-**Other Properties Related to Output:** [Requires Node.js 18 or later for assisted signup; falls back to guidance-only mode.]
+**Other Properties Related to Output:** [Automated flow requires Node.js 18 or later; offers guided registration otherwise. Payment is completed by the user at the payment provider.]
 
 ## Skill Version(s):
 
-2.0.1 (source: skill frontmatter and server-resolved release)
+2.1.0 (source: release metadata and skill frontmatter)
 
 ## Ethical Considerations:
 

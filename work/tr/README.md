@@ -2,12 +2,12 @@
 
 PowPow Kabarcık kayıt asistanı (OpenClaw sürümü): yeni bir kullanıcıyı «Kabarcık'ın ne olduğunu bilmiyorum»dan
 «hesap etkinleşti, tek tıkla giriş, oyun başlıyor» noktasına götürür — ürün tanıtımı (arayüz ekran
-görüntüleriyle), agent vekâletiyle kayıt (profil fotoğrafı yükleme dahil), Alipay abonelik siparişi ve hesaba
+görüntüleriyle), agent vekâletiyle kayıt (profil fotoğrafı yükleme dahil), Alipay/PayPal abonelik siparişi ve hesaba
 geçiş takibi, çift bağlantıyla tek tıkla giriş, hata giderme.
 
-**v2.0.0'dan itibaren agent vekâlet modudur**: ana script `scripts/powpow-register.mjs` sıfır bağımlılıktır
+**v2.0.0'dan itibaren agent vekâlet modudur, v2.1.0'dan itibaren PayPal dahil**: ana script `scripts/powpow-register.mjs` sıfır bağımlılıktır
 (Node ≥ 18), kullanıcı sürecin tamamında sohbetten ayrılmaz; yalnızca iki kısa ayrılık yaşar: e-postaya gidip
-doğrulama kodunu okumak ve Alipay kasasında ödemek. Node yoksa ya da kullanıcı kendi yapmak isterse otomatik
+doğrulama kodunu okumak ve Alipay/PayPal kasasında ödemek. Node yoksa ya da kullanıcı kendi yapmak isterse otomatik
 olarak salt yol gösterme moduna dönülür.
 
 ## Kurulum
@@ -27,9 +27,9 @@ openclaw skills install @durenzidu/powpow-register
 3. **Tek tıkla giriş (çift bağlantı)**: kayıt başarılı olur olmaz «yarı oturum» bağlantısı abonelik sayfasına
    götürür; ödeme hesaba geçtikten sonra yeni oturum durumu alınır ve tam üye bağlantısı ana sayfaya götürür
    (platformun resmî `me?token=` köprüsünden geçer, HttpOnly cookie'yi kendiliğinden yerleştirir).
-4. **Abonelik ödemesi**: Alipay kanalında agent siparişi vekâleten açar (aylık ¥6.99 / üç aylık ¥19.99 / yıllık
-   ¥69.99, tek seferlik satın alma, otomatik yenileme yok) + hesaba geçiş yoklaması; yurt dışındaki kullanıcılar
-   PayPal'e döner; WeChat QR/Huawei IAP için yol gösterilir.
+4. **Abonelik ödemesi**: hem Alipay (aylık ¥6.99 / üç aylık ¥19.99 / yıllık
+   ¥69.99, tek seferlik satın alma, otomatik yenileme yok) hem de PayPal (Premium Monthly, yaklaşık $1/ay, otomatik yenileme, istenince iptal) için siparişi agent vekâleten açar + hesaba geçiş yoklaması;
+   WeChat QR/Huawei IAP için yol gösterilir.
 5. **Hata giderme**: doğrulama kodunun gelmemesi, kullanıcı adı/e-postanın alınmış olması, 403 etkinleşmemiş,
    hesap kilitlenmesi gibi sık sorunlar — tamamı platform kaynak kodundan gelir ve kaynağı belirtilir.
 
@@ -59,9 +59,9 @@ powpow-register/
 - **Doğrulama kodu** yalnızca resmî kayıt arayüzünde kullanılır, işi bitince atılır; durum dosyası
   (e-posta/kullanıcı adı/token/sipariş numarası) sistem geçici dizininde tutulur, akış sonunda `cleanup` tek
   komutla siler.
-- **Ödeme**: agent yalnızca sipariş açar, kasayı açar, hesaba geçişi sorgular; kullanıcının Alipay hesabına ya
-  da ödeme belgelerine asla dokunmaz, asla vekâleten ödeme yapmaz. Ödeme her zaman kullanıcı ile Alipay'in resmî
-  kasası arasında gerçekleşir.
+- **Ödeme**: agent yalnızca sipariş açar, kasayı açar, hesaba geçişi sorgular; kullanıcının Alipay/PayPal hesabına ya
+  da ödeme belgelerine asla dokunmaz, asla vekâleten ödeme yapmaz. Ödeme her zaman kullanıcı ile resmî
+  kasa arasında gerçekleşir.
 - Tüm istekler yalnızca resmî alan adı `https://global.powpow.online`'a gider; hiçbir anahtar içermez.
 
 ## Lisans

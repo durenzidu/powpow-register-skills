@@ -2,11 +2,12 @@
 
 ## Conclusion (the answer first)
 
-**The Alipay channel is live (since 2026-10-07) and is this skill's primary payment method — the agent can handle order creation and arrival tracking.**
-Overseas users / users without Alipay fall back to PayPal; WeChat QR code (manual confirmation) and Huawei IAP remain available, but the skill doesn't handle them.
+**Both Alipay and PayPal subscriptions can now be handled by the agent — order creation and arrival tracking included.**
+Alipay is a one-time purchase with no auto-renewal, for mainland-China users and users with Alipay; PayPal auto-renews monthly and can be cancelled anytime,
+for overseas users and users without Alipay. WeChat QR code (manual confirmation) and Huawei IAP remain available, but the skill doesn't handle them.
 
-Responsibility boundary for the payment step: the agent may **create orders, open the cashier, and query arrival**; it **never** touches the user's Alipay
-account/payment credentials and never promises to "pay on their behalf". The payment action is always completed by the user in person at the official Alipay cashier.
+Responsibility boundary for the payment step: the agent may **create orders, open the cashier, and query arrival**; it **never** touches the user's Alipay/PayPal
+account/payment credentials and never promises to "pay on their behalf". The payment action is always completed by the user in person at the official cashier.
 
 ## Alipay Channel (vibepay, primary)
 
@@ -42,8 +43,38 @@ notify passes verification → `paymentOrders` marked paid → `user_subscriptio
 
 The JWT carries the subscription claim (`NONE` for a pending account). **Payment arrival only updates the database — it does not modify an
 already-issued JWT** — the old token's claim is still NONE, and generating a login link with it looks like "no membership".
-So after confirming `paid`, the skill first runs `refresh-login` (logs in again for a new JWT with the ACTIVE claim),
+So after confirming `paid` / PayPal `ACTIVE`, the skill first runs `refresh-login` (logs in again for a new JWT with the ACTIVE claim),
 then generates Link 2. This is by design, not a bug fix.
+
+## PayPal Subscription Channel (handled by the agent; web, non-HarmonyOS)
+
+There is only one plan, Premium Monthly (about $1/month, as returned by `/api/subscription/plans`); it **auto-renews monthly**
+and the user can cancel anytime in their PayPal account.
+
+### API Contract (already wrapped by the skill script; the agent never assembles requests directly)
+
+| Endpoint | Method | Notes |
+|---|---|---|
+| `/api/subscription/plans` | GET | Bearer auth; returns the list of available plans (currently only 1) |
+| `/api/subscription/create` | POST | Body `{planId}` → returns `{subscriptionId, approveUrl, status}`; `status` is usually `APPROVAL_PENDING` |
+| `/api/subscription/create` | GET | Bearer auth; returns `{activeSubscription, allSubscriptions}`; the agent polls `activeSubscription.subscription.status === 'ACTIVE'` |
+| `/api/subscription/verify` | POST | Called automatically by the success page (with the cookie); activates through the PayPal API directly when the webhook hasn't arrived |
+| `/subscription/success` | Browser return page | Landing page after PayPal authorization; polls verify automatically, then returns to the home page / original page |
+| `/subscription/cancel` | Browser page | Landing page when the user cancels or it fails; a new attempt can be started |
+
+### Agent Flow
+
+```
+create-order --provider paypal   # → returns approveUrl, written into a local HTML file
+open the HTML file               # → the browser jumps to the PayPal authorization page
+query (every 10–15s)             # → poll until ACTIVE
+refresh-login                    # → exchange for a new JWT (subscription claim ACTIVE)
+login-link --target home         # → generate the formal login link
+```
+
+- PENDING subscriptions that aren't finished within 1 hour are cleaned up automatically by the backend; just start over.
+- If the user runs `create-order` again, the backend reuses the still-valid `APPROVAL_PENDING` subscription, avoiding a 409.
+- Same as Alipay: arrival only updates the DB — an old JWT is not refreshed automatically, so you **must** run `refresh-login` before sending the home-page link.
 
 ## The Four Channels on the Subscription Page
 
@@ -71,6 +102,9 @@ PayPal plans and prices are read dynamically from `/api/subscription/plans`; the
 |---|---|
 | Alipay paid but `query` still pending | notify is rarely delayed; wait 30 seconds and query again. If it still fails, have the user check the return page status in the browser; if that fails too, contact platform support (dongtao@outlook.com) with the `outTradeNo` |
 | Alipay paid, but Link 2 still gets walled | `refresh-login` was skipped (the old JWT claim wasn't updated) — run `refresh-login` first, then `login-link` |
+| PayPal `query` stays PENDING | The user hasn't finished authorization in PayPal; confirm the authorization link was opened in the browser. If it's still PENDING after authorizing, the webhook may be delayed — have the user wait a few more seconds on the success page or refresh |
+| PayPal `query` returns 409 | There is already an unfinished PENDING subscription; wait 1 hour for it to expire, or complete the authorization of the old link in the browser |
+| PayPal paid, but Link 2 still gets walled | Same as Alipay: run `refresh-login` first, then `login-link` |
 | Still 403 after paying (PayPal) | The Webhook is occasionally delayed; log in again to refresh the status |
 | Paid via WeChat but not activated | Manual confirmation is asynchronous; if it hasn't been activated within a few hours, contact platform support |
 | Subscription page shows "No subscription plans available" | No usable PayPal plans on `/api/subscription/plans` — a platform-side configuration issue; mainland-China users can use Alipay instead |

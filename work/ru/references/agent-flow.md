@@ -23,8 +23,8 @@
 | `send-code` | `--email` | Запускает отправку платформой 6-значного кода подтверждения (действует 10 минут, кулдаун 60с) |
 | `register` | `--code` (обязательно); `--username --nickname --avatar --phone` (опционально, если уже в файле состояния — можно не передавать) | Создаёт pending-аккаунт; пароль идёт через переменную окружения `POWPOW_REGISTER_PASSWORD`; при успехе JWT автоматически сохраняется в файл состояния |
 | `login-link` | `--target pending` или `--target home` | Генерирует ссылку входа в один клик (дизайн двойной ссылки, см. ниже) |
-| `create-order` | `--package monthly\|quarterly\|yearly` | Создаёт заказ Alipay; возвращает путь к файлу страницы оплаты + outTradeNo (автоматически заносится в файл состояния) |
-| `query` | —— | Проверяет статус заказа `paid / pending / closed / unknown` (outTradeNo берётся из файла состояния), опрос каждые 10–15с |
+| `create-order` | `--package monthly\|quarterly\|yearly` (по умолчанию Alipay)<br>`--provider alipay\|paypal` | Создаёт платёжный заказ; Alipay возвращает путь к файлу страницы оплаты + outTradeNo; PayPal возвращает путь к файлу страницы авторизации + subscriptionId (автоматически записывается в файл состояния) |
+| `query` | —— | Проверяет статус заказа/подписки. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; опрос каждые 10–15с |
 | `refresh-login` | Пароль через переменную окружения | Повторный вход и обмен на **новый JWT** (декларация подписки меняется с NONE на ACTIVE); обязательно после зачисления оплаты |
 | `whoami` | —— | По token из файла состояния проверяет статус аккаунта и подписки (убедиться, что активация сработала) |
 | `cleanup` | —— | Удаляет файл состояния (обязательно в конце) |
@@ -67,10 +67,12 @@ set POWPOW_REGISTER_PASSWORD=<пароль> && node scripts/powpow-register.mjs 
 4.  send-code --email E             # → пользователь идёт в почту за кодом (единственный выход из диалога, момент ①)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
 6.  login-link --target pending     # → ссылка 1 отправлена пользователю
-7.  (пользователь выбирает тариф) create-order --package monthly
+7.  (пользователь выбирает способ оплаты)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
 8.  start <файл страницы оплаты>   # Windows; в macOS использовать open, в Linux xdg-open
-     # → пользователь платит в кассе Alipay (выход из диалога, момент ②)
-9.  query (каждые 10–15с) до paid
+     # → пользователь завершает оплату/авторизацию в кассе Alipay/PayPal (выход из диалога, момент ②)
+9.  query (каждые 10–15с) до paid / ACTIVE
 10. refresh-login                   # обмен на новый JWT с декларацией ACTIVE
 11. login-link --target home        # → ссылка 2 отправлена пользователю
 12. whoami                          # подтвердить subscriptionStatus: ACTIVE (опционально)
@@ -84,8 +86,8 @@ set POWPOW_REGISTER_PASSWORD=<пароль> && node scripts/powpow-register.mjs 
 | `send-code` | `POST /api/auth/register/send-code` |
 | `register` | `POST /api/auth/register` (multipart, прямая загрузка аватара) |
 | `login-link` | `GET /api/auth/me?token=…&redirect=…` (сама ссылка, срабатывает при клике в браузере) |
-| `create-order` | `POST /api/payment/alipay/create-order` (Bearer) |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer) |
+| `create-order` | `POST /api/payment/alipay/create-order` (Bearer, Alipay)<br>`GET /api/subscription/plans` + `POST /api/subscription/create` (Bearer, PayPal) |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer, Alipay)<br>`GET /api/subscription/create` (Bearer, PayPal) |
 | `refresh-login` | `POST /api/auth/login` (`{step:1, username, password}`) |
 | `whoami` | `GET /api/auth/me?token=…` |
 
@@ -100,9 +102,10 @@ set POWPOW_REGISTER_PASSWORD=<пароль> && node scripts/powpow-register.mjs 
 | Сетевая ошибка / таймаут | Повторить один раз; если снова не выходит — пользователь проверяет сеть и продолжаем (файл состояния на месте; восстановление с начала через `status`) |
 | register вернул бизнес-ошибку (имя пользователя занято и т.п.) | Разобрать по таблице шага 5 SKILL.md, **код подтверждения повторно отправлять не нужно** (ещё действует 10 минут) |
 | register вернул 「邮箱验证码错误或已过期」 (код подтверждения неверен или истёк) | Время вышло → заново `send-code` |
-| Пользователь закрыл страницу оплаты после `create-order` | Просто заново `create-order` (старый заказ сам закроется через 2ч) |
-| `query` всё время pending | Возможно, пользователь не заплатил; спросите. Если точно заплатил → идти по таблице разбора payment-and-activation.md |
-| `refresh-login` даёт 403 `pending_payment` | Оплата ещё не зачислилась; вернуться к шагу 9 и продолжать опрос |
+| Пользователь закрыл страницу оплаты после `create-order` | Просто заново `create-order` (старый заказ сам закроется через 2ч; подписки PayPal в статусе PENDING истекают через 1ч) |
+| `create-order --provider paypal` возвращает 409 | Уже есть незавершённая подписка PayPal; подождите 1ч, пока она истечёт, или завершите старую авторизацию в браузере |
+| `query` всё время pending / PENDING | Возможно, пользователь не заплатил; спросите. Если точно заплатил → идти по таблице разбора payment-and-activation.md |
+| `refresh-login` даёт 403 `pending_payment` | Оплата/авторизация ещё не зачислилась; вернуться к шагу 9 и продолжать опрос |
 | Файл состояния потерян (случайно удалён / смена машины) | `whoami`/`refresh-login` не работают; пусть пользователь прямо обновит страницу подписки в браузере, где открывал ссылку 1, чтобы проверить статус, или войдёт заново (веб-режим) |
 
 ## Режим отката (чистое сопровождение)

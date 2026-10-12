@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Aide l'utilisateur à accomplir dans la conversation son inscription à PowPow (Bulle), l'activation de l'abonnement via Alipay et la connexion en un clic. L'agent remplit le formulaire à sa place (upload de l'avatar compris), envoie le code de vérification par e-mail, crée la commande de paiement et suit l'encaissement ; l'utilisateur fournit seulement ses informations de base, va relever une fois le code dans sa boîte mail et paie à la caisse Alipay, sans jamais sortir de la conversation. Se déclenche quand l'utilisateur dit « m'inscrire sur Bulle », « créer un compte powpow », « comment s'inscrire sur Bulle », « aide-moi à créer un compte powpow », « sign up powpow » ; traite aussi les blocages à l'inscription (code de vérification non reçu, nom d'utilisateur / e-mail déjà pris) et les soucis d'activation (à la connexion, message « compte non activé » / pending_payment ; comment payer ou s'abonner à Bulle). Requiert Node ≥ 18 ; s'il n'est pas disponible, retombe automatiquement en mode guide pure. Ne couvre ni la publication de posts ni la création d'humains numériques (c'est l'affaire de powpow-simple), ni le développement de code.
-version: 2.0.1
+description: Aide l'utilisateur à accomplir dans la conversation son inscription à PowPow (Bulle), l'activation de l'abonnement via Alipay ou PayPal et la connexion en un clic. L'agent remplit le formulaire à sa place (upload de l'avatar compris), envoie le code de vérification par e-mail, crée la commande de paiement et suit l'encaissement ; l'utilisateur fournit seulement ses informations de base, va relever une fois le code dans sa boîte mail et paie à la caisse Alipay ou PayPal, sans jamais sortir de la conversation. Se déclenche quand l'utilisateur dit « m'inscrire sur Bulle », « créer un compte powpow », « comment s'inscrire sur Bulle », « aide-moi à créer un compte powpow », « sign up powpow » ; traite aussi les blocages à l'inscription (code de vérification non reçu, nom d'utilisateur / e-mail déjà pris) et les soucis d'activation (à la connexion, message « compte non activé » / pending_payment ; comment payer ou s'abonner à Bulle). Requiert Node ≥ 18 ; s'il n'est pas disponible, retombe automatiquement en mode guide pure. Ne couvre ni la publication de posts ni la création d'humains numériques (c'est l'affaire de powpow-simple), ni le développement de code.
+version: 2.1.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,9 +10,9 @@ metadata:
 
 # PowPow Register (assistant d'inscription à Bulle)
 
-Accompagne un nouvel utilisateur depuis « je ne sais pas ce qu'est Bulle » jusqu'à « compte activé, connecté en un clic, on joue » — le tout sans quitter la conversation. L'utilisateur n'a que deux courtes sorties à faire : **aller chercher le code dans sa boîte mail** et **payer à la caisse Alipay** (l'agent ouvre automatiquement la page de paiement).
+Accompagne un nouvel utilisateur depuis « je ne sais pas ce qu'est Bulle » jusqu'à « compte activé, connecté en un clic, on joue » — le tout sans quitter la conversation. L'utilisateur n'a que deux courtes sorties à faire : **aller chercher le code dans sa boîte mail** et **payer à la caisse de paiement** (Alipay ou PayPal — l'agent ouvre automatiquement la page de paiement).
 
-**Version 2.0.1** · 2026-10-08 (depuis la v2, le mode est la prise en charge déléguée par l'agent : le contrat du script et la séquence complète sont dans `references/agent-flow.md` ; les règles de champs, les limites de fréquence et le diagnostic des erreurs dans `references/registration-flow.md` ; les canaux de paiement dans `references/payment-and-activation.md` ; l'inventaire des captures du produit dans `references/screenshots.md`. Depuis la v2.0.1, les captures du produit sont embarquées avec la compétence dans `assets/screenshots/`, sans dépendre d'un hébergeur d'images externe)
+**Version 2.1.0** · 2026-10-11 (depuis la v2, le mode est la prise en charge déléguée par l'agent : le contrat du script et la séquence complète sont dans `references/agent-flow.md` ; les règles de champs, les limites de fréquence et le diagnostic des erreurs dans `references/registration-flow.md` ; les canaux de paiement dans `references/payment-and-activation.md` ; l'inventaire des captures du produit dans `references/screenshots.md`. Depuis la v2.1.0, les abonnements PayPal peuvent aussi être pris en charge par l'agent, au même titre qu'Alipay)
 
 ## Environnement d'exécution
 
@@ -38,7 +38,7 @@ Accompagne un nouvel utilisateur depuis « je ne sais pas ce qu'est Bulle » jus
 | 3 Envoi du code | `send-code` | —— |
 | 4 Lecture du code | —— | Va dans sa boîte mail, relève le code à 6 chiffres, le renvoie |
 | 5 Envoi de l'inscription | `register` (upload direct de l'avatar inclus), gère les erreurs automatiquement | —— |
-| 6 Semi-session + paiement | `login-link(pending)` → `create-order` → ouvre la caisse → interroge `query` en boucle | Ouvre le lien, paie |
+| 6 Semi-session + paiement | `login-link(pending)` → `create-order --provider alipay|paypal` → ouvre la caisse → interroge `query` en boucle | Ouvre le lien, paie |
 | 7 Connexion officielle | `refresh-login` → `login-link(home)` | Ouvre le lien et arrive à l'accueil |
 | 8 Clôture | `cleanup` + remise des identifiants + guide de prise en main + recommandation de plugins | Commence à jouer |
 
@@ -100,15 +100,23 @@ En cas de succès, le compte est créé (statut pending, avec 3 badges initiaux)
    node scripts/powpow-register.mjs login-link --target pending
    ```
    Envoie le lien à l'utilisateur : **une fois ouvert, le navigateur tombe directement sur la page d'abonnement, déjà connecté** — ainsi la page de retour pourra afficher correctement « paiement réussi » quand le paiement sera fait. (Dans cet état, les pages de contenu continuent d'être renvoyées vers la page d'abonnement : c'est le fonctionnement normal du paywall de la plateforme, pas un bug, et pas besoin d'expliquer le mécanisme interne à l'utilisateur.)
-2. Trois formules au choix, montre-les avec leur prix :
-   - Mensuel **¥6.99** (recommandé pour essayer) / Trimestriel **¥19.99** / Annuel **¥69.99** — avec Alipay, achat unique de la durée correspondante, **sans renouvellement automatique**
-3. Quand l'utilisateur a choisi :
-   ```
-   node scripts/powpow-register.mjs create-order --package monthly
-   ```
-   Le script renvoie le chemin du fichier de la page de paiement ; **ouvre-le directement avec une commande système** (Windows : `start <fichier>` ; macOS : `open <fichier>` ; Linux : `xdg-open <fichier>`). Le navigateur saute automatiquement à la caisse officielle Alipay ; l'utilisateur scanne le QR code ou se connecte à Alipay pour payer.
-4. Lance `query` toutes les 10–15 secondes jusqu'à ce qu'il renvoie `paid` (l'encaissement prend en général de quelques secondes à une minute). Si l'utilisateur ferme la page de paiement en route → relance directement `create-order` (l'ancienne commande se ferme toute seule au bout de 2 heures, on s'en occupe pas).
-5. Utilisateurs à l'étranger / sans Alipay : guide-les vers le canal PayPal de la page d'abonnement (la compétence ne le prend pas en charge, montre juste le chemin) ; le canal QR code WeChat est à confirmation manuelle, l'encaissement a du retard. Une fois payé, on revient pareil à l'étape 7.
+2. **Fais choisir à l'utilisateur son moyen de paiement** ; présente les deux canaux :
+   - **Alipay (Chine continentale / utilisateurs avec Alipay)** : achat unique de la durée correspondante, **sans renouvellement automatique**
+     - Mensuel **¥6.99** (recommandé pour essayer) / Trimestriel **¥19.99** / Annuel **¥69.99**
+   - **PayPal (étranger / utilisateurs sans Alipay)** : renouvellement automatique mensuel, annulable à tout moment
+     - Premium Monthly, environ **$1/mois** (selon l'affichage de la page d'abonnement ; renouvellement automatique)
+3. Une fois le choix fait :
+   - **Alipay** :
+     ```
+     node scripts/powpow-register.mjs create-order --package monthly
+     ```
+   - **PayPal** :
+     ```
+     node scripts/powpow-register.mjs create-order --provider paypal
+     ```
+   Le script renvoie le chemin du fichier de la page de paiement ; **ouvre-le directement avec une commande système** (Windows : `start <fichier>` ; macOS : `open <fichier>` ; Linux : `xdg-open <fichier>`). Le navigateur saute automatiquement à la caisse officielle Alipay ou PayPal, où l'utilisateur finalise le paiement ou l'autorisation de prélèvement.
+4. Lance `query` toutes les 10–15 secondes jusqu'à ce qu'il renvoie `paid` ou `ACTIVE` (l'encaissement / l'autorisation prend en général de quelques secondes à une minute). Si l'utilisateur ferme la page de paiement en cours de route → relance simplement `create-order` (les anciennes commandes se ferment et les abonnements en attente expirent au bout de 2 heures ; on ne s'en occupe pas).
+5. Le canal QR code WeChat demande une confirmation manuelle et l'encaissement peut traîner ; Huawei IAP n'est disponible que dans l'app HarmonyOS. La compétence ne gère pas ces deux-là : une fois payé, on revient pareil à l'étape 7.
 
 ## Étape 7 : connexion officielle (lien 2)
 
@@ -148,7 +156,7 @@ Garde le ton de service habituel de powpow :
 
 - **Sécurité des identifiants** : le mot de passe n'est passé au script que par la variable d'environnement `POWPOW_REGISTER_PASSWORD`, **jamais** en argument de ligne de commande (visible dans la liste des processus), ni écrit dans un quelconque fichier (en mode génération, il est affiché une fois pour que l'utilisateur le sauvegarde, puis n'est plus répété). Le code de vérification ne sert que pour l'interface officielle d'inscription et est jeté après usage.
 - **Frontière officielle** : toutes les requêtes ne partent que vers `https://global.powpow.online` (déjà intégré dans le script) ; n'envoie jamais les informations de l'utilisateur vers une adresse tierce.
-- **Frontière de paiement** : l'agent ne fait que créer la commande, ouvrir la caisse et consulter l'encaissement ; il ne touche **jamais** au compte Alipay de l'utilisateur ni à ses moyens de paiement, et ne promet jamais de « payer à sa place ».
+- **Frontière de paiement** : l'agent ne fait que créer la commande, ouvrir la caisse et consulter l'encaissement ; il ne touche **jamais** au compte Alipay/PayPal de l'utilisateur ni à ses moyens de paiement, et ne promet jamais de « payer à sa place ».
 - **Le paywall n'est pas un bug** : qu'à l'état pending on puisse entrer sur la page d'abonnement / de retour est une ouverture prévue par la conception ; que les pages de contenu soient bloquées, c'est le paywall de la plateforme qui travaille normalement ; n'essaie pas de le contourner.
 - **Liberté de repli** : si à n'importe quelle étape l'utilisateur veut faire lui-même, ou si l'environnement ne supporte pas le script, retrograde à tout moment en mode guide pure — donne les liens, explique les règles, accompagne le dépannage.
 - N'invente pas de règles de la plateforme : les règles de champs, les messages d'erreur et les paramètres de limitation viennent tous du code de la plateforme (`references/registration-flow.md` cite les sources) ; si la plateforme se met à jour, le comportement réel prime.

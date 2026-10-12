@@ -2,14 +2,13 @@
 
 ## Konkluzja (najpierw odpowiedź)
 
-**Kanał Alipay jest uruchomiony (od 2026-10-07) i jest główną polecaną metodą płatności tego skilla; agent
-może załatwiać składanie zamówienia i śledzenie księgowania.**
-Użytkownicy spoza Chin / bez Alipay cofają się do PayPal; WeChat QR (potwierdzenie ręczne) i Huawei IAP
-wciąż istnieją, ale skill ich nie załatwia.
+**Zarówno subskrypcje przez Alipay, jak i przez PayPal może obsługiwać agent — składanie zamówienia i śledzenie księgowania włącznie.**
+Alipay to jednorazowy zakup bez automatycznego odnawiania, dla użytkowników z Chin i tych z Alipay; PayPal odnawia się automatycznie co miesiąc i można zrezygnować w każdej chwili,
+dla użytkowników spoza Chin i bez Alipay. Skanowanie WeChat (potwierdzenie ręczne) i Huawei IAP dalej istnieją, ale skill ich nie załatwia.
 
 Granice odpowiedzialności na etapie płatności: agent może **tworzyć zamówienie, otwierać kasę, sprawdzać
-księgowanie**; **nigdy** nie dotyka konta Alipay/dowodów płatności użytkownika i nigdy nie obiecuje
-„zapłacenia za niego". Akt płatności zawsze wykonuje sam użytkownik w oficjalnej kasie Alipay.
+księgowanie**; **nigdy** nie dotyka konta Alipay/PayPal/dowodów płatności użytkownika i nigdy nie obiecuje
+„zapłacenia za niego". Akt płatności zawsze wykonuje sam użytkownik w oficjalnej kasie.
 
 ## Kanał Alipay (vibepay, główny)
 
@@ -47,9 +46,39 @@ paid i pokazuje sukces.
 
 JWT niesie claim subskrypcji (konto pending ma `NONE`). **Księgowanie płatności aktualizuje tylko bazę —
 nie zmienia już wydanego JWT**; claim starego tokena to nadal NONE i link logowania zrobiony z niego będzie
-wyglądał jak „brak członkostwa". Dlatego po potwierdzeniu `paid` skill najpierw odpala `refresh-login`
+wyglądał jak „brak członkostwa". Dlatego po potwierdzeniu `paid` / PayPal `ACTIVE` skill najpierw odpala `refresh-login`
 (ponowne logowanie na nowy JWT z claimem ACTIVE), a dopiero potem generuje link 2. To zamierzony projekt, nie
 łatka na lukę.
+
+## Kanał subskrypcji PayPal (obsługiwany przez skill; web, nie HarmonyOS)
+
+Istnieje tylko jeden plan — Premium Monthly (ok. $1/mies., zgodnie z `/api/subscription/plans`); **odnawia się automatycznie co miesiąc**,
+a użytkownik może zrezygnować w każdej chwili w swoim koncie PayPal.
+
+### Kontrakt interfejsów (już opakowany przez skrypt skilla; agent nie składa requestów samodzielnie)
+
+| Interfejs | Metoda | Opis |
+|---|---|---|
+| `/api/subscription/plans` | GET | Autoryzacja Bearer; zwraca listę dostępnych planów (obecnie tylko 1) |
+| `/api/subscription/create` | POST | body `{planId}` → zwraca `{subscriptionId, approveUrl, status}`; `status` to zwykle `APPROVAL_PENDING` |
+| `/api/subscription/create` | GET | Autoryzacja Bearer; zwraca `{activeSubscription, allSubscriptions}`; agent odpytuje `activeSubscription.subscription.status === 'ACTIVE'` |
+| `/api/subscription/verify` | POST | Wywoływana automatycznie przez stronę sukcesu (z ciasteczkiem); aktywuje bezpośrednio przez API PayPal, gdy webhook jeszcze nie dotarł |
+| `/subscription/success` | Strona powrotu w przeglądarce | Tu ląduje się po autoryzacji w PayPal; automatycznie odpytuje verify i wraca na stronę główną / pierwotną stronę |
+| `/subscription/cancel` | Strona w przeglądarce | Tu ląduje się przy anulowaniu lub błędzie; można zacząć od nowa |
+
+### Przebieg w trybie agenta
+
+```
+create-order --provider paypal  # → zwraca approveUrl zapisany w lokalnym pliku HTML
+otworzyć plik HTML              # → przeglądarka przechodzi na stronę autoryzacji PayPal
+query (co 10–15 s)              # → odpytywać do ACTIVE
+refresh-login                   # → wymiana na nowy JWT (claim subskrypcji ACTIVE)
+login-link --target home        # → wygenerować właściwy link logowania
+```
+
+- Subskrypcje PENDING nieukończone w ciągu godziny backend czyści automatycznie; po prostu zacznij od nowa.
+- Jeśli użytkownik powtórzy `create-order`, backend wykorzysta ponownie wciąż ważną subskrypcję `APPROVAL_PENDING`, unikając 409.
+- Tak jak przy Alipay: księgowanie aktualizuje tylko bazę, stary JWT nie odświeża się sam — przed wysłaniem linku na stronę główną **trzeba** uruchomić `refresh-login`.
 
 ## Cztery kanały na stronie subskrypcji
 
@@ -79,6 +108,9 @@ Cancel anytime.
 |---|---|
 | Alipay opłacone, `query` wciąż pending | Notify sporadycznie się opóźnia; odczekaj 30 sekund i sprawdź ponownie. Jeśli dalej nic — niech użytkownik zajrzy w przeglądarce na stan strony powrotu; jeśli i to nie pomoże, kontakt z pomocą platformy (dongtao@outlook.com) z numerem `outTradeNo` |
 | Alipay opłacone, a link 2 i tak wpada na blokadę | Pominięto `refresh-login` (claim starego JWT niezaktualizowany) — najpierw `refresh-login`, potem `login-link` |
+| `query` PayPal ciągle PENDING | Użytkownik nie dokończył autoryzacji w PayPal; sprawdź, czy link autoryzacyjny został otwarty w przeglądarce. Jeśli po autoryzacji nadal PENDING, możliwe opóźnienie webhooka — poproś użytkownika, by odczekał jeszcze kilka sekund na stronie sukcesu lub ją odświeżył |
+| `query` PayPal zwraca 409 | Istnieje już niedokończona subskrypcja PENDING; odczekaj 1 godzinę, aż wygaśnie, albo dokończ autoryzację starego linku w przeglądarce |
+| PayPal opłacony, ale z linkiem 2 nadal blokada | Tak jak przy Alipay: najpierw `refresh-login`, potem `login-link` |
 | Po zapłacie nadal 403 (PayPal) | Webhook bywa opóźniony; zaloguj się ponownie, żeby odświeżyć stan |
 | WeChat opłacone, a subskrypcji brak | Potwierdzenie ręczne jest asynchroniczne; jeśli w ciągu kilku godzin nie aktywuje się, wtedy kontakt z pomocą platformy |
 | Strona subskrypcji pokazuje "No subscription plans available" | `/api/subscription/plans` nie ma dostępnych planów PayPal — problem konfiguracji po stronie platformy; użytkownicy z Chin mogą po prostu użyć Alipay |

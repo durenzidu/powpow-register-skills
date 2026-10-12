@@ -23,8 +23,8 @@ SKILL.md 各ステップの実行詳細。すべてのコマンドは `node scri
 | `send-code` | `--email` | プラットフォームに6桁認証コードの送信を促す（10分有効、60秒クールダウン） |
 | `register` | `--code`（必須）；`--username --nickname --avatar --phone`（任意、状態ファイルにあれば省略可） | pending アカウントを作成。パスワードは `POWPOW_REGISTER_PASSWORD` 環境変数で渡す。成功後 JWT は自動で状態ファイルに保存 |
 | `login-link` | `--target pending` または `--target home` | ワンクリックログインリンクを生成（双リンク設計、下記参照） |
-| `create-order` | `--package monthly\|quarterly\|yearly` | Alipay 注文を作成。支払いページのファイルパス + outTradeNo を返す（自動で状態ファイルに記録） |
-| `query` | —— | 注文状態 `paid / pending / closed / unknown` を照会（outTradeNo は状態ファイルから取得）。10〜15秒間隔でポーリング |
+| `create-order` | `--package monthly\|quarterly\|yearly`（Alipay がデフォルト）<br>`--provider alipay\|paypal` | 決済注文を作成。Alipay は支払いページのファイルパス + outTradeNo、PayPal は承認ページのファイルパス + subscriptionId を返す（自動で状態ファイルに記録） |
+| `query` | —— | 注文/サブスクの状態を照会。Alipay：`paid / pending / closed / unknown`；PayPal：`ACTIVE / PENDING`。10〜15秒間隔でポーリング |
 | `refresh-login` | パスワードは環境変数で | 再ログインして**新しい JWT** に交換（サブスク宣言が NONE → ACTIVE）。支払い着金後に必ず実行 |
 | `whoami` | —— | 状態ファイルの token でアカウントとサブスク状態を照会（アクティベーションが効いたか検証） |
 | `cleanup` | —— | 状態ファイルを削除（仕上げで必ず実行） |
@@ -58,10 +58,12 @@ set POWPOW_REGISTER_PASSWORD=<パスワード> && node scripts/powpow-register.m
 4.  send-code --email E             # → ユーザーがメールでコードを確認（唯一の会話離脱①）
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
 6.  login-link --target pending     # → リンク1をユーザーに送る
-7.  （ユーザーがプランを選択）create-order --package monthly
+7.  （ユーザーが支払い方法を選択）
+    # Alipay：create-order --package monthly|quarterly|yearly
+    # PayPal：create-order --provider paypal
 8.  start <支払いページファイル>      # Windows。macOS は open、Linux は xdg-open
-    # → ユーザーが Alipay のレジで支払い（会話離脱②）
-9.  query（10〜15秒ごと）paid になるまで
+    # → ユーザーが Alipay / PayPal のレジで支払い/承認を完了（会話離脱②）
+9.  query（10〜15秒ごと）paid / ACTIVE になるまで
 10. refresh-login                   # ACTIVE 宣言の新しい JWT に交換
 11. login-link --target home        # → リンク2をユーザーに送る
 12. whoami                          # subscriptionStatus: ACTIVE を確認（任意）
@@ -75,8 +77,8 @@ set POWPOW_REGISTER_PASSWORD=<パスワード> && node scripts/powpow-register.m
 | `send-code` | `POST /api/auth/register/send-code` |
 | `register` | `POST /api/auth/register`（multipart、アバター直送） |
 | `login-link` | `GET /api/auth/me?token=…&redirect=…`（リンク自体。ブラウザでクリックされた時に効く） |
-| `create-order` | `POST /api/payment/alipay/create-order`（Bearer） |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…`（Bearer） |
+| `create-order` | `POST /api/payment/alipay/create-order`（Bearer、Alipay）<br>`GET /api/subscription/plans` + `POST /api/subscription/create`（Bearer、PayPal） |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…`（Bearer、Alipay）<br>`GET /api/subscription/create`（Bearer、PayPal） |
 | `refresh-login` | `POST /api/auth/login`（`{step:1, username, password}`） |
 | `whoami` | `GET /api/auth/me?token=…` |
 
@@ -91,9 +93,10 @@ set POWPOW_REGISTER_PASSWORD=<パスワード> && node scripts/powpow-register.m
 | ネットワークエラー / タイムアウト | 1回リトライ。それでも失敗したらユーザーにネットワーク確認を促して続行（状態ファイルは残っているので、最初から `status` で復帰） |
 | register が業務エラー（ユーザー重複など） | SKILL.md 第5ステップの表の通り処理。**認証コードの再送は不要**（10分以内ならまだ有効） |
 | register が「邮箱验证码错误或已过期」（認証コード誤り/期限切れ）を報告 | タイムアウト → `send-code` をやり直す |
-| `create-order` 後にユーザーが支払いページを閉じた | そのまま `create-order` をやり直す（旧注文は2時間で自動クローズ） |
-| `query` がずっと pending | ユーザーが支払っていない可能性。一言尋ねる。本当に払っていたら → payment-and-activation.md の調査表へ |
-| `refresh-login` が 403 `pending_payment` | 支払いがまだ着金していない。第9ステップに戻ってポーリング継続 |
+| `create-order` 後にユーザーが支払いページを閉じた | そのまま `create-order` をやり直す（旧注文は2時間で自動クローズ。PayPal の PENDING サブスクは1時間で失効） |
+| `create-order --provider paypal` が 409 を返す | 未完了の PayPal サブスクが既に存在します。1時間待って失効させるか、ブラウザで旧承認を完了 |
+| `query` がずっと pending / PENDING | ユーザーが支払っていない可能性。一言尋ねる。本当に払っていたら → payment-and-activation.md の調査表へ |
+| `refresh-login` が 403 `pending_payment` | 支払い/承認がまだ着金していない。第9ステップに戻ってポーリング継続 |
 | 状態ファイルの紛失（誤削除 / マシン変更） | `whoami`/`refresh-login` は使用不能。リンク1を開いたことのあるブラウザでサブスクページを直接リロードして状態を確認してもらうか、再ログイン（Web モード） |
 
 ## フォールバックモード（純粋ガイド）

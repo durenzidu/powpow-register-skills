@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Kullanıcının PowPow (Kabarcık) kaydını tamamlamasına, Alipay üzerinden aboneliği etkinleştirmesine ve sohbet içinde tek tıkla giriş yapmasına yardımcı olur. Agent form kullanıcının yerine doldurur (profil fotoğrafı yükleme dahil), e-posta ile doğrulama kodu gönderir, ödeme siparişi oluşturur ve hesaba geçişi izler; kullanıcının yapması gerekenler yalnızca temel bilgileri vermek, kodu e-postasından bir kez okumak ve Alipay kasa sayfasında ödemeyi yapmak — tüm süreç sohbetten çıkmadan tamamlanır. Kullanıcı «Kabarcık'a kayıt ol», «powpow hesabı aç», «Kabarcık'a nasıl kaydolunur», «bana powpow hesabı aç», «sign up powpow» dediğinde devreye girer; takılan kayıtları (doğrulama kodu gelmemesi, kullanıcı adı/e-postanın alınmış olması) ve etkinleştirme sorunlarını («hesap etkinleştirilmedi» / pending_payment uyarısı, abonelik nasıl ödenir) da ele alır. Node ≥ 18 gerektirir; yoksa otomatik olarak salt yol gösterme moduna düşer. Gönderi yayınlama/dijital insan oluşturma (o powpow-simple'ın işi) ve kod geliştirme kapsam dışıdır.
-version: 2.0.1
+description: Kullanıcının PowPow (Kabarcık) kaydını tamamlamasına, Alipay veya PayPal üzerinden aboneliği etkinleştirmesine ve sohbet içinde tek tıkla giriş yapmasına yardımcı olur. Agent form kullanıcının yerine doldurur (profil fotoğrafı yükleme dahil), e-posta ile doğrulama kodu gönderir, ödeme siparişi oluşturur ve hesaba geçişi izler; kullanıcının yapması gerekenler yalnızca temel bilgileri vermek, kodu e-postasından bir kez okumak ve Alipay/PayPal kasa sayfasında ödemeyi yapmak — tüm süreç sohbetten çıkmadan tamamlanır. Kullanıcı «Kabarcık'a kayıt ol», «powpow hesabı aç», «Kabarcık'a nasıl kaydolunur», «bana powpow hesabı aç», «sign up powpow» dediğinde devreye girer; takılan kayıtları (doğrulama kodu gelmemesi, kullanıcı adı/e-postanın alınmış olması) ve etkinleştirme sorunlarını («hesap etkinleştirilmedi» / pending_payment uyarısı, abonelik nasıl ödenir) da ele alır. Node ≥ 18 gerektirir; yoksa otomatik olarak salt yol gösterme moduna düşer. Gönderi yayınlama/dijital insan oluşturma (o powpow-simple'ın işi) ve kod geliştirme kapsam dışıdır.
+version: 2.1.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,9 +10,9 @@ metadata:
 
 # PowPow Register (Kabarcık kayıt asistanı)
 
-Yeni bir kullanıcıyı «Kabarcık'ın ne olduğunu bilmiyorum» noktasından «hesap etkinleşti, tek tıkla giriş, oyun başlıyor» noktasına götürür — hepsi sohbet içinde. Kullanıcı sohbetten yalnızca iki kısa anlık ayrılır: **e-postasına gidip doğrulama kodunu okumak** ve **Alipay kasa sayfasında ödemek** (agent ödeme sayfasını kendiliğinden açar).
+Yeni bir kullanıcıyı «Kabarcık'ın ne olduğunu bilmiyorum» noktasından «hesap etkinleşti, tek tıkla giriş, oyun başlıyor» noktasına götürür — hepsi sohbet içinde. Kullanıcı sohbetten yalnızca iki kısa anlık ayrılır: **e-postasına gidip doğrulama kodunu okumak** ve **kasa sayfasında ödemek** (Alipay veya PayPal — agent ödeme sayfasını kendiliğinden açar).
 
-**Sürüm 2.0.1** · 2026-10-08 (v2'den itibaren agent vekâlet modudur: script sözleşmesi ve tam sıralama `references/agent-flow.md` içinde; alan kuralları, hız sınırları ve hata yönetimi `references/registration-flow.md` içinde; ödeme kanalları `references/payment-and-activation.md` içinde; ürün ekran görüntüleri listesi `references/screenshots.md` içindedir. v2.0.1'den itibaren ürün ekran görüntüleri `assets/screenshots/` altında paketle birlikte gelir, harici görsel servisine bağlı değildir)
+**Sürüm 2.1.0** · 2026-10-11 (v2'den itibaren agent vekâlet modudur: script sözleşmesi ve tam sıralama `references/agent-flow.md` içinde; alan kuralları, hız sınırları ve hata yönetimi `references/registration-flow.md` içinde; ödeme kanalları `references/payment-and-activation.md` içinde; ürün ekran görüntüleri listesi `references/screenshots.md` içindedir. v2.1.0'dan itibaren PayPal aboneliklerini de agent vekâleten yürütebilir, Alipay'in yanında bir seçenek olarak)
 
 ## Çalışma ortamı
 
@@ -38,7 +38,7 @@ Yeni bir kullanıcıyı «Kabarcık'ın ne olduğunu bilmiyorum» noktasından �
 | 3 Kod gönderimi | `send-code` | —— |
 | 4 Kod okuma | —— | E-postasına gidip 6 haneli kodu okur, yazar |
 | 5 Kayıt gönderimi | `register` (profil fotoğrafını da yükler), hataları kendiliğinden yönetir | —— |
-| 6 Yarı oturum + ödeme | `login-link(pending)` → `create-order` → kasayı açar → `query` ile sorar | Bağlantıyı açar, öder |
+| 6 Yarı oturum + ödeme | `login-link(pending)` → `create-order --provider alipay|paypal` → kasayı açar → `query` ile sorar | Bağlantıyı açar, öder |
 | 7 Resmî giriş | `refresh-login` → `login-link(home)` | Bağlantıyı açıp ana sayfaya girer |
 | 8 Kapanış | `cleanup` + hesap bilgisi teslimi + deneyim rehberi + eklenti önerisi | Oynamaya başlar |
 
@@ -100,15 +100,23 @@ Başarılı olursa hesap oluşur (pending durumu, 3 açılış rozetiyle birlikt
    node scripts/powpow-register.mjs login-link --target pending
    ```
    Bağlantıyı kullanıcıya verin: **tarayıcıda açınca doğrudan abonelik sayfasına düşer, giriş yapılmış durumdadır** — böylece ödeme bittiğinde tamamlama sayfası «ödeme başarılı» demeyi doğru gösterir. (Bu durumda içerik sayfaları yine abonelik sayfasına yönlendirilir: bu platformun ödeme duvarının normal işleyişidir, hata değildir; kullanıcının iç mekanizmaları anlatmasına da gerek yoktur.)
-2. Seçilebilecek üç paket, tanıtırken fiyatıyla birlikte:
-   - Aylık **¥6.99** (ilk denemede önerilir) / Üç aylık **¥19.99** / Yıllık **¥69.99** — Alipay ile ilgili süreyi tek seferde satın alırsınız, **otomatik yenileme yoktur**
-3. Kullanıcı seçince:
-   ```
-   node scripts/powpow-register.mjs create-order --package monthly
-   ```
-   Script ödeme sayfası dosyasının yolunu döndürür; **sistem komutuyla doğrudan açın** (Windows: `start <dosya>`; macOS: `open <dosya>`; Linux: `xdg-open <dosya>`). Tarayıcı kendiliğinden Alipay'in resmî kasa sayfasına gider; kullanıcı QR'ı okutur ya da Alipay'e girip öder.
-4. `paid` dönene dek 10–15 saniyede bir `query` çalıştırın (para geçişi genelde birkaç saniye ile bir dakika arası). Kullanıcı ödeme sayfasını yarıda kapatırsa → hemen `create-order`'ı tekrar çalıştırın (eski sipariş 2 saatte kendiliğinden kapanır, dert etmeyin).
-5. Yurt dışındaki/Alipay'i olmayan kullanıcı: abonelik sayfasındaki PayPal kanalını kullanmaya yönlendirin (skill vekâlet etmez, yolu gösterir); WeChat QR kanalı elle onay gerektirir, para geçişi gecikir. Ödeme bittikten sonra yine Adım 7'ye dönülür.
+2. **Kullanıcıya ödeme yöntemini seçtirin** — iki kanalı da gösterin:
+   - **Alipay (Çin / Alipay'i olan kullanıcılar)**: karşılık gelen sürenin tek seferlik satın alımı, **otomatik yenileme yok**
+     - Aylık **¥6.99** (ilk denemede önerilir) / Üç aylık **¥19.99** / Yıllık **¥69.99**
+   - **PayPal (yurt dışı / Alipay'i olmayan kullanıcılar)**: aylık otomatik yenileme, istenildiği anda iptal
+     - Premium Monthly, yaklaşık **$1/ay** (abonelik sayfasında gösterildiği şekilde; otomatik yenileme)
+3. Kullanıcı seçtikten sonra:
+   - **Alipay**:
+     ```
+     node scripts/powpow-register.mjs create-order --package monthly
+     ```
+   - **PayPal**:
+     ```
+     node scripts/powpow-register.mjs create-order --provider paypal
+     ```
+   Script ödeme sayfası dosyasının yolunu döndürür; **sistem komutuyla doğrudan açın** (Windows: `start <dosya>`; macOS: `open <dosya>`; Linux: `xdg-open <dosya>`). Tarayıcı kendiliğinden Alipay ya da PayPal'ın resmî kasa sayfasına gider; kullanıcı ödemeyi veya ödeme talimatını orada tamamlar.
+4. `paid` ya da `ACTIVE` dönene dek 10–15 saniyede bir `query` çalıştırın (hesaba geçiş/autorizasyon genelde birkaç saniye ile bir dakika arası sürer). Kullanıcı ödeme sayfasını yarıda kapatırsa → hemen `create-order`'ı tekrar çalıştırın (eski siparişler ve bekleyen abonelikler 2 saatte kendiliğinden kapanır ya da sona erer; dert etmeyin).
+5. WeChat QR kanalı elle onay gerektirir, hesaba geçiş gecikebilir; Huawei IAP yalnızca HarmonyOS uygulaması içinde kullanılabilir. Bu ikisini skill vekâleten yürütmez — ödeme bittikten sonra yine Adım 7'ye dönülür.
 
 ## Adım 7: resmî giriş (bağlantı 2)
 
@@ -148,7 +156,7 @@ powpow'un alışılmış hizmet tonunu koruyun:
 
 - **Kimlik bilgisi güvenliği**: şifre scripte yalnızca `POWPOW_REGISTER_PASSWORD` ortam değişkeniyle geçirilir, **asla** komut satırı parametresine konmaz (süreç listesinde görünür), hiçbir dosyaya yazılmaz (üretim modunda kullanıcı kaydetsin diye bir kez gösterilir, sonra bir daha anılmaz). Doğrulama kodu yalnızca resmî kayıt arayüzünde kullanılır ve işi bitince atılır.
 - **Resmîlik sınırı**: tüm istekler yalnızca `https://global.powpow.online`'a gider (scripte yerleşiktir); kullanıcı bilgilerini asla üçüncü taraf adreslere göndermeyin.
-- **Ödeme sınırı**: agent yalnızca sipariş açar, kasayı açar, para geçişini sorgular; kullanıcının Alipay hesabına/ödeme belgelerine **asla** dokunmaz, «ben öderim» diye söz de vermez.
+- **Ödeme sınırı**: agent yalnızca sipariş açar, kasayı açar, para geçişini sorgular; kullanıcının Alipay/PayPal hesabına/ödeme belgelerine **asla** dokunmaz, «ben öderim» diye söz de vermez.
 - **Ödeme duvarı hata değildir**: pending durumun abonelik sayfasına/tamamlama sayfasına erişebilmesi tasarımda bırakılmış bilinçli bir geçittir; içerik sayfalarının engellenmesi ödeme duvarının normal işleyişidir; onu aşmanın yollarını aramayın.
 - **Geri dönme özgürlüğü**: herhangi bir adımda kullanıcı kendi yapmak isterse ya da ortam scripti çalıştıramıyorsa, istediğiniz an salt yol gösterme moduna dönün — bağlantıları verin, kuralları anlatın, hataları birlikte çözün.
 - Platform kuralı uydurmayın: alan kuralları, hata metinleri ve hız sınırı parametrelerinin tamamı platform kodundan gelir (`references/registration-flow.md` kaynağı gösterir); platform güncellenirse fiilî davranış esas alınır.

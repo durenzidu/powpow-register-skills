@@ -2,12 +2,12 @@
 
 Asystent rejestracji PowPow Bańka (wersja OpenClaw): przeprowadza nowego użytkownika od „nie wiem, czym jest
 Bańka" do „konto aktywne, logowanie jednym kliknięciem, zaczynamy" — prezentacja produktu (ze zrzutami
-interfejsu), rejestracja załatwiana przez agenta (łącznie z wgrywaniem avatara), zamówienie subskrypcji Alipay
+interfejsu), rejestracja załatwiana przez agenta (łącznie z wgrywaniem avatara), zamówienie subskrypcji Alipay/PayPal
 i śledzenie księgowania, logowanie jednym kliknięciem na podwójnym linku, rozwiązywanie błędów.
 
-**Od v2.0.0 tryb agenta działającego w imieniu użytkownika**: główny skrypt `scripts/powpow-register.mjs` zero
+**Od v2.0.0 tryb agenta działającego w imieniu użytkownika, od v2.1.0 także PayPal**: główny skrypt `scripts/powpow-register.mjs` zero
 zależności (Node ≥ 18); użytkownik przez cały czas nie wychodzi z rozmowy, tylko dwa razy na chwilę: po kod do
-skrzynki e-mail i na płatność w kasie Alipay. Bez Node'a albo gdy użytkownik chce działać sam — automatyczny
+skrzynki e-mail i na płatność w kasie Alipay lub PayPal. Bez Node'a albo gdy użytkownik chce działać sam — automatyczny
 powrót do trybu czystych wskazówek.
 
 ## Instalacja
@@ -27,9 +27,9 @@ openclaw skills install @durenzidu/powpow-register
 3. **Logowanie jednym kliknięciem (podwójny link)**: po udanej rejestracji od razu link „półzalogowania" prosto na
    stronę subskrypcji; po zaksięgowaniu płatności wymiana na nowy stan logowania i link z pełnym członkostwem
    prosto na stronę główną (przez oficjalny mostek `me?token=` platformy, automatycznie ustawia cookie HttpOnly).
-4. **Płatność subskrypcji**: kanał Alipay z zamówieniem załatwianym przez agenta (miesięcznie ¥6.99 / kwartalnie
-   ¥19.99 / rocznie ¥69.99, jednorazowy zakup bez automatycznego odnawiania) + odpytywanie o księgowanie;
-   użytkownicy spoza Chin cofają się do PayPal; skanowanie WeChat/Huawei IAP tylko ze wskazaniem drogi.
+4. **Płatność subskrypcji**: zarówno Alipay (miesięcznie ¥6.99 / kwartalnie
+   ¥19.99 / rocznie ¥69.99, jednorazowy zakup bez automatycznego odnawiania), jak i PayPal (Premium Monthly, ok. $1/mies., automatyczne odnawianie, rezygnacja w każdej chwili) załatwia agent + odpytywanie o księgowanie;
+   skanowanie WeChat/Huawei IAP tylko ze wskazaniem drogi.
 5. **Rozwiązywanie błędów**: kod nie dochodzi, nazwa użytkownika/e-mail zajęte, 403 konto nieaktywne, konto
    zablokowane i inne częste problemy — wszystko z kodu platformy z podanymi źródłami.
 
@@ -60,8 +60,8 @@ powpow-register/
   (e-mail/nazwa użytkownika/token/numer zamówienia) leży w systemowym katalogu tymczasowym, a po zakończeniu
   procesu `cleanup` czyści go jednym ruchem.
 - **Płatność**: agent tylko tworzy zamówienie, otwiera kasę i sprawdza księgowanie; nigdy nie dotyka konta
-  Alipay ani dowodów płatności użytkownika, nigdy nie płaci za niego. Płatność zawsze odbywa się między
-  użytkownikiem a oficjalną kasą Alipay.
+  Alipay/PayPal ani dowodów płatności użytkownika, nigdy nie płaci za niego. Płatność zawsze odbywa się między
+  użytkownikiem a oficjalną kasą.
 - Wszystkie zapytania idą tylko do oficjalnej domeny `https://global.powpow.online`; nie zawiera żadnych kluczy.
 
 ## Licencja

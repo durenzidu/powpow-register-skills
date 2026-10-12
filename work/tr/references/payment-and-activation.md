@@ -2,13 +2,13 @@
 
 ## Sonuç (önce cevap)
 
-**Alipay kanalı yayında (2026-10-07'den beri), bu skill'in ana ödeme yöntemidir ve agent sipariş açma ile hesaba
-geçiş takibini vekâleten yürütür.** Yurt dışındaki/Alipay'i olmayan kullanıcılar PayPal'e döner; WeChat QR (elle
-onay) ve Huawei IAP da mevcuttur ama skill bunlarda vekâlet etmez.
+**Hem Alipay hem de PayPal aboneliklerini artık vekâleten agent yürütebilir — sipariş açma ve hesaba geçiş takibi dahil.**
+Alipay otomatik yenilemesi olmayan tek seferlik satın alımdır; Çin'deki ve Alipay'i olan kullanıcılara uygundur. PayPal her ay otomatik yenilenir ve istenildiği anda iptal edilebilir,
+yurt dışındaki ve Alipay'i olmayan kullanıcılara uygundur. WeChat QR (elle onay) ve Huawei IAP duruyor, ancak skill bunları vekâleten yürütmez.
 
-Ödemede sorumluluk sınırı: agent **sipariş açar, kasayı açar, hesaba geçişi sorgular**; kullanıcının Alipay
+Ödemede sorumluluk sınırı: agent **sipariş açar, kasayı açar, hesaba geçişi sorgular**; kullanıcının Alipay/PayPal
 hesabına/ödeme belgelerine **asla dokunmaz**, «ben öderim» vaadinde **asla** bulunmaz. Ödeme eylemi her zaman
-kullanıcı tarafından Alipay'in resmî kasasında yapılır.
+kullanıcı tarafından resmî kasada yapılır.
 
 ## Alipay kanalı (vibepay, ana kanal)
 
@@ -45,9 +45,39 @@ uzatılır (`planId`, `currentPeriodEnd` durationDays'ten hesaplanır; yenileme 
 
 JWT'nin içinde abonelik beyanı gömülüdür (pending hesapta `NONE`). **Ödemede hesaba geçiş yalnızca veritabanını
 günceller, verilmiş JWT değişmez** — eski tokenın beyanı NONE olarak kalır; onunla giriş bağlantısı üretilirse
-«üye değil» gibi görünür. Bu yüzden skill `paid` doğrulandıktan sonra önce `refresh-login` çalıştırır (yeniden
+«üye değil» gibi görünür. Bu yüzden skill `paid` / PayPal `ACTIVE` doğrulandıktan sonra önce `refresh-login` çalıştırır (yeniden
 giriş, yeni JWT, beyanı ACTIVE), sonra bağlantı 2'yi üretir. Bu tasarımın davranışıdır, düzeltilmesi gereken bir
 hata değildir.
+
+## PayPal abonelik kanalı (skill vekâleten yürütür; web, HarmonyOS değil)
+
+Tek bir plan var: Premium Monthly (yaklaşık $1/ay, `/api/subscription/plans` dönüşüne göre). **Her ay otomatik yenilenir**
+ve kullanıcı bunu PayPal hesabından istediği zaman iptal edebilir.
+
+### Arayüz sözleşmesi (skill scripti tarafından sarmalandı; agent istekleri kendisi kurmaz)
+
+| Arayüz | Metot | Açıklama |
+|---|---|---|
+| `/api/subscription/plans` | GET | Bearer doğrulama; kullanılabilir planların listesini döner (şu anda yalnızca 1) |
+| `/api/subscription/create` | POST | body `{planId}` → `{subscriptionId, approveUrl, status}` döner; `status` genelde `APPROVAL_PENDING` olur |
+| `/api/subscription/create` | GET | Bearer doğrulama; `{activeSubscription, allSubscriptions}` döner; agent `activeSubscription.subscription.status === 'ACTIVE'` değerini yoklar |
+| `/api/subscription/verify` | POST | Başarı sayfası tarafından otomatik çağrılır (cookie ile); webhook gelmediyse PayPal API üzerinden doğrudan etkinleştirir |
+| `/subscription/success` | Tarayıcı dönüş sayfası | PayPal onayından sonra buraya düşülür; verify'yi otomatik yoklar, sonra ana sayfaya / ilk sayfaya döner |
+| `/subscription/cancel` | Tarayıcı sayfası | Kullanıcı iptal ederse ya da hata olursa buraya düşülür; yeniden denenebilir |
+
+### Vekâlet akışı
+
+```
+create-order --provider paypal  # → approveUrl döner, yerel HTML dosyasına yazılır
+HTML dosyasını aç               # → tarayıcı PayPal onay sayfasına geçer
+query (her 10–15s)              # → ACTIVE olana dek yokla
+refresh-login                   # → yeni JWT ile değiştir (abonelik beyanı ACTIVE)
+login-link --target home        # → kesin giriş bağlantısını üret
+```
+
+- 1 saat içinde tamamlanmayan PENDING abonelikleri backend otomatik temizler; baştan başlamak yeterlidir.
+- Kullanıcı `create-order`'ı tekrarlarsa backend hâlâ geçerli olan `APPROVAL_PENDING` aboneliği yeniden kullanır ve 409'u önler.
+- Alipay'deki gibi: hesaba geçiş yalnızca veritabanını günceller, eski JWT kendiliğinden yenilenmez — ana sayfa bağlantısını göndermeden önce **mutlaka** `refresh-login` çalıştırılmalıdır.
 
 ## Abonelik sayfasındaki dört kanal
 
@@ -76,6 +106,9 @@ Auto-renews. Cancel anytime.
 |---|---|
 | Alipay ödemesinden sonra `query` hâlâ pending | notify gecikmesi nadirdir; 30 saniye bekleyip tekrar bakın. Yine olmazsa kullanıcı tarayıcıdaki geri dönüş sayfasının durumuna baksın; o da çözmezse platform desteğiyle (dongtao@outlook.com) `outTradeNo`'yu vererek iletişime geçsin |
 | Alipay ücreti kesti ama bağlantı 2 ile girince yine engelleniyor | `refresh-login` atlandı (eski JWT'nin beyanı güncellenmemiş) — önce `refresh-login`, sonra `login-link` |
+| PayPal `query` sürekli PENDING | Kullanıcı PayPal'da onayı tamamlamadı; onay bağlantısının tarayıcıda açıldığını doğrulayın. Onaya rağmen hâlâ PENDING ise webhook gecikmesi olabilir — kullanıcıdan başarı sayfasında birkaç saniye daha beklemesini veya sayfayı yenilemesini isteyin |
+| PayPal `query` 409 döndürüyor | Hâlihazırda tamamlanmamış bir PENDING abonelik var; 1 saat bekleyip sona ermesini bekleyin ya da eski bağlantının onayını tarayıcıda tamamlayın |
+| PayPal ödendi ama bağlantı 2 ile giriş hâlâ engelli | Alipay'deki gibi: önce `refresh-login`, sonra `login-link` |
 | Ödedikten sonra yine 403 (PayPal) | Webhook bazen gecikir; yeniden giriş yapıp durum yenilensin |
 | WeChat ile ödendi, abonelik açılmadı | Elle onay eşzamansızdır; birkaç saat içinde açılmazsa platform desteğiyle iletişime geçilsin |
 | Abonelik sayfasında "No subscription plans available" | `/api/subscription/plans` PayPal paketi döndürmüyor; platform tarafındaki yapılandırma arızasıdır; Çin anakarasındaki kullanıcılar arada Alipay'i kullanabilir |

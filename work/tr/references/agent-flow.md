@@ -24,8 +24,8 @@ biçimindedir; script **sıfır bağımlılıktır**, **Node ≥ 18** gerektirir
 | `send-code` | `--email` | Platformun 6 haneli doğrulama kodu göndermesini tetikler (10 dakika geçerli, 60s bekleme) |
 | `register` | `--code` (zorunlu); `--username --nickname --avatar --phone` (isteğe bağlı, durum dosyasında varsa geçilmez) | pending hesap oluşturur; şifre `POWPOW_REGISTER_PASSWORD` ortam değişkeniyle; başarılı olunca JWT otomatik olarak durum dosyasına yazılır |
 | `login-link` | `--target pending` veya `--target home` | Tek tıkla giriş bağlantısı üretir (çift bağlantı tasarımı, aşağıda) |
-| `create-order` | `--package monthly\|quarterly\|yearly` | Alipay siparişi oluşturur; ödeme sayfası dosya yolu + outTradeNo döner (otomatik olarak durum dosyasına işlenir) |
-| `query` | —— | Sipariş durumunu sorar `paid / pending / closed / unknown` (outTradeNo durum dosyasından), 10–15s arayla yoklanır |
+| `create-order` | `--package monthly\|quarterly\|yearly` (varsayılan Alipay)<br>`--provider alipay\|paypal` | Ödeme siparişini oluşturur; Alipay ödeme sayfası dosya yolunu + outTradeNo döndürür, PayPal onay sayfası dosya yolunu + subscriptionId döndürür (otomatik olarak durum dosyasına yazılır) |
+| `query` | —— | Sipariş/abonelik durumunu sorar. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; 10–15s arayla yoklanır |
 | `refresh-login` | şifre ortam değişkeniyle | Yeniden giriş yapıp **yeni JWT** alır (abonelik beyanı NONE'dan ACTIVE'e döner), para geçtikten sonra mutlaka çalıştırılır |
 | `whoami` | —— | Durum dosyasındaki token ile hesabı ve abonelik durumunu sorgular (etkinleşmenin tutup tutmadığını doğrular) |
 | `cleanup` | —— | Durum dosyasını siler (kapanışta mutlaka çalıştırılır) |
@@ -66,10 +66,12 @@ hedef sayfaya 307 geçici yönlendirme.
 4.  send-code --email E             # → kullanıcı e-postasına gidip kodu okur (sohbetten tek ayrılış ①)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
 6.  login-link --target pending     # → bağlantı 1 kullanıcıya verilir
-7.  (kullanıcı paketi seçer) create-order --package monthly
+7.  (kullanıcı ödeme yöntemini seçer)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
 8.  start <ödeme sayfası dosyası>   # Windows; macOS'ta open, Linux'ta xdg-open
-    # → kullanıcı Alipay kasasında öder (sohbetten ayrılış ②)
-9.  query (her 10–15s) paid olana dek
+    # → kullanıcı Alipay/PayPal kasasında ödemeyi/onayı tamamlar (sohbetten ayrılış ②)
+9.  query (her 10–15s) paid / ACTIVE olana dek
 10. refresh-login                   # ACTIVE beyanlı yeni JWT alınır
 11. login-link --target home        # → bağlantı 2 kullanıcıya verilir
 12. whoami                          # subscriptionStatus: ACTIVE doğrulanır (isteğe bağlı)
@@ -83,8 +85,8 @@ hedef sayfaya 307 geçici yönlendirme.
 | `send-code` | `POST /api/auth/register/send-code` |
 | `register` | `POST /api/auth/register` (multipart, profil fotoğrafı doğrudan yüklenir) |
 | `login-link` | `GET /api/auth/me?token=…&redirect=…` (bağlantının kendisi, tarayıcı tıkladığında etkili olur) |
-| `create-order` | `POST /api/payment/alipay/create-order` (Bearer) |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer) |
+| `create-order` | `POST /api/payment/alipay/create-order` (Bearer, Alipay)<br>`GET /api/subscription/plans` + `POST /api/subscription/create` (Bearer, PayPal) |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer, Alipay)<br>`GET /api/subscription/create` (Bearer, PayPal) |
 | `refresh-login` | `POST /api/auth/login` (`{step:1, username, password}`) |
 | `whoami` | `GET /api/auth/me?token=…` |
 
@@ -99,9 +101,10 @@ için `payment-and-activation.md` (ikisinde de platform kaynak dosyaları belirt
 | Ağ hatası / zaman aşımı | Bir kez tekrar deneyin; yine başarısızsa kullanıcı ağı kontrol etsin, sonra devam (durum dosyası duruyor, baştan `status` ile kurtarılır) |
 | register iş hatası verir (kullanıcı adı var vb.) | SKILL.md Adım 5'teki tabloya göre yönetilir, **doğrulama kodu yeniden gönderilmez** (10 dakika içinde hâlâ geçerlidir) |
 | register 「邮箱验证码错误或已过期」 (doğrulama kodu hatalı ya da süresi geçmiş) der | Süre aşımı → `send-code` yeniden |
-| `create-order`'dan sonra kullanıcı ödeme sayfasını kapattı | Doğrudan `create-order` yeniden (eski sipariş 2 saatte otomatik kapanır) |
-| `query` sürekli pending | Kullanıcı ödememiş olabilir; bir cümle sorun. Gerçekten ödediyse → payment-and-activation.md'deki teşhis tablosunu izleyin |
-| `refresh-login` 403 `pending_payment` | Ödeme henüz hesaba geçmedi, Adım 9'a dönüp yoklamaya devam |
+| `create-order`'dan sonra kullanıcı ödeme sayfasını kapattı | Doğrudan `create-order` yeniden (eski sipariş 2 saatte otomatik kapanır; PayPal PENDING abonelikler 1 saatte sona erer) |
+| `create-order --provider paypal` 409 döndürüyor | Hâlihazırda tamamlanmamış bir PayPal aboneliği var; 1 saat bekleyip sona ermesini bekleyin ya da eski onayı tarayıcıda tamamlayın |
+| `query` sürekli pending / PENDING | Kullanıcı ödememiş olabilir; bir cümle sorun. Gerçekten ödediyse → payment-and-activation.md'deki teşhis tablosunu izleyin |
+| `refresh-login` 403 `pending_payment` | Ödeme/onay henüz hesaba geçmedi, Adım 9'a dönüp yoklamaya devam |
 | Durum dosyası kayboldu (yanlışlıkla silindi / makine değişti) | `whoami`/`refresh-login` kullanılamaz; kullanıcıya, bağlantı 1'i açtığı tarayıcıda abonelik sayfasını yenileterek durumu doğrulatın ya da yeniden giriş yaptırın (web modu) |
 
 ## Geri dönüş modu (salt yol gösterme)

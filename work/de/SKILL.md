@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Hilft Nutzer:innen, PowPow- (Bubble-)Registrierung, Alipay-Abonnement-Aktivierung und Ein-Klick-Login komplett im Chat abzuschließen. Der agent füllt Formulare (inkl. Avatar-Upload), sendet den E-Mail-Verifizierungscode, erstellt den Zahlungsauftrag und verfolgt den Zahlungseingang; die Nutzer:innen geben nur Basisinformationen an, rufen einmal den Verifizierungscode ab und zahlen an der Alipay-Kasse — ohne den Chat zu verlassen. Auslöser: „Bubble registrieren", „PowWow-Konto registrieren", „Wie registriere ich mich bei Bubble?", „Hilf mir, ein powpow-Konto anzulegen", „sign up powpow"; behandelt auch Feststeckendes bei der Registrierung (kein Verifizierungscode, Benutzername/E-Mail vergeben) und Aktivierungsprobleme (Login meldet „Konto nicht aktiviert" / pending_payment, wie abonnieren/bezahlen). Benötigt Node ≥ 18; falls nicht verfügbar, automatischer Rückfall in den reinen Anleitungsmodus. Keine Beiträge/kein Erstellen digitaler Menschen (das macht powpow-simple), keine Code-Entwicklung.
-version: 2.0.1
+description: Hilft Nutzer:innen, PowPow- (Bubble-)Registrierung, Alipay-/PayPal-Abonnement-Aktivierung und Ein-Klick-Login komplett im Chat abzuschließen. Der agent füllt Formulare (inkl. Avatar-Upload), sendet den E-Mail-Verifizierungscode, erstellt den Zahlungsauftrag und verfolgt den Zahlungseingang; die Nutzer:innen geben nur Basisinformationen an, rufen einmal den Verifizierungscode ab und zahlen an der Alipay-/PayPal-Kasse — ohne den Chat zu verlassen. Auslöser: „Bubble registrieren", „PowWow-Konto registrieren", „Wie registriere ich mich bei Bubble?", „Hilf mir, ein powpow-Konto anzulegen", „sign up powpow"; behandelt auch Feststeckendes bei der Registrierung (kein Verifizierungscode, Benutzername/E-Mail vergeben) und Aktivierungsprobleme (Login meldet „Konto nicht aktiviert" / pending_payment, wie abonnieren/bezahlen). Benötigt Node ≥ 18; falls nicht verfügbar, automatischer Rückfall in den reinen Anleitungsmodus. Keine Beiträge/kein Erstellen digitaler Menschen (das macht powpow-simple), keine Code-Entwicklung.
+version: 2.1.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,9 +10,9 @@ metadata:
 
 # PowPow Register (Bubble-Registrierungsassistent)
 
-Führt neue Nutzer:innen von „Ich weiß nicht, was Bubble ist" bis zu „Konto aktiviert, Ein-Klick-Login, loslegen" — alles im Chat. Nur zweimal muss der Chat kurz verlassen werden: **um im Postfach den Verifizierungscode zu suchen** und **um an der Alipay-Kasse zu zahlen** (der agent öffnet die Kassenseite automatisch).
+Führt neue Nutzer:innen von „Ich weiß nicht, was Bubble ist" bis zu „Konto aktiviert, Ein-Klick-Login, loslegen" — alles im Chat. Nur zweimal muss der Chat kurz verlassen werden: **um im Postfach den Verifizierungscode zu suchen** und **um an der Kasse zu zahlen** (Alipay oder PayPal — der agent öffnet die Kassenseite automatisch).
 
-**Version 2.0.1** · 2026-10-08 (ab v2 agent-gestützter Modus: Skript-Vertrag und vollständige Sequenz siehe `references/agent-flow.md`; Feldregeln, Rate Limits und Fehlerbehebung siehe `references/registration-flow.md`; Zahlungskanäle siehe `references/payment-and-activation.md`; Screenshot-Liste siehe `references/screenshots.md`. Ab v2.0.1 werden die Produkt-Screenshots mit dem Skill unter `assets/screenshots/` ausgeliefert — keine Abhängigkeit von externen Bild-Hostings mehr)
+**Version 2.1.0** · 2026-10-11 (ab v2 agent-gestützter Modus: Skript-Vertrag und vollständige Sequenz siehe `references/agent-flow.md`; Feldregeln, Rate Limits und Fehlerbehebung siehe `references/registration-flow.md`; Zahlungskanäle siehe `references/payment-and-activation.md`; Screenshot-Liste siehe `references/screenshots.md`. Ab v2.1.0 kann der agent auch PayPal-Abos übernehmen, als Option neben Alipay)
 
 ## Laufzeitumgebung
 
@@ -38,7 +38,7 @@ Führt neue Nutzer:innen von „Ich weiß nicht, was Bubble ist" bis zu „Konto
 | 3 Code senden | `send-code` | —— |
 | 4 Code zurückmelden | —— | 6-stelligen Code im Postfach suchen und zurückmelden |
 | 5 Registrierung absenden | `register` (inkl. Avatar-Direktupload), Fehler automatisch behandeln | —— |
-| 6 Halbes Login + Zahlung | `login-link(pending)` → `create-order` → Kasse öffnen → `query` pollen | Link öffnen, zahlen |
+| 6 Halbes Login + Zahlung | `login-link(pending)` → `create-order --provider alipay|paypal` → Kasse öffnen → `query` pollen | Link öffnen, zahlen |
 | 7 Volles Login | `refresh-login` → `login-link(home)` | Link öffnen, zur Startseite |
 | 8 Abschluss | `cleanup` + Kontokarte aushändigen + Einführung + Plugins empfehlen | loslegen |
 
@@ -100,15 +100,23 @@ Bei Erfolg steht das Konto sofort (Status pending, inkl. 3 Start-Abzeichen). Hä
    node scripts/powpow-register.mjs login-link --target pending
    ```
    Link an den Nutzer senden: **Nach dem Öffnen landet der Browser direkt auf der Abo-Seite und ist bereits eingeloggt** — so zeigt die Rückkehrseite nach der Zahlung korrekt „Zahlung erfolgreich". (In diesem Zustand werden Inhaltsseiten weiterhin auf die Abo-Seite umgeleitet — das ist die Paywall der Plattform, die normal arbeitet; kein Bug, und die internen Mechanismen müssen nicht erklärt werden.)
-2. Drei Pläne zur Auswahl, immer mit Preis zeigen:
-   - Monatlich **¥6.99** (zum Ausprobieren empfohlen) / Quartal **¥19.99** / Jahr **¥69.99** — Einmalkauf der Laufzeit über Alipay, **keine automatische Verlängerung**
-3. Nach der Wahl:
-   ```
-   node scripts/powpow-register.mjs create-order --package monthly
-   ```
-   Das Skript liefert den Dateipfad der Zahlungsseite — **direkt per Systembefehl öffnen** (Windows: `start <Datei>`; macOS: `open <Datei>`; Linux: `xdg-open <Datei>`). Der Browser springt automatisch zur offiziellen Alipay-Kasse; die Nutzer:in zahlt per QR-Scan oder Alipay-Login.
-4. Alle 10–15 Sekunden `query` ausführen, bis `paid` zurückkommt (Eingang meist in Sekunden bis einer Minute). Schließt der Nutzer die Zahlungsseite zwischendurch → einfach erneut `create-order` (alte Bestellung schließt sich nach 2 Stunden automatisch).
-5. Übersee / ohne Alipay: zum PayPal-Kanal auf der Abo-Seite lotsen (der Skill macht das nicht selbst, nur den Weg zeigen); der WeChat-QR-Kanal ist manuell bestätigt, der Zahlungseingang kann sich verzögern. Nach der Zahlung geht es mit Schritt 7 weiter.
+2. **Lass den Nutzer die Zahlungsart wählen** — zeig beide Kanäle:
+   - **Alipay (China / Nutzer:innen mit Alipay)**: Einmalkauf der entsprechenden Laufzeit, **keine automatische Verlängerung**
+     - Monatlich **¥6.99** (zum Ausprobieren empfohlen) / Quartal **¥19.99** / Jahr **¥69.99**
+   - **PayPal (Ausland / ohne Alipay)**: monatliche automatische Verlängerung, jederzeit kündbar
+     - Premium Monthly, ca. **$1/Monat** (gemäß Anzeige auf der Abo-Seite; automatische Verlängerung)
+3. Sobald gewählt wurde:
+   - **Alipay**:
+     ```
+     node scripts/powpow-register.mjs create-order --package monthly
+     ```
+   - **PayPal**:
+     ```
+     node scripts/powpow-register.mjs create-order --provider paypal
+     ```
+   Das Skript liefert den Dateipfad der Zahlungsseite — **direkt per Systembefehl öffnen** (Windows: `start <Datei>`; macOS: `open <Datei>`; Linux: `xdg-open <Datei>`). Der Browser springt automatisch zur offiziellen Kasse von Alipay oder PayPal; der Nutzer schließt dort die Zahlung oder die Einzugsermächtigung ab.
+4. Alle 10–15 Sekunden `query` ausführen, bis `paid` oder `ACTIVE` zurückkommt (Zahlung/Autorisierung meist in wenigen Sekunden bis einer Minute). Schließt der Nutzer die Zahlungsseite zwischendurch → einfach erneut `create-order` (alte Bestellungen bzw. offene Abos schließen bzw. laufen nach 2 Stunden automatisch ab; nicht darum kümmern).
+5. Der WeChat-QR-Kanal wird manuell bestätigt, der Zahlungseingang kann sich verzögern; Huawei IAP gibt es nur in der HarmonyOS-App. Diese beiden macht der Skill nicht — nach der Zahlung geht es ganz normal mit Schritt 7 weiter.
 
 ## Schritt 7: Volles Login (Link 2)
 
@@ -148,7 +156,7 @@ Link an den Nutzer senden: **Nach dem Öffnen direkte Landung auf der Startseite
 
 - **Credential-Sicherheit**: Das Passwort wird ausschließlich über die Umgebungsvariable `POWPOW_REGISTER_PASSWORD` an das Skript übergeben, **niemals** in Kommandozeilen-Argumente (in der Prozessliste sichtbar) und in keine Datei geschrieben (die einmalige Anzeige im Generierungsmodus dient nur dazu, dass der Nutzer es speichert; danach wird es nicht wiederholt). Der Verifizierungscode wird nur für die offizielle Registrierungs-API verwendet und danach verworfen.
 - **Offizielle Grenze**: Alle Anfragen gehen ausschließlich an `https://global.powpow.online` (im Skript fest eingebaut); Nutzerdaten gehen niemals an Drittadressen.
-- **Zahlungsgrenze**: Der agent erstellt nur Aufträge, öffnet die Kasse und prüft den Zahlungseingang; er fasst **niemals** das Alipay-Konto/Zahlungs-Credentials des Nutzers an und verspricht kein „Bezahlen für dich".
+- **Zahlungsgrenze**: Der agent erstellt nur Aufträge, öffnet die Kasse und prüft den Zahlungseingang; er fasst **niemals** das Alipay-/PayPal-Konto/Zahlungs-Credentials des Nutzers an und verspricht kein „Bezahlen für dich".
 - **Die Paywall ist kein Bug**: Dass pending-Konten die Abo-/Rückkehrseite sehen dürfen, ist eingeplante Freigabe; dass Inhaltsseiten blockiert werden, ist die normal arbeitende Paywall der Plattform — nicht umgehen.
 - **Rückfallfreiheit**: Sobald der Nutzer etwas selbst machen will oder die Umgebung das Skript nicht hergibt, jederzeit in den reinen Anleitungsmodus zurückfallen — Links geben, Regeln erklären, gemeinsam Fehler suchen.
 - Keine Plattformregeln erfinden: Feldregeln, Fehlermeldungen und Rate-Limit-Parameter stammen alle aus dem Plattformcode (`references/registration-flow.md` nennt die Quellen); bei Plattform-Updates zählt das tatsächliche Verhalten.

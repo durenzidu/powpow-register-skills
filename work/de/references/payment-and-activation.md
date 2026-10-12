@@ -2,11 +2,12 @@
 
 ## Fazit (zuerst die Antwort)
 
-**Der Alipay-Kanal ist live (ab 2026-10-07) und ist der von diesem Skill bevorzugte Zahlungsweg; der agent kann Bestellung und Verfolgung des Zahlungseingangs übernehmen.**
-Nutzer im Ausland / ohne Alipay fallen auf PayPal zurück; WeChat-QR (manuelle Bestätigung) und Huawei IAP gibt es weiterhin, sie werden vom Skill aber nicht stellvertretend ausgeführt.
+**Sowohl Alipay- als auch PayPal-Abos kann der agent übernehmen — Bestellung anlegen und Zahlungseingang verfolgen inklusive.**
+Alipay ist ein Einmalkauf ohne automatische Verlängerung, für Nutzer:innen in China und mit Alipay; PayPal verlängert sich monatlich automatisch und ist jederzeit kündbar,
+für Nutzer:innen im Ausland und ohne Alipay. WeChat-QR (manuelle Bestätigung) und Huawei IAP gibt es weiterhin, sie werden vom Skill aber nicht übernommen.
 
-Die Verantwortlichkeitsgrenze im Zahlschritt: Der agent darf **Bestellungen erstellen, die Kasse öffnen und den Zahlungseingang abfragen**; er kommt **niemals** mit dem Alipay-Konto /
-den Zahlungs-Credentials des Nutzers in Berührung und verspricht niemals „Ich zahle für dich". Die Zahlungshandlung führt immer der Nutzer selbst an der offiziellen Alipay-Kasse aus.
+Die Verantwortlichkeitsgrenze im Zahlschritt: Der agent darf **Bestellungen erstellen, die Kasse öffnen und den Zahlungseingang abfragen**; er kommt **niemals** mit dem Alipay-/PayPal-Konto /
+den Zahlungs-Credentials des Nutzers in Berührung und verspricht niemals „Ich zahle für dich". Die Zahlungshandlung führt immer der Nutzer selbst an der offiziellen Kasse aus.
 
 ## Alipay-Kanal (vibepay, bevorzugt)
 
@@ -42,8 +43,38 @@ notify-Signaturprüfung bestanden → `paymentOrders` als bezahlt markiert → `
 
 Im JWT steckt der Abo-Anspruch (bei pending-Konten `NONE`). **Der Zahlungseingang aktualisiert nur die Datenbank, nicht das bereits ausgestellte
 JWT** — der Anspruch des alten Tokens bleibt weiterhin NONE; damit direkt einen Login-Link zu erzeugen, wirkt wie „kein Mitglied".
-Deshalb führt der Skill nach Bestätigung von `paid` zuerst `refresh-login` aus (erneutes Login für ein neues JWT, der Anspruch wird ACTIVE)
+Deshalb führt der Skill nach Bestätigung von `paid` / PayPal `ACTIVE` zuerst `refresh-login` aus (erneutes Login für ein neues JWT, der Anspruch wird ACTIVE)
 und erzeugt erst danach Link 2. Das ist Design-Verhalten, keine Fehlerbehebung.
+
+## PayPal-Abo-Kanal (vom Skill übernommen; Web, nicht HarmonyOS)
+
+Es gibt nur einen Plan, Premium Monthly (ca. $1/Monat, laut Rückgabe von `/api/subscription/plans`); er **verlängert sich monatlich automatisch**
+und der Nutzer kann ihn jederzeit in seinem PayPal-Konto kündigen.
+
+### Endpunkt-Vertrag (vom Skill-Skript gekapselt; der agent baut keine Anfragen selbst)
+
+| Endpunkt | Methode | Beschreibung |
+|---|---|---|
+| `/api/subscription/plans` | GET | Bearer-Auth; liefert die Liste der verfügbaren Pläne (aktuell nur 1) |
+| `/api/subscription/create` | POST | Body `{planId}` → liefert `{subscriptionId, approveUrl, status}`; `status` ist meist `APPROVAL_PENDING` |
+| `/api/subscription/create` | GET | Bearer-Auth; liefert `{activeSubscription, allSubscriptions}`; der agent pollt `activeSubscription.subscription.status === 'ACTIVE'` |
+| `/api/subscription/verify` | POST | Wird von der Erfolgsseite automatisch aufgerufen (mit Cookie); aktiviert direkt über die PayPal-API, wenn der Webhook noch nicht da ist |
+| `/subscription/success` | Browser-Rückkehrseite | Landet nach der PayPal-Autorisierung, pollt verify automatisch und springt danach zur Startseite / Ursprungsseite zurück |
+| `/subscription/cancel` | Browser-Seite | Landet bei Abbruch oder Fehler; ein neuer Versuch ist möglich |
+
+### Ablauf in Vertretung
+
+```
+create-order --provider paypal  # → liefert approveUrl, in lokale HTML-Datei geschrieben
+HTML-Datei öffnen               # → der Browser springt zur PayPal-Autorisierungsseite
+query (alle 10–15 s)            # → pollen bis ACTIVE
+refresh-login                   # → neues JWT holen (Abo-Anspruch ACTIVE)
+login-link --target home        # → den endgültigen Login-Link erzeugen
+```
+
+- PENDING-Abos, die innerhalb einer Stunde nicht abgeschlossen werden, räumt das Backend automatisch auf; einfach neu starten.
+- Wiederholt der Nutzer `create-order`, nutzt das Backend das noch gültige `APPROVAL_PENDING`-Abo wieder und vermeidet so einen 409.
+- Wie bei Alipay: Der Zahlungseingang aktualisiert nur die Datenbank, ein altes JWT wird nicht automatisch erneuert — vor dem Senden des Startseiten-Links **muss** `refresh-login` laufen.
 
 ## Die vier Kanäle der Abo-Seite
 
@@ -71,6 +102,9 @@ PayPal-Pläne und -Preise werden dynamisch aus `/api/subscription/plans` gelesen
 |---|---|
 | Alipay bezahlt, `query` bleibt trotzdem pending | notify verzögert sich nur äußerst selten; 30 Sekunden warten und erneut abfragen. Klappt es weiterhin: den Nutzer im Browser den Status der Rückkehrseite prüfen lassen; hilft das auch nicht, den Plattform-Support kontaktieren (dongtao@outlook.com) und die `outTradeNo` nennen |
 | Alipay bezahlt, aber mit Link 2 weiterhin blockiert | `refresh-login` wurde ausgelassen (der Anspruch des alten JWT ist nicht aktualisiert) — zuerst `refresh-login`, dann `login-link` |
+| PayPal-`query` bleibt PENDING | Der Nutzer hat die Autorisierung bei PayPal nicht abgeschlossen; prüfen, ob der Autorisierungslink im Browser geöffnet wurde. Wenn trotz Autorisierung weiter PENDING, kann der Webhook verzögert sein — den Nutzer auf der Erfolgsseite noch einige Sekunden warten oder neu laden lassen |
+| PayPal-`query` meldet 409 | Es gibt schon ein unfertiges PENDING-Abo; 1 Stunde warten, bis es abläuft, oder die Autorisierung des alten Links im Browser abschließen |
+| PayPal bezahlt, aber mit Link 2 weiterhin blockiert | Wie bei Alipay: zuerst `refresh-login`, dann `login-link` |
 | Nach der Zahlung weiterhin 403 (PayPal) | Webhooks verzögern sich gelegentlich; neu einloggen und den Status auffrischen |
 | Mit WeChat bezahlt, aber nicht freigeschaltet | Die manuelle Bestätigung läuft asynchron; erst nach mehreren Stunden ohne Freischaltung den Plattform-Support kontaktieren |
 | Die Abo-Seite meldet "No subscription plans available" | `/api/subscription/plans` hat keine verfügbaren PayPal-Pläne — Konfigurationsproblem auf Plattformseite; Nutzer in Festlandchina nehmen einfach den Alipay-Weg |

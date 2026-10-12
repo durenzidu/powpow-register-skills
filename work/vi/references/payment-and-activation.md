@@ -2,13 +2,13 @@
 
 ## Kết luận (trả lời trước)
 
-**Kênh Alipay đã lên sóng (từ 2026-10-07), là phương thức thanh toán chính của skill này, và agent thao tác hộ
-được việc đặt đơn cùng theo dõi tiền về.** Người dùng ở nước ngoài / không có Alipay thì lùi về PayPal;
-quét mã WeChat (xác nhận thủ công) và Huawei IAP cũng có mặt, nhưng skill không thao tác hộ các kênh đó.
+**Cả gói qua Alipay lẫn gói qua PayPal đều do agent thao tác hộ được — gồm đặt đơn và theo dõi tiền về.**
+Alipay là mua đứt một lần, không tự động gia hạn, hợp với người dùng ở Trung Quốc đại lục và người có Alipay; PayPal tự động gia hạn theo tháng, hủy bất cứ lúc nào,
+hợp với người dùng ở nước ngoài và không có Alipay. Quét mã WeChat (xác nhận thủ công) và Huawei IAP vẫn còn, nhưng skill không thao tác hộ.
 
 Ranh giới trách nhiệm khi thanh toán: agent **tạo được đơn, mở được trang thu ngân, tra được tiền về**;
-tuyệt đối không đụng vào tài khoản Alipay / chứng từ thanh toán của người dùng, tuyệt đối không hứa «trả tiền
-hộ». Hành động thanh toán mãi mãi do người dùng tự thực hiện tại trang thu ngân chính thức của Alipay.
+tuyệt đối không đụng vào tài khoản Alipay / PayPal / chứng từ thanh toán của người dùng, tuyệt đối không hứa «trả tiền
+hộ». Hành động thanh toán mãi mãi do người dùng tự thực hiện tại trang thu ngân chính thức.
 
 ## Kênh Alipay (vibepay, chính)
 
@@ -45,8 +45,38 @@ Chữ ký của notify hợp lệ → đơn `paymentOrders` được đánh dấ
 
 JWT có nhúng tuyên bố gói (tài khoản pending là `NONE`). **Tiền về sau thanh toán chỉ cập nhật DB, JWT đã phát
 không đổi theo** — tuyên bố của token cũ vẫn là NONE, dùng nó tạo link đăng nhập sẽ thể hiện thành «không có
-gói». Vì vậy khi xác nhận `paid`, skill trước tiên chạy `refresh-login` (đăng nhập lại, JWT mới, tuyên bố ACTIVE)
+gói». Vì vậy khi xác nhận `paid` / PayPal `ACTIVE`, skill trước tiên chạy `refresh-login` (đăng nhập lại, JWT mới, tuyên bố ACTIVE)
 rồi mới tạo link 2. Đây là hành vi của thiết kế, không phải bug cần sửa.
+
+## Kênh gói PayPal (skill thao tác hộ; web, không phải HarmonyOS)
+
+Chỉ có một gói duy nhất, Premium Monthly (khoảng $1/tháng, theo kết quả trả về của `/api/subscription/plans`); **tự động gia hạn theo tháng**
+và người dùng có thể hủy bất cứ lúc nào trong tài khoản PayPal của họ.
+
+### Hợp đồng interface (script của skill đã gói sẵn; agent không tự ráp request)
+
+| Interface | Phương thức | Mô tả |
+|---|---|---|
+| `/api/subscription/plans` | GET | Xác thực Bearer; trả về danh sách gói khả dụng (hiện chỉ có 1) |
+| `/api/subscription/create` | POST | body `{planId}` → trả về `{subscriptionId, approveUrl, status}`; `status` thường là `APPROVAL_PENDING` |
+| `/api/subscription/create` | GET | Xác thực Bearer; trả về `{activeSubscription, allSubscriptions}`; agent luân phiên kiểm tra `activeSubscription.subscription.status === 'ACTIVE'` |
+| `/api/subscription/verify` | POST | Trang thành công tự gọi (kèm cookie); kích hoạt trực tiếp qua API PayPal khi webhook chưa tới |
+| `/subscription/success` | Trang quay về trên trình duyệt | Nơi người dùng rơi vào sau khi ủy quyền PayPal; tự luân phiên verify rồi quay về trang chủ/trang ban đầu |
+| `/subscription/cancel` | Trang trên trình duyệt | Nơi rơi vào khi người dùng hủy hoặc lỗi; có thể làm lại |
+
+### Luồng thao tác hộ
+
+```
+create-order --provider paypal  # → trả về approveUrl, ghi vào file HTML local
+mở file HTML                    # → trình duyệt nhảy sang trang ủy quyền PayPal
+query (cứ 10–15s)               # → luân phiên đến khi ACTIVE
+refresh-login                   # → đổi JWT mới (tuyên bố gói ACTIVE)
+login-link --target home        # → sinh link đăng nhập chính thức
+```
+
+- Gói PENDING không hoàn tất trong 1 giờ sẽ được backend tự dọn; cứ làm lại từ đầu.
+- Nếu người dùng lặp lại `create-order`, backend sẽ dùng lại gói `APPROVAL_PENDING` còn hiệu lực, tránh bị 409.
+- Giống Alipay: tiền về chỉ cập nhật DB, JWT cũ không tự làm mới — trước khi gửi link trang chủ **bắt buộc** phải chạy `refresh-login`.
 
 ## Bốn kênh trên trang gói thành viên
 
@@ -74,6 +104,9 @@ Gói và giá PayPal do `/api/subscription/plans` trả về động; chữ tĩn
 |---|---|
 | Sau khi Alipay trả tiền `query` vẫn pending | notify hiếm khi bị trễ; chờ 30 giây rồi tra lại. Vẫn không được thì nhờ người dùng xem trạng thái trang quay về trong trình duyệt, vẫn không xong thì liên hệ hỗ trợ nền tảng (dongtao@outlook.com) kèm `outTradeNo` |
 | Alipay đã trừ tiền nhưng vào link 2 vẫn bị chặn | `refresh-login` bị bỏ sót (tuyên bố của JWT cũ chưa được cập nhật) — trước tiên `refresh-login`, rồi `login-link` |
+| `query` PayPal mãi PENDING | Người dùng chưa hoàn tất ủy quyền trên PayPal; kiểm tra xem link ủy quyền đã được mở trong trình duyệt chưa. Nếu đã ủy quyền mà vẫn PENDING thì có thể webhook bị trễ — bảo người dùng đợi thêm vài giây trên trang thành công hoặc tải lại trang |
+| `query` PayPal báo 409 | Đã có một gói PENDING chưa hoàn tất; đợi 1 tiếng cho hết hạn, hoặc hoàn tất ủy quyền của link cũ trong trình duyệt |
+| Đã trả qua PayPal nhưng vào bằng link 2 vẫn bị chặn | Giống Alipay: chạy `refresh-login` trước, rồi `login-link` |
 | Sau thanh toán vẫn 403 (PayPal) | Webhook đôi khi trễ; đăng nhập lại để tải mới trạng thái |
 | Trả tiền qua WeChat mà gói không mở | Xác nhận thủ công là bất đồng bộ; vài giờ sau chưa mở thì liên hệ hỗ trợ nền tảng |
 | Trang gói hiện "No subscription plans available" | `/api/subscription/plans` không có gói PayPal nào, là trục trặc cấu hình phía nền tảng; người dùng nội địa Trung Quốc có thể tạm dùng Alipay trước |

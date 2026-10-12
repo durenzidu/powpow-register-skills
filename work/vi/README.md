@@ -2,12 +2,12 @@
 
 Trợ lý đăng ký PowPow Bong Bóng (bản OpenClaw): đưa một người dùng mới từ «không biết Bong Bóng là gì» đến
 «tài khoản kích hoạt, đăng nhập một chạm, bắt đầu chơi» — giới thiệu sản phẩm (kèm ảnh chụp giao diện),
-agent thao tác hộ việc đăng ký (kèm tải ảnh đại diện), đặt đơn gói thành viên qua Alipay và theo dõi tiền về,
+agent thao tác hộ việc đăng ký (kèm tải ảnh đại diện), đặt đơn gói thành viên qua Alipay hoặc PayPal và theo dõi tiền về,
 đăng nhập một chạm bằng link kép, xử lý lỗi.
 
-**Từ v2.0.0 là chế độ agent thao tác hộ**: script chính `scripts/powpow-register.mjs` không phụ thuộc
+**Từ v2.0.0 là chế độ agent thao tác hộ, từ v2.1.0 gồm cả PayPal**: script chính `scripts/powpow-register.mjs` không phụ thuộc
 (Node ≥ 18), người dùng cả quá trình không rời hội thoại, chỉ hai lần tạm biệt: vào email xem mã xác minh,
-thanh toán tại trang thu ngân Alipay. Không có Node hoặc người dùng muốn tự tay làm thì tự động lùi về
+thanh toán tại trang thu ngân Alipay hoặc PayPal. Không có Node hoặc người dùng muốn tự tay làm thì tự động lùi về
 chế độ hướng dẫn thuần.
 
 ## Cài đặt
@@ -27,8 +27,8 @@ openclaw skills install @durenzidu/powpow-register
 3. **Đăng nhập một chạm (link kép)**: đăng ký thành công là đưa link «phiên nửa» rơi thẳng trang gói thành viên;
    sau khi tiền về, đổi sang trạng thái đăng nhập mới rồi đưa link thành viên đầy đủ rơi thẳng trang chủ (đi qua
    cầu `me?token=` chính thức của nền tảng, tự gieo cookie HttpOnly).
-4. **Thanh toán gói**: kênh Alipay agent thao tác hộ đặt đơn (tháng ¥6.99 / quý ¥19.99 / năm ¥69.99,
-   mua đứt một lần không tự động gia hạn) + luân phiên tra tiền về; người dùng ở nước ngoài lùi về PayPal;
+4. **Thanh toán gói**: cả Alipay (tháng ¥6.99 / quý ¥19.99 / năm ¥69.99,
+   mua đứt một lần không tự động gia hạn) lẫn PayPal (Premium Monthly, khoảng $1/tháng, tự động gia hạn, hủy bất cứ lúc nào) đều do agent thao tác hộ đặt đơn + luân phiên tra tiền về;
    quét mã WeChat / Huawei IAP thì chỉ dẫn đường.
 5. **Xử lý lỗi**: không nhận được mã xác minh, tên người dùng/email bị trùng, 403 chưa kích hoạt, tài khoản
    bị khóa    v.v. — các vấn đề thường gặp, tất cả đến từ mã nguồn nền tảng và có ghi rõ xuất xứ.
@@ -58,9 +58,9 @@ powpow-register/
 - **Mã xác minh** chỉ dùng cho giao diện đăng ký chính thức, vứt bỏ sau khi dùng; file trạng thái
   (email/tên người dùng/token/số đơn) nằm trong thư mục tạm của hệ thống, kết thúc quy trình `cleanup`
   dọn sạch một phím.
-- **Thanh toán**: agent chỉ tạo đơn, mở trang thu ngân, tra tiền về; tuyệt đối không đụng vào tài khoản Alipay
+- **Thanh toán**: agent chỉ tạo đơn, mở trang thu ngân, tra tiền về; tuyệt đối không đụng vào tài khoản Alipay / PayPal
   hay chứng từ thanh toán của người dùng, tuyệt đối không trả tiền hộ. Việc thanh toán luôn diễn ra giữa người
-  dùng và trang thu ngân chính thức của Alipay.
+  dùng và trang thu ngân chính thức.
 - Mọi request chỉ gửi domain chính thức `https://global.powpow.online`; không chứa bất kỳ khóa nào.
 
 ## Giấy phép

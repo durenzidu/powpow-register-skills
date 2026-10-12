@@ -2,14 +2,13 @@
 
 ## Conclusione (prima la risposta)
 
-**Il canale Alipay è attivo (dal 2026-10-07), è il metodo di pagamento principale di questa skill, e l'agent
-gestisce per conto dell'utente sia la creazione dell'ordine sia il tracciamento dell'accredito.** Gli utenti
-all'estero/senza Alipay ripiegano su PayPal; il QR WeChat (con conferma manuale) e Huawei IAP esistono, ma la
-skill non li gestisce per conto dell'utente.
+**Sia gli abbonamenti con Alipay sia quelli con PayPal possono essere gestiti dall'agent — creazione dell'ordine e tracciamento dell'accredito inclusi.**
+Alipay è un acquisto una tantum senza rinnovo automatico, per gli utenti in Cina continentale e chi ha Alipay; PayPal si rinnova automaticamente ogni mese e si può disdire in qualsiasi momento,
+per gli utenti all'estero e senza Alipay. Il QR WeChat (conferma manuale) e Huawei IAP restano disponibili, ma la skill non li gestisce.
 
 Confine di responsabilità nel pagamento: l'agent **crea l'ordine, apre la cassa, interroga l'accredito**; non
-tocca mai l'account Alipay o le credenziali di pagamento dell'utente, e non promette mai «pago al posto tuo».
-L'atto del pagamento avviene sempre tra l'utente e la cassa ufficiale Alipay.
+tocca mai l'account Alipay/PayPal o le credenziali di pagamento dell'utente, e non promette mai «pago al posto tuo».
+L'atto del pagamento avviene sempre tra l'utente e la cassa ufficiale.
 
 ## Canale Alipay (vibepay, principale)
 
@@ -48,8 +47,38 @@ e mostra il successo.
 Nel JWT è incorporata la dichiarazione dell'abbonamento (per l'account pending vale `NONE`). **L'accredito del
 pagamento aggiorna solo il database, il JWT già emesso non cambia** — la dichiarazione del vecchio token resta
 NONE, e usarlo per generare il link di accesso darebbe l'impressione «nessun abbonamento». Per questo, confermato
-il `paid`, la skill esegue prima `refresh-login` (nuovo login, nuovo JWT, dichiarazione ACTIVE) e solo poi genera
+il `paid` o lo `ACTIVE` di PayPal, la skill esegue prima `refresh-login` (nuovo login, nuovo JWT, dichiarazione ACTIVE) e solo poi genera
 il link 2. È un comportamento voluto dal progetto, non un bug da correggere.
+
+## Canale di abbonamento PayPal (gestito dalla skill; web, non HarmonyOS)
+
+Esiste un solo piano, Premium Monthly (circa $1/mese, secondo quanto restituito da `/api/subscription/plans`); **si rinnova automaticamente ogni mese**
+e l'utente può disdirlo quando vuole dal proprio account PayPal.
+
+### Contratto delle interfacce (già incapsulato nello script della skill; l'agent non costruisce richieste per conto proprio)
+
+| Interfaccia | Metodo | Descrizione |
+|---|---|---|
+| `/api/subscription/plans` | GET | Auth Bearer; restituisce l'elenco dei piani disponibili (al momento solo 1) |
+| `/api/subscription/create` | POST | body `{planId}` → restituisce `{subscriptionId, approveUrl, status}`; `status` di solito è `APPROVAL_PENDING` |
+| `/api/subscription/create` | GET | Auth Bearer; restituisce `{activeSubscription, allSubscriptions}`; l'agent fa polling di `activeSubscription.subscription.status === 'ACTIVE'` |
+| `/api/subscription/verify` | POST | La chiama automaticamente la pagina di successo (con il cookie); attiva direttamente tramite l'API PayPal se il webhook non è arrivato |
+| `/subscription/success` | Pagina di ritorno del browser | Dove si atterra dopo l'autorizzazione PayPal; fa polling di verify automaticamente e poi torna alla home / pagina originale |
+| `/subscription/cancel` | Pagina del browser | Dove si atterra se l'utente annulla o qualcosa fallisce; si può riprovare |
+
+### Flusso delegato
+
+```
+create-order --provider paypal  # → restituisce approveUrl, scritto in un file HTML locale
+aprire il file HTML             # → il browser salta alla pagina di autorizzazione PayPal
+query (ogni 10–15s)             # → fare polling fino ad ACTIVE
+refresh-login                   # → scambiare con un JWT nuovo (dichiarazione di abbonamento ACTIVE)
+login-link --target home        # → generare il link di accesso definitivo
+```
+
+- Gli abbonamenti PENDING non completati entro 1 ora vengono ripuliti automaticamente dal backend; basta ricominciare.
+- Se l'utente ripete `create-order`, il backend riutilizza l'abbonamento `APPROVAL_PENDING` ancora valido, evitando un 409.
+- Come con Alipay: l'accredito aggiorna solo il database, un JWT vecchio non si rinnova da sé — **bisogna** eseguire `refresh-login` prima di inviare il link alla home.
 
 ## I quattro canali della pagina abbonamento
 
@@ -78,6 +107,9 @@ Auto-renews. Cancel anytime.
 |---|---|
 | Dopo il pagamento Alipay `query` resta pending | Il ritardo del notify è raro; attendere 30 secondi e ricontrollare. Se ancora niente, far guardare all'utente lo stato sulla pagina di ritorno nel browser; se persiste, contattare l'assistenza della piattaforma (dongtao@outlook.com) fornendo l'`outTradeNo` |
 | Alipay ha addebitato, ma col link 2 si viene comunque respinti | `refresh-login` è stato saltato (la dichiarazione del vecchio JWT non è stata aggiornata) — prima `refresh-login`, poi `login-link` |
+| Il `query` di PayPal resta PENDING | L'utente non ha completato l'autorizzazione su PayPal; verifica che il link di autorizzazione sia stato aperto nel browser. Se dopo l'autorizzazione resta PENDING, può essere un ritardo del webhook: chiedi all'utente di attendere qualche secondo in più sulla pagina di successo o di ricaricarla |
+| Il `query` di PayPal restituisce 409 | Esiste già un abbonamento PENDING non completato; attendi 1 ora perché scada, oppure completa l'autorizzazione del vecchio link nel browser |
+| PayPal pagato, ma con il link 2 si viene comunque respinti | Come con Alipay: prima `refresh-login`, poi `login-link` |
 | Ancora 403 dopo il pagamento (PayPal) | Il Webhook a volte ritarda; rifare il login per aggiornare lo stato |
 | Pagato via WeChat, l'abbonamento non si apre | La conferma manuale è asincrona; se dopo qualche ora non si è aperto, contattare l'assistenza della piattaforma |
 | La pagina abbonamento mostra "No subscription plans available" | `/api/subscription/plans` non restituisce pacchetti PayPal, guasto di configurazione lato piattaforma; gli utenti della Cina continentale possono nel frattempo usare Alipay |

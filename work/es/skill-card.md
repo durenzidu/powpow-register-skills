@@ -1,6 +1,6 @@
 ## Description:
 
-Ayuda a crear y activar una cuenta de PowPow (Burbuja) desde la conversación, incluida la verificación por correo, la suscripción con Alipay y el inicio de sesión.
+Helps users register a PowPow account, activate a subscription through Alipay or PayPal, and obtain a sign-in link.
 
 This skill is ready for commercial/non-commercial use.
 
@@ -14,7 +14,7 @@ MIT-0
 
 ## Use Case:
 
-Los usuarios de PowPow pueden pedir ayuda para registrarse, resolver problemas de verificación y activar su suscripción. El agente guía la conversación y, cuando hay Node.js 18 o superior, realiza el registro y consulta el estado del pago; el usuario consulta su correo y completa el pago personalmente.
+People signing up for PowPow can use this skill to complete email-verified registration, choose an Alipay or PayPal subscription, check activation, and receive a sign-in link. If automated registration is unavailable, it offers guided steps instead.
 
 ### Deployment Geography for Use:
 
@@ -22,38 +22,35 @@ Global
 
 ## Known Risks and Mitigations:
 
-Risk: El registro comparte correo, contraseña, código de verificación y, si se proporciona, avatar con PowPow.
+Risk: Registration uses personal details, an email verification code, and a temporary PowPow session token.
 
-Mitigation: Confirma que el usuario quiere crear la cuenta y facilita estos datos solo para el registro en PowPow.
+Mitigation: Share the code only for PowPow registration and run cleanup after the flow to remove local session state.
 
-Risk: La sesión se guarda temporalmente durante el registro y la activación.
+Risk: Subscription activation opens an Alipay or PayPal checkout page.
 
-Mitigation: Ejecuta cleanup al finalizar para eliminar el estado local de la sesión.
-
-Risk: El flujo abre una página de pago de Alipay y consulta el estado del cobro.
-
-Mitigation: Deja que el usuario pague directamente en la página de Alipay; no solicites sus credenciales de pago.
+Mitigation: Complete payment directly with the payment provider; do not give the agent payment credentials.
 
 ## Reference(s):
 
-- [Ficha de PowPow Registro en ClawHub](https://clawhub.ai/durenzidu/skills/powpow-register-es)
-- [PowPow](https://global.powpow.online)
-- [Flujo de registro](artifact/references/registration-flow.md)
-- [Pago y activación](artifact/references/payment-and-activation.md)
+- [PowPow website](https://global.powpow.online)
+- [PowPow registration](https://global.powpow.online/register)
+- [PowPow subscriptions](https://global.powpow.online/subscription)
+- [Agent registration flow](references/agent-flow.md)
+- [Payment and activation guidance](references/payment-and-activation.md)
 
 ## Skill Output:
 
-**Output Type(s):** [Text, Markdown, Guidance]
+**Output Type(s):** [Text, Guidance, Shell commands, Links]
 
-**Output Format:** [Mensajes conversacionales con enlaces de inicio de sesión y resumen de cuenta]
+**Output Format:** [Markdown guidance and sign-in or checkout links]
 
 **Output Parameters:** [1D]
 
-**Other Properties Related to Output:** [Incluye orientación para completar el pago o continuar manualmente si no hay Node.js.]
+**Other Properties Related to Output:** [Automated flow requires Node.js 18 or later; offers guided registration otherwise. Payment is completed by the user at the payment provider.]
 
 ## Skill Version(s):
 
-2.0.1 (source: frontmatter and server release)
+2.1.0 (source: release metadata and skill frontmatter)
 
 ## Ethical Considerations:
 

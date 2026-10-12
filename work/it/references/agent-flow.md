@@ -23,8 +23,8 @@ lo script è a **zero dipendenze**, richiede **Node ≥ 18**, e tutte le richies
 | `send-code` | `--email` | Fa scattare l'invio da parte della piattaforma del codice a 6 cifre (valido 10 minuti, cooldown 60s) |
 | `register` | `--code` (obbligatorio); `--username --nickname --avatar --phone` (facoltativi, se già nel file di stato si omettono) | Crea l'account pending; la password passa per la variabile d'ambiente `POWPOW_REGISTER_PASSWORD`; riuscito, il JWT viene salvato automaticamente nel file di stato |
 | `login-link` | `--target pending` oppure `--target home` | Genera il link di accesso con un clic (design a doppio link, vedi sotto) |
-| `create-order` | `--package monthly\|quarterly\|yearly` | Crea l'ordine Alipay; restituisce il percorso del file della pagina di pagamento + outTradeNo (annotato automaticamente nel file di stato) |
-| `query` | —— | Interroga lo stato dell'ordine `paid / pending / closed / unknown` (outTradeNo preso dal file di stato), polling ogni 10–15s |
+| `create-order` | `--package monthly\|quarterly\|yearly` (Alipay predefinito)<br>`--provider alipay\|paypal` | Crea l'ordine di pagamento; Alipay restituisce il percorso del file della pagina di pagamento + outTradeNo; PayPal restituisce il percorso del file della pagina di autorizzazione + subscriptionId (registrato automaticamente nel file di stato) |
+| `query` | —— | Interroga lo stato dell'ordine/abbonamento. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; polling ogni 10–15s |
 | `refresh-login` | password via variabile d'ambiente | Rieffettua il login per un **nuovo JWT** (la dichiarazione di abbonamento passa da NONE ad ACTIVE), da eseguire obbligatoriamente dopo l'accredito |
 | `whoami` | —— | Con il token nel file di stato verifica account e stato abbonamento (per controllare che l'attivazione sia avvenuta) |
 | `cleanup` | —— | Elimina il file di stato (da eseguire obbligatoriamente in chiusura) |
@@ -66,10 +66,12 @@ essere same-origin) → redirect temporaneo 307 alla pagina di destinazione.
 4.  send-code --email E             # → l'utente va nell'email a leggere il codice (unica uscita dalla conversazione ①)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
 6.  login-link --target pending     # → link 1 da mandare all'utente
-7.  (l'utente sceglie il pacchetto) create-order --package monthly
+7.  (l'utente sceglie il metodo di pagamento)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
 8.  start <file pagina pagamento>   # Windows; macOS usa open, Linux usa xdg-open
-    # → l'utente paga alla cassa Alipay (uscita dalla conversazione ②)
-9.  query (ogni 10–15s) finché non è paid
+    # → l'utente completa pagamento/autorizzazione alla cassa Alipay/PayPal (uscita dalla conversazione ②)
+9.  query (ogni 10–15s) finché non è paid / ACTIVE
 10. refresh-login                   # nuovo JWT con dichiarazione ACTIVE
 11. login-link --target home        # → link 2 da mandare all'utente
 12. whoami                          # confermare subscriptionStatus: ACTIVE (facoltativo)
@@ -83,8 +85,8 @@ essere same-origin) → redirect temporaneo 307 alla pagina di destinazione.
 | `send-code` | `POST /api/auth/register/send-code` |
 | `register` | `POST /api/auth/register` (multipart, caricamento diretto avatar) |
 | `login-link` | `GET /api/auth/me?token=…&redirect=…` (il link in sé, efficace al click del browser) |
-| `create-order` | `POST /api/payment/alipay/create-order` (Bearer) |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer) |
+| `create-order` | `POST /api/payment/alipay/create-order` (Bearer, Alipay)<br>`GET /api/subscription/plans` + `POST /api/subscription/create` (Bearer, PayPal) |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer, Alipay)<br>`GET /api/subscription/create` (Bearer, PayPal) |
 | `refresh-login` | `POST /api/auth/login` (`{step:1, username, password}`) |
 | `whoami` | `GET /api/auth/me?token=…` |
 
@@ -99,9 +101,10 @@ attivazione in `payment-and-activation.md` (entrambi con i file sorgente della p
 | Errore di rete / timeout | Riprovare una volta; se fallisce ancora, far controllare la rete all'utente e riprendere (il file di stato esiste, rieseguire `status` per ripartire) |
 | register restituisce un errore di business (nome utente esistente ecc.) | Gestire secondo la tabella del passo 5 di SKILL.md, **il codice di verifica non va reinviato** (resta valido per 10 minuti) |
 | register restituisce 「邮箱验证码错误或已过期」 (codice errato o scaduto) | Scaduto → eseguire di nuovo `send-code` |
-| L'utente chiude la pagina di pagamento dopo `create-order` | Eseguire subito di nuovo `create-order` (il vecchio ordine si chiude da solo dopo 2h) |
-| `query` resta sempre pending | Forse l'utente non ha pagato; chiedere. Se ha pagato davvero → seguire la tabella in payment-and-activation.md |
-| `refresh-login` 403 `pending_payment` | Il pagamento non è ancora accreditato, tornare al passo 9 e continuare il polling |
+| L'utente chiude la pagina di pagamento dopo `create-order` | Eseguire subito di nuovo `create-order` (il vecchio ordine si chiude da solo dopo 2h; gli abbonamenti PENDING PayPal scadono dopo 1h) |
+| `create-order --provider paypal` restituisce 409 | Esiste già un abbonamento PayPal non completato; attendi 1h perché scada o completa la vecchia autorizzazione nel browser |
+| `query` resta sempre pending / PENDING | Forse l'utente non ha pagato; chiedere. Se ha pagato davvero → seguire la tabella in payment-and-activation.md |
+| `refresh-login` 403 `pending_payment` | Il pagamento o l'autorizzazione non è ancora accreditato, tornare al passo 9 e continuare il polling |
 | File di stato perso (cancellato per sbaglio / cambio macchina) | `whoami`/`refresh-login` non utilizzabili; far riaprire all'utente la pagina abbonamento nel browser dove ha già aperto il link 1 per confermare lo stato, oppure rifare il login (modalità web) |
 
 ## Modalità di ripiego (sola guida)

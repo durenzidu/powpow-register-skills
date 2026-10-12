@@ -19,9 +19,9 @@
  *                                      提交注册（multipart，支持头像直传）。
  *                                      需环境变量 POWPOW_REGISTER_PASSWORD；username 缺省读状态文件
  *   login-link [--target pending|home] 生成一键登录链接（pending=订阅页；home=首页）
- *   create-order --package <monthly|quarterly|yearly>
- *                                      创建支付宝订单，支付页写入临时 HTML 并返回路径
- *   query                              查询订单状态（paid/pending/closed/unknown）
+ *   create-order --package <monthly|quarterly|yearly> [--provider alipay|paypal]
+ *                                      创建支付订单：默认支付宝，--provider paypal 时走 PayPal 订阅
+ *   query                              查询订单/订阅状态（paid/pending/closed/unknown/ACTIVE）
  *   refresh-login                      付款后重新登录，换取带 ACTIVE 订阅声明的新 JWT
  *                                      （需环境变量 POWPOW_REGISTER_PASSWORD）
  *   whoami                             验证当前 token，返回账号与订阅状态
@@ -230,43 +230,151 @@ function cmdLoginLink() {
 
 async function cmdCreateOrder() {
   const state = requireState('token');
-  const pkg = arg('package', { required: true });
-  const r = await api('/api/payment/alipay/create-order', {
+  const provider = (arg('provider') || 'alipay').toLowerCase();
+  const pkg = arg('package') || 'monthly';
+
+  if (provider !== 'alipay' && provider !== 'paypal') {
+    die('支付渠道只能是 alipay 或 paypal', 2);
+  }
+
+  // ---------- 支付宝通道 ----------
+  if (provider === 'alipay') {
+    if (!pkg || !['monthly', 'quarterly', 'yearly'].includes(pkg)) {
+      die('支付宝套餐须为 monthly / quarterly / yearly', 2);
+    }
+    const r = await api('/api/payment/alipay/create-order', {
+      method: 'POST',
+      body: { package: pkg },
+      headers: { Authorization: `Bearer ${state.token}` },
+    });
+    if (r.status === 401) die('登录态失效，请重新执行 refresh-login。');
+    if (!r.ok) die(r.data?.error || `创建订单失败（HTTP ${r.status}）`);
+    const html = r.data?.paymentHtml || '';
+    if (!html) die('平台未返回支付页内容');
+    const dir = mkdtempSync(join(tmpdir(), 'powpow-pay-'));
+    const file = join(dir, 'alipay-checkout.html');
+    writeFileSync(file, html);
+    saveState({
+      provider: 'alipay',
+      outTradeNo: r.data.outTradeNo,
+      package: pkg,
+      amount: r.data.amount,
+      orderStep: 'pending',
+      orderCreatedAt: new Date().toISOString(),
+    });
+    ok('支付页已生成，请让用户在浏览器打开完成付款', {
+      checkoutFile: file,
+      outTradeNo: r.data.outTradeNo,
+      planName: r.data.planName,
+      amount: r.data.amount,
+    });
+    return;
+  }
+
+  // ---------- PayPal 通道 ----------
+  const plansRes = await api('/api/subscription/plans', {
+    headers: { Authorization: `Bearer ${state.token}` },
+  });
+  if (plansRes.status === 401) die('登录态失效，请重新执行 refresh-login。');
+  if (!plansRes.ok) die(plansRes.data?.error || `拉取 PayPal 计划失败（HTTP ${plansRes.status}）`);
+  const plan = (plansRes.data?.plans || [])[0];
+  if (!plan?.id) die('当前没有可用的 PayPal 订阅计划，请改用支付宝或联系支持');
+
+  const r = await api('/api/subscription/create', {
     method: 'POST',
-    body: { package: pkg },
+    body: { planId: plan.id },
     headers: { Authorization: `Bearer ${state.token}` },
   });
   if (r.status === 401) die('登录态失效，请重新执行 refresh-login。');
-  if (!r.ok) die(r.data?.error || `创建订单失败（HTTP ${r.status}）`);
-  const html = r.data?.paymentHtml || '';
-  if (!html) die('平台未返回支付页内容');
+  if (r.status === 409) {
+    die('你已有一个待处理或有效的 PayPal 订阅，请直接在浏览器里完成它，或 1 小时后再试。');
+  }
+  if (!r.ok) die(r.data?.error || `创建 PayPal 订阅失败（HTTP ${r.status}）`);
+
+  const approveUrl = r.data?.approveUrl || '';
+  if (!approveUrl) die('平台未返回 PayPal 授权链接');
+
   const dir = mkdtempSync(join(tmpdir(), 'powpow-pay-'));
-  const file = join(dir, 'alipay-checkout.html');
-  writeFileSync(file, html);
+  const file = join(dir, 'paypal-approve.html');
+  writeFileSync(
+    file,
+    `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redirect to PayPal</title>
+</head>
+<body>
+  <p>正在跳转到 PayPal 完成签约…</p>
+  <script>location.replace(${JSON.stringify(approveUrl)});</script>
+  <p>若未自动跳转，<a href="${approveUrl}" target="_blank" rel="noopener noreferrer">点击这里打开 PayPal</a>。</p>
+</body>
+</html>`
+  );
+
   saveState({
-    outTradeNo: r.data.outTradeNo,
-    package: pkg,
-    amount: r.data.amount,
+    provider: 'paypal',
+    subscriptionId: r.data.subscriptionId,
+    approveUrl,
+    planName: plan.name,
+    planPrice: `${plan.price} ${plan.currency || 'USD'}/${(plan.interval || 'MONTH').toLowerCase()}`,
     orderStep: 'pending',
     orderCreatedAt: new Date().toISOString(),
   });
-  ok('支付页已生成，请让用户在浏览器打开完成付款', {
+
+  ok('PayPal 订阅已创建，请在浏览器打开授权链接完成签约', {
     checkoutFile: file,
-    outTradeNo: r.data.outTradeNo,
-    planName: r.data.planName,
-    amount: r.data.amount,
+    subscriptionId: r.data.subscriptionId,
+    approveUrl,
+    planName: plan.name,
+    planPrice: `${plan.price} ${plan.currency || 'USD'}`,
+    interval: plan.interval,
   });
 }
 
 async function cmdQuery() {
-  const state = requireState('token', 'outTradeNo');
-  const r = await api(`/api/payment/alipay/query?outTradeNo=${encodeURIComponent(state.outTradeNo)}`, {
+  const state = requireState('token');
+  const provider = state.provider || 'alipay';
+
+  if (provider === 'alipay') {
+    requireState('outTradeNo');
+    const r = await api(`/api/payment/alipay/query?outTradeNo=${encodeURIComponent(state.outTradeNo)}`, {
+      headers: { Authorization: `Bearer ${state.token}` },
+    });
+    if (r.status === 401) die('登录态失效，请重新执行 refresh-login。');
+    if (!r.ok) die(r.data?.error || `查询失败（HTTP ${r.status}）`);
+    if (r.data.status === 'paid') saveState({ orderStep: 'paid' });
+    ok(`订单状态：${r.data.status}`, { status: r.data.status });
+    return;
+  }
+
+  // PayPal 轮询
+  const r = await api('/api/subscription/create', {
     headers: { Authorization: `Bearer ${state.token}` },
   });
   if (r.status === 401) die('登录态失效，请重新执行 refresh-login。');
-  if (!r.ok) die(r.data?.error || `查询失败（HTTP ${r.status}）`);
-  if (r.data.status === 'paid') saveState({ orderStep: 'paid' });
-  ok(`订单状态：${r.data.status}`, { status: r.data.status });
+  if (!r.ok) die(r.data?.error || `查询订阅失败（HTTP ${r.status}）`);
+
+  const active = r.data?.activeSubscription?.subscription;
+  if (active?.status === 'ACTIVE') {
+    saveState({ orderStep: 'paid' });
+    ok('订阅状态：ACTIVE（已激活）', {
+      status: 'ACTIVE',
+      subscriptionId: active.paypalSubscriptionId,
+      expiresAt: active.currentPeriodEnd,
+    });
+    return;
+  }
+
+  const pending = (r.data?.allSubscriptions || []).find(
+    (s) => s.subscription?.status === 'PENDING'
+  );
+  const status = pending?.subscription?.status || 'PENDING';
+  ok(`订阅状态：${status}（等待 PayPal 授权或 webhook 确认）`, {
+    status,
+    subscriptionId: pending?.subscription?.paypalSubscriptionId,
+  });
 }
 
 async function cmdRefreshLogin() {
@@ -334,6 +442,7 @@ const commands = {
 
 if (!command || !commands[command]) {
   console.log(`用法：powpow-register.mjs <gen-password|prepare-suggest|send-code|register|login-link|create-order|query|refresh-login|whoami|status|cleanup> [参数]
+常用：--provider alipay|paypal（默认 alipay）
 所有请求仅发往 ${BASE_URL}。详细参数说明见文件头部注释或 references/agent-flow.md。`);
   process.exit(2);
 }
