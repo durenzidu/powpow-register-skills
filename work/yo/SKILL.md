@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Ran olumulo lati pari iforukosile PowPow (Bubble), imuyipada ṣiṣẹ ti Alipay/PayPal ati wiwọle ọkan-tẹ ninu ibaraẹnisọrọ. Agent ṣe fọọmu (pẹlu ikojade aworan profaili), firanṣẹ koodu ijẹrisi imeeli, ṣẹda aṣẹ isanwo ati tọpa isanwo dide; olumulo nilo lati pese alaye ipilẹ, gba koodu ijẹrisi lẹẹkan, sanwo ni alagbata Alipay/PayPal, laisi jijade ninu ibaraẹnisọrọ. A ṣe iṣẹ nigbati olumulo sọ 'foruko Bubble', 'foruko akọọlẹ powpow', 'bawo ni a ṣe foruko powpow', 'sign up powpow'. A tun ṣetọju awọn iṣoro iforukosile (gbigba koodu ijẹrisi, oruko olumulo/imeeli ti a ti lo) ati awọn ọran imuyipada (wiwọle nfihan 'akọọlẹ ko tii mu ṣiṣẹ' / pending_payment, bawo ni a ṣe sanwo). O nilo Node >= 18; ti ko ba si ni adaṣe pada si ipo itọsọna lasan. Ko ni gbigbe ifiweranṣẹ/ẹda eniyan oni-nọmba (iyẹn jẹ iṣẹ powpow-simple), ko si idagbasoke koodu.
-version: 2.1.0
+description: Firanran awọn olumulo lati pari iforukọsilẹ PowPop (Bubble) ati iwọle ẹyọkan ni abala iwiregba gbogbo rẹ. Ajanṣan kun fọọmu fun wọn (pẹlu gbigbe aworan) o si fi koodu ifẹsẹmulẹ imeeli ranṣẹ; olumulo kan n pese alaye ipilẹ ati wo koodu ifẹsẹmulẹ lẹẹkan — ko jade kuro ninu iwiregba. Ni akoko idanwo ọfẹ lọwọlọwọ, akanti ti o forukọsilẹ le lo gbogbo ẹya lẹsẹkẹsẹ; owo sập (Alipay/PayPal) jẹ ilọsi ọmọ-ẹyọn aṣayan, ti ajanṣan le tọju pẹlu pipin iwe ati ibẹwo ọwọn pẹlu. O ṣiṣẹ nigbati olumulo ba sọ "forukọsilẹ fun Bubble", "ṣẹda akanti powpow", "bawo ni mo ṣe le forukọsilẹ fun Bubble", "ran mi lọwọ lati ṣẹda akanti powpow", "forukọsilẹ powpow"; o tun ṣe iṣẹ pẹlu awọn iṣoro iforukọsilẹ (koodu ifẹsẹmulẹ ko gba, orukọ/imeeli ti gba) ati awọn iṣoro imuṣiṣẹ (iwọle sọ "akanti ko ṣiṣẹ" / pending_payment, bawo ni o ṣe le sanwọ/sập, Bubble jẹ ọfẹ tabi owo). O nilo Node ≥ 18; pada si ipo itọsọna pipẹ laifọwọyi nigbati ko ba si. Ko ṣe iṣẹ pẹlu ifiweranṣẹ/ṣẹda ẹda oni-nọmba (iṣẹ powpow-simple ni iyẹn), tabi idagbasoke koodu.
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,22 +10,22 @@ metadata:
 
 # PowPow Register (oluranlọwọ iforukosile Bubble)
 
-Mu olumulo tuntun lati "ko mọ ohun ti Bubble jẹ" de "akọọlẹ ti mu ṣiṣẹ, wiwọle ọkan-tẹ, bẹrẹ ere" — gbogbo ilana naa waye ninu ibaraẹnisọrọ. Olumulo ni akoko meji nikan lati jade ninu ibaraẹnisọrọ fun igba diẹ: **lọ si imeeli wo nọmba ijẹrisi**, **sanwo ni alagbata isanwo** (Alipay tabi PayPal — agent yoo ṣii oju-iwe alagbata naa laifọwọyi).
+O gbe olumulo tuntun lati "emi ko mọ kini Bubble jẹ" si "ti wọle pẹlu ẹyọkan, ṣetan lati ṣere" — gbogbo rẹ ni abala iwiregba. Olumulo jade kuro ninu iwiregba lẹẹkan kan: **lati wo koodu ifẹsẹmulẹ ninu apoti-ìwé rẹ**. Sajoo ni akoko idanwo ọfẹ: nigbati o forukọsilẹ, gbogbo ẹya wa, ko nilo owo; owo sập jẹ ilọsi ọmọ-ẹyọn aṣayan (ajanṣan tun ṣiṣi ati tọju ọwọn pẹlu).
 
-**Ẹ̀dà 2.1.0** · 2026-10-11 (lati v2 jẹ ipo agent-oluranlọwọ: adehun iwe ati ṣiṣan akoko ni kikun wo `references/agent-flow.md`; awọn ofin aaye, ihamọ, ati ṣiṣayẹwo aṣiṣe wo `references/registration-flow.md`; ọna isanwo wo `references/payment-and-activation.md`; atokọ awọn aworan ọja wo `references/screenshots.md`. Lati v2.1.0 ṣiṣe alaisanfarasin PayPal tun le ṣe itọsọna nipasẹ agent, gẹgẹ bi yiyan lẹgbẹẹ Alipay)
+**Ẹya 2.2.0** · 2026-10-18 (lati v2 eyi jẹ ipo iranlọwọ-ajanṣan: adehun iwe ati gbogbo ilana ni `references/agent-flow.md`; awọn ofin aaye, idinwo iṣẹ ati itọju aṣiṣe ni `references/registration-flow.md`; awọn ọna owo ni `references/payment-and-activation.md`; atokọ aworan ọja ni `references/screenshots.md`. Lati v2.1.0 ajanṣan le tọju sập PayPal pẹlu, gẹgẹbi aṣayan lẹgbẹẹ Alipay. Lati v2.2.0 sajoo wà ninu akoko idanwo ọfẹ: forukọsilẹ ki o wọle pẹlu ẹyọkan lati bẹrẹ lilo; owo di ilọsi aṣayan — ti olumulo ba tẹ ọna asopọ ki o si gbalẹ lori ojú-iwe sập, akoko idanwo ti pari, tẹle ilana owo igba 7; ilana ṣe atunṣa funrarẹ, ko nilo iyipada iwe)
 
 ## Agbegbe ṣiṣe
 
 - Iwe pataki `scripts/powpow-register.mjs`: **laisi awọn igbẹkẹle**, o nilo **Node >= 18**. Ṣaaju ki o to bẹrẹ, ṣiṣẹ lẹẹkan `node scripts/powpow-register.mjs status` lati ni idaniloju agbegbe ṣiṣe.
 - Gbogbo awọn ibeere iwe n lọ si ibugbe osise nikan `https://global.powpow.online`.
-- **Ti ko si Node / iwe naa nfihan aṣiṣe**: pada laifọwọyi si ipo itọsọna lasan — fun olumulo oju-iwe iforukosile https://global.powpow.online/register ati oju-iwe ṣiṣe alaisanfarasin https://global.powpow.online/subscription, ṣe itọsọna ni ibamu si `references/registration-flow.md`. Maṣe gbiyanju iwe naa ni agbara leralera.
+- **Ko si Node / aṣiṣe iwe**: pada si ipo itọsọna pipẹ laifọwọyi — fun olumulo ni ojú-iwe iforukọsilẹ https://global.powpow.online/register ki o si ṣe itọsọna pẹlu gẹgẹbi `references/registration-flow.md` (ni akoko idanwo ọfẹ, iforukọsilẹ wẹẹbu jẹ iyara kan). Maṣe tubọ lu iwe.
 - Ipadabọ lẹhin ti ibaraẹnisọrọ naa ti ge: kọkọ `status` lati wo iru ipe ti ilana naa ti de, lẹhinna tẹsiwaju.
 
 ## Trigger Conditions
 
 - Ète iforukosile: "foruko Bubble", "foruko akọọlẹ powpow kan", "bawo ni a ṣe foruko powpow", "sign up powpow"
 - Iforukosile ti di duro: "gbigba nọmba ijẹrisi imeeli", "oruko olumulo ni a sọ pe o ti wa tẹlẹ", "ọrọ igbaniwọle ko dara nigbagbogbo"
-- Awọn ọran lẹhin iforukosile: "wiwọle nfihan akọọlẹ ko tii mu ṣiṣẹ", "403 pending_payment", "bawo ni a ṣe sanwo/fowole PowPow"
+- Awọn iṣoro lẹhin iforukọsilẹ: "iwọle sọ akanti ko ṣiṣẹ", "403 pending_payment", "bawo ni mo ṣe sanwọ/sập fun Bubble", "Bubble jẹ ọfẹ tabi owo"
 
 **Ko ṣe nkan**: gbigbe ifiweranṣẹ/ẹda eniyan oni-nọmba (→ powpow-simple); idagbasoke koodu oju opo wẹẹbu (wo skill idagbasoke). Nigbati olumulo ba fẹ iforukosile ati tun fẹ gbe ifiweranṣẹ: kọkọ pari skill yii, lẹhin imuyipada fi si ọwọ powpow-simple.
 
@@ -38,8 +38,8 @@ Mu olumulo tuntun lati "ko mọ ohun ti Bubble jẹ" de "akọọlẹ ti mu ṣi
 | 3 Firanṣẹ koodu ijẹrisi | `send-code` | —— |
 | 4 Ka nọmba ijẹrisi | —— | Lọ si imeeli wo nọmba oni-nọmba 6, pada fi ranṣẹ |
 | 5 Fi iforukosile silẹ | `register` (pẹlu ikojade aworan profaili taara), ṣetọju aṣiṣe laifọwọyi | —— |
-| 6 Idaji-wiwọle + isanwo | `login-link(pending)` → `create-order --provider alipay|paypal` → ṣii alagbata → ṣe ibeere `query` | Tẹ ọna asopọ, sanwo |
-| 7 Wiwọle deede | `refresh-login` → `login-link(home)` | Tẹ ọna asopọ wọ oju-iwe ile |
+| 6 Iwọle ẹyọkan | `login-link(home)` taara si ojú-iwe ile; ti o ba gbalẹ lori ojú-iwe sập, lọ si Igba 7 | Tẹ ọna ki o bẹrẹ ṣere |
+| 7 Ilọsi ọmọ-ẹyọn (aṣayan) | Nigbati olumulo fẹ ọmọ-ẹyọn / akoko ọfẹ ti pari: gbogbo ilana owo ni a tọju | Yan ọna, san owo |
 | 8 Ipari | `cleanup` + fi iwe-ẹri fun + ṣe itọsọna iriri + daba afikun | Bẹrẹ ere |
 
 ## Ipe 1: Ifihan ọja + aworan (maṣe fo)
@@ -93,19 +93,30 @@ Aṣeyọri ṣẹda akọọlẹ (ipo pending, pẹlu baaji 3 ibẹrẹ). Awọ
 | 邮箱验证码错误或已过期 (koodu ijẹrisi imeeli jẹ aṣiṣe tabi ti di ofo) | Ti o ba kọja iṣẹju 10 → tun `send-code` |
 | 发送/注册过于频繁（429） (firanṣẹ/iforukosile pupọ ju (429)) | Duro iṣẹju 1 lẹhinna tun gbiyanju, sọ fun olumulo nikan |
 
-## Ipe 6: Wiwọle ọkan-tẹ (ọna asopọ 1) + isanwo
+## Igba 6: Iwọle Ẹyọkan (taara si ojú-iwe ile lẹhin iforukọsilẹ)
 
-1. Lẹhin iforukosile aṣeyọri lẹṣẹkan:
+1. Lẹyin iforukọsilẹ to ṣaṣeyọri:
+   ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. Fi ọna ranṣẹ si olumulo: **tẹ e ki o si gbalẹ taara lori ojú-iwe ile, ti wọle tẹlẹ**. Sajoo wà ninu akoko idanwo ọfẹ — lẹhin iforukọsilẹ, gbogbo ẹya wa (ifeede, maapu, ẹda oni-nọmba, awọn abẹwo, ati bẹbẹ), **ko nilo owo**.
+3. Beere olumulo lati jẹrisi pe o wọle; ipo meji wa:
+   - **Gbalẹ lori ojú-iwe ile** → fo taara si Igba 8 lati pari; iforukọsilẹ ti pari;
+   - **Gbalẹ lori ojú-iwe sập** → akoko idanwo ọfẹ sajoo ti pari; sọ fun olumulo "akoko idanwo ọfẹ ti pari, sập ọmọ-ẹyọn nilo bayi", lẹhinna tẹle Igba 7 lati pari sập, ki o si pada si Igba 8 lẹhin sập.
+4. Ti olumulo ba fẹ ilọsi tabi ṣe atilẹyin sajoo → lọ si Igba 8 pẹlu (sập jẹ ifẹ; maṣe fi ipá).
+## Igba 7: Ilọsi Ọmọ-ẹyọn (aṣayan — nigbati Igba 6 n beere)
+
+1. Kọọkan fi ọna idaji-iwọle ranṣẹ ki oju-iwe ipadabọ owo le ṣafihan "Owo ṣaṣeyọri" daradara:
    ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   Firanṣẹ ọna asopọ si olumulo: **lẹhin tite, aṣawakiri rẹ de oju-iwe ṣiṣe alaisanfarasin taara, ti wa ni ipo ti a ti wọle** — lẹhinna nigbati isanwo ba pari oju-iwe ipadabọ le ṣafihan 'isanwo aṣeyọri' deede. (Ninu ipo yii awọn oju-iwe akoonu tun di didena si oju-iwe ṣiṣe alaisanfarasin, eyi jẹ iṣẹ deede ti odi isanwo pẹpẹ, kii ṣe bug, maṣe ṣalaye ero inu fun olumulo.)
-2. **Jẹ ki olumulo yan ọna isanwo**, ṣafihan awọn ọna meji:
-   - **Alipay (Ilu China / olumulo ti o ni Alipay)**: rira-lẹẹkan fun akoko deede, **ko ṣe isọdọtun laifọwọyi**
-     - Oṣu **¥6.99** (daba lati gbiyanju kọkọ) / mẹẹdogun **¥19.99** / ọdun **¥69.99**
-   - **PayPal (okeere / olumulo laisi Alipay)**: isọdọtun oṣu laifọwọyi, a le fagilee nigbakugba
-     - Premium Monthly, bii **$1/oṣu** (gẹgẹbi oju-iwe ṣiṣe alaisanfarasin ṣe fihan, isọdọtun laifọwọyi)
-3. Nigbati olumulo ba yan:
+   Fi ọna ranṣẹ si olumulo: titẹ e jẹ ki aṣawakiri gbalẹ taara lori ojú-iwe sập, ti wọle tẹlẹ.
+2. **Jẹ ki olumulo yan ọna owo** — ṣafihan mejeeji:
+   - **Alipay (ilẹ China / awọn olumulo pẹlu Alipay)**: rira ẹyọkan ti akoko to baamu, **ko si imudasilẹ adaṣe**
+     - Oṣù **¥6.99** (gba niyanju lati danwo) / Kọọkan **¥19.99** / Ọdún **¥69.99**
+   - **PayPal (ode ọdún / awọn olumulo laisi Alipay)**: ṣe imudasilẹ adaṣe oṣù kọọkan, le fagilé nigbakigba
+     - Alabọde Oṣù, nla **$1/oṣù** (gẹgẹbi a ṣe ṣafihan lori ojú-iwe sập; ṣe imudasilẹ adaṣe)
+3. Nigbati olumulo ba yan ọkan:
    - **Alipay**:
      ```
      node scripts/powpow-register.mjs create-order --package monthly
@@ -114,29 +125,23 @@ Aṣeyọri ṣẹda akọọlẹ (ipo pending, pẹlu baaji 3 ibẹrẹ). Awọ
      ```
      node scripts/powpow-register.mjs create-order --provider paypal
      ```
-   Iwe naa da ọna faili oju-iwe isanwo pada, **ṣii taara pẹlu aṣẹ eto** (Windows: `start <faili>`; macOS: `open <faili>`; Linux: `xdg-open <faili>`). Aṣawakiri yoo lọ taara si alagbata Alipay/PayPal osise, olumulo ṣe isanwo tabi fowo si aṣẹ.
-4. Ṣiṣẹ `query` ni iṣẹmu 10–15 kọọkan titi yoo fi da `paid` tabi `ACTIVE` pada (owo/ifọwọsi deede laarin iṣẹmu diẹ si iṣẹmu kan). Ti olumulo ba ti pa oju-iwe isanwo ni aarin → tun ṣiṣẹ `create-order` taara (aṣẹ atijọ / ṣiṣe alaisanfarasin PENDING ti pa laifọwọyi lẹhin wakati 2, maṣe yọnu).
-5. Ọna iwo-koodu WeChat jẹ timo-ọkọnrin, isanwo n ṣe idaduro; Huawei IAP wa nikan ninu App HarmonyOS. Skill ko ṣe iranlọwọ awọn mejeeji — lẹhin isanwo pada si Ipe 7.
+   Iwe na da ọna faili ojú-iwe owo pada; **ṹ ṣíi taara pẹlu aṣẹ eto** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). Aṣawakiri fo laifọwọyi si ile-owo Alipay/PayPal ofeefee, nibiti olumulo pari owo tabi aṣẹ ìdíyelé.
+4. Ṣiṣe `query` gbogbo iṣẹju 10–15 titi o padà `paid` tabi `ACTIVE` (owo/aṣẹ ni gbogbọn de laarin iṣẹju diẹ si iṣẹju kan). Ti olumulo ba ti ojú-iwe owo ni aarin → ṣẹda `create-order` lẹẹkansi (iwe atijọ / sập n reti ti ipade tabi pari laifọwọyi lẹhin wakati 2; foju wọn).
+5. Ọna koodu WeChat QR jẹrisi ni ọwọ ati owo le de pẹlu; Huawei IAP wa ni inu App HarmonyOS nikan. Ìmọ-jáẹẹ yi ko tọju mejeji — lẹhin sanwo, olumulo pada sọ fun ajanṣan, ti n ṣiṣẹ `whoami` kọ lati jẹrisi ọwọn, lẹhinna fi ọna ojú-iwe ile ranṣẹ gẹgẹbi aami 6 ni isalẹ.
+6. Lẹhin jẹrisi ọwọn, paṣiparọ fun ipo iwọle pẹlu asẹ sập tuntun, lẹhinna fi ọna ranṣẹ taara si ojú-iwe ile:
+   ```
+   POWPOW_REGISTER_PASSWORD=<password> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   Fi ọna ranṣẹ si olumulo: **tẹ e ki o si gbalẹ taara lori ojú-iwe ile pẹlu ipo ọmọ-ẹyọn kikun**.
+## Igba 8: Ipari
 
-## Ipe 7: Wiwọle deede (ọna asopọ 2)
-
-Lẹhin imudaniloju isanwo, kọkọ ṣe paṣipaarọ ipo wiwọle ti o ni ikede ṣiṣe alaisanfarasin tuntun, lẹhinna ṣe ipilẹṣẹ ọna asopọ taara si oju-iwe ile:
-
-```
-POWPOW_REGISTER_PASSWORD=<ọrọigbaniwọle> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-Firanṣẹ ọna asopọ si olumulo: **lẹhin tite o de oju-iwe ile taara, ipo ọmọ ẹgbẹ ni kikun**, titi iforukosile gbogbo ti pari.
-
-## Ipe 8: Ipari
-
-1. `node scripts/powpow-register.mjs cleanup` nu faili ipo igba-die ti ẹrọ yii kuro (ẹri igba-iṣẹ).
-2. Fun olumulo "kaadi akọọlẹ" kan: oruko olumulo, imeeli, akoko ipari ọmọ ẹgbẹ (ọrọ igbaniwọle ko tun ṣafihan — ipo ipilẹṣẹ ti han lẹẹkan ki olumulo to tọju; ti ara rẹ mọ ti o ṣe).
-3. Ṣe itọsọna iriri: rin maapu, fi irin-ajo akọkọ rẹ ranṣẹ (→ fi si ọwọ powpow-simple).
-4. Daba imugboroosi: skill `@durenzidu/powpow-integration` ati afikun `@durenzidu/openclaw-channel-powpow` — so Bubble pọ si agent ti ara rẹ; ti o ba fẹ ṣafikun fun aṣẹ fifi sori ẹrọ.
-5. Pari pẹlu apa "igbesẹ ti nbọ".
-
+1. `node scripts/powpow-register.mjs cleanup` lati nu awọn faili ipo akoko agbegbe (ẹri ajọ).
+2. Fun olumulo ni "kaadi akanti": orukọ, imeeli (ọrọ igbaniwọle ko han mọ — ni ipo ipilẹṣẹ a beere olumulo lati fipamọ nigbati a ṣe; ti olumulo ba fi silẹ funrarẹ, wọn mọ ọ).
+3. Iranti ọmọ-ẹyọn (sọ lẹẹkan, maṣe fi ipá): eleyi jẹ akoko idanwo ọfẹ ati akanti wa lẹsẹkẹsẹ; nigbati akoko idanwo pari, awọn akanti ti ko sập ti n bẹ ojú-iwe akoonu yoo pada si ojú-iwe sập — fun lilo pipẹ, pada wa ajanṣan lati sập nigbakigba.
+4. Ṣe itọsọna awọn igba akọkọ: wo maapu, fi akọọlẹ irin-ajo akọkọ posti (→ fi fun powpow-simple).
+5. Ṣe igbasilẹ awọn afikun: `@durenzidu/powpow-integration` ìmọ-jáẹẹ ati `@durenzidu/openclaw-channel-powpow` afikun — so Bubble pọ sinu ajanṣan olumulo; fi aṣẹ fi sori ẹrọ fun ti o ba fẹ.
+6. Pari pẹlu bulọọki "igba ti o tẹle".
 ## Conversation UX
 
 Tẹle ohun orin iṣẹ ti PowPow:
@@ -157,7 +162,7 @@ Tẹle ohun orin iṣẹ ti PowPow:
 - **Aabo ẹri**: ọrọ igbaniwọle n lọ nipasẹ oniyipada ayika `POWPOW_REGISTER_PASSWORD` si iwe nikan, **rara** kọ sinu awọn ariyanjiyan aṣẹ (atipe akojọ ilana han), rara kọ sinu eyikeyi faili (ipo ipilẹṣẹ fihan lẹẹkan ki olumulo to tọju, ko tun sọ). Koodu ijẹrisi n lo fun akojọpọ iforukosile osise nikan, lẹhin lilo jẹ abojuto.
 - **Ààlà osise**: gbogbo awọn ibeere n lọ si `https://global.powpow.online` nikan (iwe ti fi sii tẹlẹ), rara maṣe fi alaye olumulo ranṣẹ si eyikeyi adirẹsi ẹnikẹta.
 - **Ààlà isanwo**: agent n ṣẹda aṣẹ, ṣii alagbata, ṣe ibeere isanwo; **rara** fọwọkan akọọlẹ Alipay/PayPal olumulo / ẹri isanwo, rara ṣe ileri "sanwo ni ipo rẹ".
-- **Odi isanwo kii ṣe bug**: ipo pending ni anfani lati wọ oju-iwe ṣiṣe alaisanfarasin / oju-iwe ipadabọ jẹ igbanilaaye inu apẹrẹ; awọn oju-iwe akoonu ti a dena jẹ odi isanwo pẹpẹ ti n ṣiṣẹ deede, maṣe gbiyanju lati fọ.
+- **Odidi owo kii jẹ aṣiṣe**: ni akoko idanwo ọfẹ lọwọlọw� gbogbo ojú-iwe akoonu ṣi; ti olumulo ba tẹ ọna ojú-iwe ile ṣugbọn gbalẹ lori ojú-iwe sập, akoko idanwo ti pari — ṣe itọsọna wọn lati sập nipasẹ Igba 7. Maṣe gbiyanju lati koju odidi owo, ki o maṣe ṣalaye ilana inu fun olumulo.
 - **Ominira ipadabọ**: nigbati olumulo ba fẹ ṣe ọwọ funrarẹ ni eyikeyi ipe, tabi agbegbe ko ṣe atilẹyin iwe, pada si ipo itọsọna lasan nigbakugba — fun awọn ọna asopọ, ṣalaye awọn ofin, ṣe iranlọwọ ṣiṣayẹwo aṣiṣe.
 - Maṣe ṣe ipilẹṣẹ awọn ofin pẹpẹ: awọn ofin aaye, ọrọ aṣiṣe, awọn ariyanjiyan ihamọ gbogbo wa lati inu koodu pẹpẹ (`references/registration-flow.md` ni orisun koodu), imudojuiwọn pẹpẹ tẹle ihuwasi gangan.
 - Awọn aworan ifihan lo awọn ti o wa ninu `assets/screenshots/` ti a dahun pọ pẹlu skill nikan (lilo aworan kọọkan wo `references/screenshots.md`).

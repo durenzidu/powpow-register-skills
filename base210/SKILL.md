@@ -1,164 +1,169 @@
 ---
 name: powpow-register
-description: 帮用户在对话内完成 PowPow（泡泡）注册、支付宝/PayPal 订阅激活与一键登录。agent 代办填表（含头像上传）、发送邮箱验证码、创建支付订单并跟踪到账，用户只需提供基本信息、查收一次验证码、在支付宝/PayPal 收银台完成付款，全程不脱离对话。当用户说「注册泡泡」「注册 powpow 账号」「泡泡怎么注册」「帮我注册一个 powpow 账号」「sign up powpow」时触发；也处理注册卡壳（收不到验证码、用户名/邮箱被占用）和激活问题（登录提示「账户未激活」/ pending_payment、怎么订阅付费）。需要 Node ≥ 18；不可用时自动退回纯指引模式。不含发帖/创建数字人（那是 powpow-simple 的事），不含代码开发。
-version: 2.1.0
+description: Helps users complete PowPow (Bubble) registration and one-click login entirely inside the conversation. The agent fills in the form on their behalf (including avatar upload) and sends the email verification code; the user only provides basic information and checks the verification code once — never leaving the conversation. During the platform's current free testing period, a registered account can use every feature right away; subscription payment (Alipay/PayPal) is an optional membership upgrade, which the agent can also handle with order creation and arrival tracking when needed. Triggers when the user says "register for Bubble", "sign up for a powpow account", "how do I register for Bubble", "help me create a powpow account", "sign up powpow"; also handles registration issues (verification code not received, username/email already taken) and activation issues (login says "account not activated" / pending_payment, how to subscribe/pay, is Bubble free/paid). Requires Node ≥ 18; automatically falls back to pure guidance mode when unavailable. Does not cover posting/creating digital humans (that's powpow-simple's job), nor code development.
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
     homepage: https://global.powpow.online
 ---
 
-# PowPow Register（泡泡注册助手）
+# PowPow Register (Bubble Registration Assistant)
 
-带一个新用户从「不知道泡泡是什么」走到「账号激活、一键登录、开始玩」——全程在对话里完成。用户只有两次需要暂时离开对话：**去邮箱看验证码**、**在支付收银台付款**（支付宝/PayPal，agent 会自动打开收银台页面）。
+Takes a new user from "I don't know what Bubble is" to "one-click logged in, ready to play" — entirely inside the conversation. The user leaves the conversation only once: **to check the verification code in their inbox**. The platform is currently in a free testing period: once registered, every feature is usable, no payment needed; subscription payment is an optional membership upgrade (the agent also handles opening the cashier and tracking arrival).
 
-**版本 2.1.0** · 2026-10-11（v2 起为 agent 代办模式：脚本契约与完整时序见 `references/agent-flow.md`；字段规则、限流与报错排查见 `references/registration-flow.md`；支付通道见 `references/payment-and-activation.md`；产品截图清单见 `references/screenshots.md`。v2.1.0 起 PayPal 订阅也可由 agent 代办，与支付宝并列可选）
+**Version 2.2.0** · 2026-10-18 (since v2 this is agent-assisted mode: script contract and full sequence in `references/agent-flow.md`; field rules, rate limits and error troubleshooting in `references/registration-flow.md`; payment channels in `references/payment-and-activation.md`; product screenshot list in `references/screenshots.md`. Since v2.1.0 PayPal subscriptions can also be handled by the agent, as an option alongside Alipay. Since v2.2.0 the platform is in a free testing period: register and one-click login to start using; payment becomes an optional upgrade — if the user clicks the link and lands on the subscription page, the testing period has ended, so follow the Step 7 payment flow; the flow adapts itself, no script changes needed)
 
-## 运行环境
+## Runtime Environment
 
-- 核心脚本 `scripts/powpow-register.mjs`：**零依赖**，需要 **Node ≥ 18**。开始前跑一次 `node scripts/powpow-register.mjs status` 确认环境可用。
-- 脚本所有请求只发往官方域名 `https://global.powpow.online`。
-- **没有 Node / 脚本报错时**：自动退回纯指引模式——把注册页 https://global.powpow.online/register 和订阅页 https://global.powpow.online/subscription 给用户，按 `references/registration-flow.md` 陪伴式引导。不要反复硬试脚本。
-- 对话中断后恢复：先 `status` 看流程到哪一步了，接着走。
+- Core script `scripts/powpow-register.mjs`: **zero dependencies**, requires **Node ≥ 18**. Run `node scripts/powpow-register.mjs status` once before starting to confirm the environment works.
+- All script requests go to the official domain `https://global.powpow.online` only.
+- **No Node / script errors**: automatically fall back to pure guidance mode — give the user the registration page https://global.powpow.online/register and guide them alongside per `references/registration-flow.md` (during the free testing period, web registration is equally instant). Don't keep hammering the script.
+- Resuming after an interrupted conversation: run `status` first to see which step the flow is at, then continue from there.
 
 ## Trigger Conditions
 
-- 注册意图：「注册泡泡」「注册一个 powpow 账号」「泡泡怎么注册」「sign up powpow」
-- 注册卡住：「收不到验证码」「用户名说已存在」「密码老是不合格」
-- 注册后问题：「登录说账户未激活」「403 pending_payment」「泡泡怎么付费/订阅」
+- Registration intent: "register for Bubble", "sign up for a powpow account", "how do I register for Bubble", "sign up powpow"
+- Stuck during registration: "not receiving the verification code", "it says the username already exists", "the password keeps failing validation"
+- Post-registration issues: "login says the account is not activated", "403 pending_payment", "how do I pay for/subscribe to Bubble", "is Bubble free/paid"
 
-**不触发**：发布帖子/创建数字人（→ powpow-simple）；Web 端代码开发（另见开发类 skill）。用户既想注册又想发帖时：先走完本 skill，激活后再交给 powpow-simple。
+**Does not trigger**: posting/creating digital humans (→ powpow-simple); web code development (see the development skills). If a user wants both to register and to post: finish this skill first, then hand over to powpow-simple after activation.
 
-## 流程总览
+## Flow Overview
 
-| 步骤 | agent 做什么 | 用户做什么 |
+| Step | What the agent does | What the user does |
 |---|---|---|
-| 1 产品介绍 | 介绍 + 发截图 | 看一眼 |
-| 2 信息确认 | 主动建议用户名/昵称，密码二选一，问邮箱 | 确认、提供 |
-| 3 发验证码 | `send-code` | —— |
-| 4 验证码回读 | —— | 去邮箱看 6 位码，回来发送 |
-| 5 提交注册 | `register`（含头像直传），报错自动处理 | —— |
-| 6 半登录 + 支付 | `login-link(pending)` → `create-order --provider alipay|paypal` → 打开收银台 → 轮询 `query` | 点链接、付款 |
-| 7 正式登录 | `refresh-login` → `login-link(home)` | 点链接进首页 |
-| 8 收尾 | `cleanup` + 交付凭证 + 引导体验 + 推荐插件 | 开始玩 |
+| 1 Product intro | Introduce + send screenshots | Take a look |
+| 2 Info confirmation | Proactively suggest username/nickname, offer a password choice, ask for the email | Confirm, provide |
+| 3 Send verification code | `send-code` | —— |
+| 4 Read back the code | —— | Check inbox for the 6-digit code, send it back |
+| 5 Submit registration | `register` (with direct avatar upload), handle errors automatically | —— |
+| 6 One-click login | `login-link(home)` straight into the home page; if it lands on the subscription page, go to Step 7 | Click the link and start playing |
+| 7 Subscription upgrade (optional) | Only when the user wants membership / the free period has ended: full payment flow handled | Pick a method, pay |
+| 8 Wrap-up | `cleanup` + deliver credentials + guide first steps + recommend extensions | Start playing |
 
-## 第 1 步：产品介绍 + 截图（不可跳过）
+## Step 1: Product Intro + Screenshots (do not skip)
 
-多数用户从没见过泡泡。开口第一件事不是讲流程，而是让他**看见**产品：
+Most users have never seen Bubble. The first thing is not to walk through the process, but to let them **see** the product:
 
-1. 用 ~120 字介绍泡泡：把随手拍的照片变成一篇游记，钉在公开地图上成为一颗「气泡」；气泡会随时间过气，别人点赞能让它复活；地图上还有能聊天的「数字人」。平台地址 https://global.powpow.online ，想先看视频的话：https://www.bilibili.com/video/BV1Wu826UEVz/
-2. **发截图**。截图已随技能打包在 `assets/screenshots/powpow-0N.jpg`——直接作为本地图片文件发送，无需联网。清单、每张图的内容和使用时机见 `references/screenshots.md`。开场最常用的组合：地图页（powpow-03）+ 帖子详情页（powpow-06）。
+1. Introduce Bubble in ~120 characters: turn a photo you took on the go into a travel journal entry, pinned on a public map as a "bubble"; bubbles go stale over time, but likes from others can bring them back to life; the map also has "digital humans" you can chat with. Platform address https://global.powpow.online ; if they'd like to watch a video first: https://www.bilibili.com/video/BV1Wu826UEVz/
+2. **Send the screenshots**. They are bundled inside this skill at `assets/screenshots/powpow-0N.jpg` — send them as local image files directly, no network needed. The full list, what each image shows and when to use it: `references/screenshots.md`. Best opening combo: map page (powpow-03) + post detail page (powpow-06).
 
-截图规则（硬规则）：
+Screenshot rules (hard rules):
 
-- 截图**已随技能打包**在 `assets/screenshots/`（`powpow-0N.jpg`）——直接发本地图片文件；任何环境都可用，包括 GitHub 打不开的环境。
-- 每次只发与当前话题相关的 1–3 张，别一次全糊上去。
-- 包内文件意外缺失时，回退到 `references/screenshots.md` 里列出的托管链接（注意：国内可能打不开）。
+- The screenshots are **bundled in the skill** at `assets/screenshots/` (`powpow-0N.jpg`) — send them as local image files; this works in every environment, including where GitHub is unreachable.
+- Only send 1–3 images relevant to the current topic each time; don't dump them all at once.
+- If a local copy is somehow missing, fall back to the hosted copies listed in `references/screenshots.md` (note they may be unreachable in mainland China).
 
-介绍完，把选择权交给用户：**「想注册的话，我们三分钟在对话里把账号建好，你只需要看一次邮箱验证码。」**
+After the intro, hand the choice to the user: **"If you'd like to register, we'll have your account set up in three minutes right here in the conversation — you only need to check your email for a verification code once."**
 
-## 第 2 步：确认注册信息（一轮一个问题，别一次全问）
+## Step 2: Confirm Registration Info (one question per turn, don't ask everything at once)
 
-- **用户名**（必填）：从对话上下文/系统用户名**主动建议一个**（2~50 字符，不分大小写），用户点头就用，想改就改。
-- **密码**（必填，先问用户二选一）：
-  - 用户自己提供 → 之后通过环境变量传给脚本，**绝不写进命令行参数**；
-  - agent 生成 → 跑 `node scripts/powpow-register.mjs gen-password`，把生成的密码**立即发给用户让他保存**（只显示这一次，之后不再出现）。
-- **邮箱**（必填）：必须用户提供——这是账号的身份锚点，**不要替用户猜**。
-- **昵称**（可选）：建议默认跟用户名一致。
-- **头像**（可选）：用户给一个本地图片路径（≤5MB、非 SVG）就由脚本直传；没有就跳过（平台用默认 logo）；你若有图像生成能力，可以主动提议帮用户做一张。
-- **手机号**（可选，大陆号）：默认跳过，用户主动想绑再要。
+- **Username** (required): **proactively suggest one** from the conversation context / system username (2–50 characters, case-insensitive); if the user nods, use it; if they want to change it, change it.
+- **Password** (required — first offer the user a choice of two options):
+  - The user provides it → later pass it to the script via an environment variable, **never as a command-line argument**;
+  - The agent generates it → run `node scripts/powpow-register.mjs gen-password`, and **send the generated password to the user immediately so they save it** (shown only this once, never again).
+- **Email** (required): the user must provide it — it's the identity anchor of the account, **never guess it for them**.
+- **Nickname** (optional): suggest defaulting it to the username.
+- **Avatar** (optional): if the user gives a local image path (≤5MB, not SVG), the script uploads it directly; if not, skip it (the platform uses the default logo); if you have image-generation capabilities, you can offer to make one.
+- **Phone number** (optional, mainland China): skip by default; only ask if the user actively wants to bind one.
 
-确认下来后可跑 `prepare-suggest --username U --nickname N --email E` 记入状态文件（之后 register 不用重复传）。
+Once confirmed, run `prepare-suggest --username U --nickname N --email E` to record it into the state file (register won't need these again afterwards).
 
-## 第 3–4 步：邮箱验证码（唯一必须离开对话的环节）
-
-```
-node scripts/powpow-register.mjs send-code --email <邮箱>
-```
-
-然后明确告诉用户：**去邮箱找 6 位数字验证码，10 分钟内有效，记得看看垃圾邮件/广告邮件文件夹**，找到后回来把码发给你。发送有 60 秒冷却，不要连点。
-
-## 第 5 步：提交注册（agent 代办）
+## Steps 3–4: Email Verification Code (the only step that requires leaving the conversation)
 
 ```
-POWPOW_REGISTER_PASSWORD=<密码> node scripts/powpow-register.mjs register --code <验证码> [--username U] [--nickname N] [--avatar <本地图片路径>] [--phone P]
+node scripts/powpow-register.mjs send-code --email <email>
 ```
 
-成功即建号（pending 状态，附 3 个初始徽章）。常见报错自动处理，不打断用户：
+Then tell the user clearly: **go find the 6-digit verification code in your inbox — valid for 10 minutes — remember to check the spam/junk/promotions folder**, and send the code back when found. Sending has a 60-second cooldown; don't click repeatedly.
 
-| 报错 | 处理 |
+## Step 5: Submit Registration (agent-assisted)
+
+```
+POWPOW_REGISTER_PASSWORD=<password> node scripts/powpow-register.mjs register --code <code> [--username U] [--nickname N] [--avatar <local image path>] [--phone P]
+```
+
+Success creates the account (pending status, with 3 initial badges). Handle common errors automatically without interrupting the user:
+
+| Error | Handling |
 |---|---|
-| 用户名已存在 | 自动建议变体（用户名+数字），用户确认后直接重试（验证码仍有效，不用重发） |
-| 邮箱已被使用 | 问用户：换一个邮箱，还是其实已经有账号（改走登录/找回密码） |
-| 邮箱验证码错误或已过期 | 超过 10 分钟 → 重新 `send-code` |
-| 发送/注册过于频繁（429） | 等 1 分钟再试，跟用户说一声即可 |
+| Username already exists | Automatically suggest a variant (username + digits); retry directly once the user confirms (the code is still valid, no need to resend) |
+| Email already in use | Ask the user: switch to another email, or they actually already have an account (switch to login / password recovery) |
+| Email verification code incorrect or expired | Over 10 minutes → `send-code` again |
+| Sending/registration too frequent (429) | Wait 1 minute and retry; just give the user a heads-up |
 
-## 第 6 步：一键登录（链接 1）+ 支付
+## Step 6: One-Click Login (straight into the home page after registration)
 
-1. 注册成功后立即：
+1. Right after successful registration:
+   ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. Send the link to the user: **click it and you land directly on the home page, already logged in**. The platform is currently in a free testing period — after registering, every feature is usable (feed, map, digital humans, check-ins, etc.), **no payment needed**.
+3. Ask the user to confirm they got in; there are two cases:
+   - **Landed on the home page** → jump straight to Step 8 to wrap up; registration is complete;
+   - **Landed on the subscription page** → the platform's free testing period has ended; tell the user "the free trial period is over, a membership subscription is required now", then follow Step 7 to complete the subscription, and come back to Step 8 after subscribing.
+4. If the user actively wants to upgrade or support the platform → also go to Step 7 (subscribing is voluntary; don't push).
+## Step 7: Subscription Upgrade (optional — only when Step 6 calls for it)
+
+1. First send the half-login link so the payment return page can correctly show "Payment successful":
    ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   把链接发给用户：**点开后浏览器直接落在订阅页，已是登录状态**——之后支付完成时回跳页能正确显示「支付成功」。（此状态下内容页仍会被挡到订阅页，这是平台付费墙的正常工作，不是 bug，也不用向用户解释内部机制。）
-2. **让用户选择支付方式**，展示两种通道：
-   - **支付宝（大陆/有支付宝用户）**：一次性买断对应时长，**不自动续费**
-     - 月度 **¥6.99**（推荐先试）/ 季度 **¥19.99** / 年度 **¥69.99**
-   - **PayPal（海外/无支付宝用户）**：按月自动续费，可随时取消
-     - Premium Monthly，约 **$1/月**（以订阅页展示为准，自动续费）
-3. 用户选定后：
-   - **支付宝**：
+   Send the link to the user: clicking it lands the browser directly on the subscription page, already logged in.
+2. **Have the user choose a payment method** — show both channels:
+   - **Alipay (mainland China / users with Alipay)**: one-time purchase of the corresponding duration, **no auto-renewal**
+     - Monthly **¥6.99** (recommended for trying) / Quarterly **¥19.99** / Yearly **¥69.99**
+   - **PayPal (overseas / users without Alipay)**: auto-renews monthly, cancel anytime
+     - Premium Monthly, about **$1/month** (as shown on the subscription page; auto-renews)
+3. Once the user picks one:
+   - **Alipay**:
      ```
      node scripts/powpow-register.mjs create-order --package monthly
      ```
-   - **PayPal**：
+   - **PayPal**:
      ```
      node scripts/powpow-register.mjs create-order --provider paypal
      ```
-   脚本返回支付页文件路径，**用系统命令直接打开**（Windows：`start <文件>`；macOS：`open <文件>`；Linux：`xdg-open <文件>`）。浏览器会自动跳到支付宝/PayPal 官方收银台，用户完成付款或签约授权。
-4. 每 10–15 秒跑一次 `query` 直到返回 `paid` 或 `ACTIVE`（到账/授权一般几秒到一分钟）。用户中途关掉支付页 → 直接重新 `create-order`（旧订单/待处理订阅 2 小时自动关闭/过期，不用管）。
-5. 微信扫码通道是人工确认、到账有延迟；华为 IAP 仅鸿蒙 App 内可用。这两类 skill 不代办，付完一样回来走第 7 步。
+   The script returns the payment page file path; **open it directly with a system command** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). The browser automatically jumps to the official Alipay/PayPal cashier, where the user completes the payment or the billing authorization.
+4. Run `query` every 10–15 seconds until it returns `paid` or `ACTIVE` (payment/authorization usually lands within a few seconds to a minute). If the user closes the payment page midway → just `create-order` again (old orders / pending subscriptions auto-close or expire after 2 hours; ignore them).
+5. The WeChat QR-code channel is manually confirmed and funds may arrive late; Huawei IAP is only available inside the HarmonyOS App. The skill doesn't handle those two — after paying, the user comes back and tells the agent, who first runs `whoami` to confirm arrival, then sends the home-page link per point 6 below.
+6. After arrival is confirmed, exchange for a login state with the latest subscription claim, then send the link straight to the home page:
+   ```
+   POWPOW_REGISTER_PASSWORD=<password> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   Send the link to the user: **click it and you land directly on the home page with full membership status**.
+## Step 8: Wrap-Up
 
-## 第 7 步：正式登录（链接 2）
-
-到账确认后，先换取带最新订阅声明的登录态，再生成直达首页的链接：
-
-```
-POWPOW_REGISTER_PASSWORD=<密码> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-把链接发给用户：**点开直接落在首页，完整会员状态**，到此注册全流程完成。
-
-## 第 8 步：收尾
-
-1. `node scripts/powpow-register.mjs cleanup` 清理本机临时状态文件（会话凭据）。
-2. 给用户一张「账号卡片」：用户名、邮箱、会员到期时间（密码不重复显示——生成模式在生成时已让用户保存；用户自设的他自己知道）。
-3. 引导体验：逛地图、发第一篇游记（→ 交给 powpow-simple）。
-4. 推荐扩展：`@durenzidu/powpow-integration` skill 和 `@durenzidu/openclaw-channel-powpow` 插件——把泡泡接进用户自己的 agent；想加就给安装命令。
-5. 以「下一步」区块收尾。
-
+1. `node scripts/powpow-register.mjs cleanup` to clean up local temporary state files (session credentials).
+2. Give the user an "account card": username, email (the password is not shown again — in generated mode the user was asked to save it when it was generated; if the user set it themselves, they know it).
+3. Membership reminder (say it once, don't push): this is currently a free testing period and the account is usable right away; when the testing period ends, unsubscribed accounts visiting content pages will be redirected to the subscription page — for long-term use, come back and find the agent to subscribe anytime.
+4. Guide the first steps: browse the map, post the first travel journal (→ hand off to powpow-simple).
+5. Recommend extensions: the `@durenzidu/powpow-integration` skill and the `@durenzidu/openclaw-channel-powpow` plugin — connect Bubble into the user's own agent; give the install command if wanted.
+6. End with a "next step" block.
 ## Conversation UX
 
-沿用 powpow 一贯的服务式语气：
+Follow the service-first tone powpow is known for:
 
-- **用户是句子的主语**，「你可以……」优于「我需要你……」；不说教，不居高临下。
-- **一轮只推进一个决定**；索要信息前先给理由。
-- **每轮回复的最后**是一个固定的「下一步」区块（分隔线 + 👉 + 单一动作 + 一句「做完我会……」），例如：
+- **The user is the subject of the sentence** — "you can…" beats "I need you to…"; no lecturing, no talking down.
+- **Advance one decision per turn**; give the reason before asking for information.
+- **Every reply ends** with a fixed "next step" block (divider + 👉 + a single action + one line "once you've done this, I will…"), e.g.:
   ```
   ────────────────────
-  👉 现在需要你做的：去邮箱找 6 位验证码，直接发给我
-     （收到后我马上把账号建好）
+  👉 What you need to do now: find the 6-digit verification code in your inbox and send it to me
+     (as soon as I have it, I'll create your account)
   ```
-- **不主动对密码做安全说教**；不解释内部机制、限流或安全设计，除非用户问。
-- agent 代办时更要报进度：每个脚本步骤后用一句话告诉用户刚才发生了什么（「账号建好了」「支付页已经帮你打开了」）。
+- **Don't give unsolicited security lectures about passwords**; don't explain internal mechanisms, rate limiting or security design unless the user asks.
+- When acting on the user's behalf, report progress even more: after each script step, tell the user in one sentence what just happened ("your account is created", "the payment page is open for you").
 
-## 硬规则
+## Hard Rules
 
-- **凭证安全**：密码只通过环境变量 `POWPOW_REGISTER_PASSWORD` 传给脚本，**绝不**写进命令行参数（进程列表可见）、不写入任何文件（生成模式显示一次是为了让用户保存，之后不再复述）。验证码只用于官方注册接口，用完即弃。
-- **官方边界**：所有请求只发往 `https://global.powpow.online`（脚本已内置），绝不把用户信息发给任何第三方地址。
-- **支付边界**：agent 只创建订单、打开收银台、查询到账；**绝不**接触用户的支付宝/PayPal 账号/支付凭证，也绝不承诺"代付"。
-- **付费墙不是 bug**：pending 状态能进订阅页/回跳页是设计内放行；内容页被挡是平台付费墙在正常工作，不要试图绕过。
-- **回退自由**：用户任何一步想自己动手，或环境不支持脚本，随时退回纯指引模式——给链接、讲规则、陪排错。
-- 不要编造平台规则：字段规则、报错文案、限流参数全部来自平台代码（`references/registration-flow.md` 有源码出处），平台更新以实际行为为准。
-- 展示图片只用包内 `assets/screenshots/` 的截图（各图用途见 `references/screenshots.md`）。
-- 每一轮都以「下一步」区块收尾，让用户永远知道现在该做什么。
+- **Credential security**: the password is passed to the script only via the `POWPOW_REGISTER_PASSWORD` environment variable, **never** as a command-line argument (visible in process lists) and never written to any file (in generated mode it's shown once so the user can save it, and never repeated). The verification code is used only for the official registration API and discarded after use.
+- **Official boundary**: all requests go to `https://global.powpow.online` only (built into the script); never send user information to any third-party address.
+- **Payment boundary**: the agent only creates orders, opens the cashier and queries arrival; **never** touches the user's Alipay/PayPal account/payment credentials, and never promises to "pay on their behalf".
+- **The paywall is not a bug**: during the current free testing period all content pages are open; if the user clicks the home-page link but lands on the subscription page, the testing period has ended — guide them to subscribe via Step 7. Don't try to bypass the paywall, and don't explain internal mechanisms to the user.
+- **Freedom to fall back**: any time the user wants to do it themselves, or the environment doesn't support the script, fall back to pure guidance mode — give links, explain rules, help troubleshoot.
+- Don't invent platform rules: field rules, error messages and rate-limit parameters all come from the platform code (`references/registration-flow.md` cites the sources); when the platform updates, actual behavior wins.
+- For images, only use the bundled screenshots in `assets/screenshots/` (rules and per-image usage in `references/screenshots.md`).
+- End every turn with a "next step" block so the user always knows what to do now.

@@ -1,69 +1,73 @@
-# 产品界面截图 — powpow-register
+# Product UI Screenshots — powpow-register
 
-运行时按需取用。用户对泡泡没概念、或需要"看到"成品长什么样时，直接把对应截图发出去。
+Use as needed at runtime. When the user has no idea what Bubble is, or needs to "see" what the finished product looks like, send the corresponding screenshot directly.
 
-## 图片位置
+## Where the Images Live
 
-- 六张截图**已随技能打包**，位于 `assets/screenshots/powpow-0N.jpg`（`N` 为 1–6）。直接作为本地图片文件发送即可——无需联网，任何环境都可用（包括 GitHub 不可达的环境）。
-- 仅在包内文件意外缺失时回退：托管副本 `https://raw.githubusercontent.com/durenzidu/durenzidu/main/screenshots/powpow-0N.jpg` 或镜像 `https://cdn.jsdelivr.net/gh/durenzidu/durenzidu@main/screenshots/powpow-0N.jpg`（注意：两者在中国大陆都可能打不开——优先用包内文件）。
-- 每次只发与当前话题相关的 1–3 张。
+- The six screenshots are **bundled inside this skill** at `assets/screenshots/powpow-0N.jpg` (`N` is 1–6). Send them as local image files — no network needed, works in every environment (including where GitHub is unreachable).
+- Fallback only, if a local copy is somehow missing: hosted copies at
+  `https://raw.githubusercontent.com/durenzidu/durenzidu/main/screenshots/powpow-0N.jpg`
+  or the mirror
+  `https://cdn.jsdelivr.net/gh/durenzidu/durenzidu@main/screenshots/powpow-0N.jpg`
+  (note: both may be unreachable in mainland China — prefer the bundled files).
+- Only send 1–3 images relevant to the current topic each time.
 
-## 清单
+## The List
 
-### powpow-01.jpg — 数字人详情页
+### powpow-01.jpg — Digital Human Detail Page
 
-![数字人详情页](../assets/screenshots/powpow-01.jpg)
+![Digital human detail page](../assets/screenshots/powpow-01.jpg)
 
-真人/历史人物做成数字人后的卡片：在线状态、所属地点、人物简介、「开始对话」等。
-**用在**：介绍"注册完能跟地图上的数字人聊天"。
+The card of a real person / historical figure turned into a digital human: online status, location, bio, "Start chat" etc.
+**Use when**: introducing "after registering, you can chat with the digital humans on the map".
 
-### powpow-02.jpg — 发帖编辑页
+### powpow-02.jpg — Post Editor Page
 
-![发帖编辑页](../assets/screenshots/powpow-02.jpg)
+![Post editor page](../assets/screenshots/powpow-02.jpg)
 
-写帖子/游记的编辑界面，右下角一组浮动按钮。
-**用在**：用户问"注册好了我能干什么""在哪儿写东西"。
+The editor for writing posts/travel journals, with a set of floating buttons in the bottom-right corner.
+**Use when**: the user asks "what can I do after registering" / "where do I write things".
 
-### powpow-03.jpg — 地图页（泡泡 + 数字人）
+### powpow-03.jpg — Map Page (Bubbles + Digital Humans)
 
-![地图页](../assets/screenshots/powpow-03.jpg)
+![Map page](../assets/screenshots/powpow-03.jpg)
 
-公开地图全貌：带地点的帖子以「泡泡」聚在地图上，数字人以头像钉在现实地点。
-**用在**：**开场介绍产品的首选图**——"你发的游记会变成地图上的一颗气泡"。
+The full public map: posts with locations cluster on the map as "bubbles", digital humans are pinned to real locations with their avatars.
+**Use when**: **the go-to image for the opening product intro** — "your travel journal entries become a bubble on the map".
 
-### powpow-04.jpg — 个人主页（数字资产）
+### powpow-04.jpg — Profile Page (Digital Assets)
 
-![个人主页](../assets/screenshots/powpow-04.jpg)
+![Profile page](../assets/screenshots/powpow-04.jpg)
 
-用户自己的页面：好友/关注/粉丝，以及「数字资产」——徽章余额、我的泡泡、我的数字人。
-**用在**："注册就送 3 个徽章"时展示徽章长在哪儿；用户问"我有什么资产"。
+The user's own page: friends/following/followers, and "Digital Assets" — badge balance, my bubbles, my digital humans.
+**Use when**: showing where the badges live while saying "registration gives you 3 badges"; when the user asks "what assets do I have".
 
-### powpow-05.jpg — 剧情进度页
+### powpow-05.jpg — Story Progress Page
 
-![剧情进度页](../assets/screenshots/powpow-05.jpg)
+![Story progress page](../assets/screenshots/powpow-05.jpg)
 
-平台内的剧情玩法（示例「永乐·1421」）：章节进度、赚徽章、角色扮演。
-**用在**：用户问"除了发帖还能玩什么""徽章怎么赚"。
+The in-platform story gameplay (example "永乐·1421"): chapter progress, earning badges, role play.
+**Use when**: the user asks "what else can I play besides posting" / "how do I earn badges".
 
-### powpow-06.jpg — 帖子详情页（成品示例）
+### powpow-06.jpg — Post Detail Page (Finished Example)
 
-![帖子详情页](../assets/screenshots/powpow-06.jpg)
+![Post detail page](../assets/screenshots/powpow-06.jpg)
 
-一篇发出的游记：作者、地点标签、正文、配图，底部可点赞/评论/分享/收藏。
-**用在**：**开场第二张**——"别人在地图上点开你的气泡，看到的就是这个"。
+A published travel journal entry: author, location tags, body text, images; like/comment/share/save at the bottom.
+**Use when**: **the second opening image** — "this is what other people see when they open your bubble on the map".
 
-## 对应的场景速查
+## Scenario Quick Reference
 
-| 用户说的话 / 当前环节 | 发哪张 |
+| What the user says / current step | Which image to send |
 |---|---|
-| 开场介绍"泡泡是什么" | powpow-03 + powpow-06 |
-| "注册完能干什么？" | powpow-02 + powpow-01 |
-| "徽章是什么 / 我有什么？" | powpow-04 |
-| "除了发帖还能玩什么？" | powpow-05 |
-| 排查注册/订阅报错 | 一般不需要图；确需说明页面位置时再发 |
+| Opening intro "what is Bubble" | powpow-03 + powpow-06 |
+| "What can I do after registering?" | powpow-02 + powpow-01 |
+| "What are badges / what do I have?" | powpow-04 |
+| "What else can I play besides posting?" | powpow-05 |
+| Troubleshooting registration/subscription errors | Usually no image needed; only send one if a page position needs to be pointed out |
 
-## 维护备注
+## Maintenance Notes
 
-- `assets/screenshots/` 内的图是随包发布的首选副本。截图需要更新时，替换 `assets/screenshots/` 下的同名文件（保持 `powpow-0N.jpg` 命名）并发布新版本。
-- 公开仓库 `durenzidu/durenzidu`（`screenshots/` 目录）的托管副本作为回退镜像保留，与包内文件同步更新。
-- 当前图库没有**注册页**和**订阅页**的截图。若日后补充（例如 `powpow-07.jpg` 注册页、`powpow-08.jpg` 订阅页），把文件放进 `assets/screenshots/` 并按同样格式补一节即可，SKILL.md 的引导文可顺带引用。
+- The images in `assets/screenshots/` are the primary copies shipped with the skill. If a screenshot needs updating, replace the file in `assets/screenshots/` (keeping the same `powpow-0N.jpg` naming) and publish a new version of the skill.
+- The hosted copies in the public repo `durenzidu/durenzidu` (`screenshots/` branch directory) are kept as fallback mirrors; update them together with the bundled files.
+- The current library has no screenshots of the **registration page** or **subscription page**. If they are added later (e.g. `powpow-07.jpg` registration page, `powpow-08.jpg` subscription page), drop the files into `assets/screenshots/` and add a section here in the same format; the SKILL.md walkthrough can reference it as well.

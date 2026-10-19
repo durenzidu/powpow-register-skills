@@ -1,6 +1,8 @@
 # Abo-Aktivierung und Zahlung — powpow-register
 
 ## Fazit (zuerst die Antwort)
+> **Kostenlose Testphase (ab 2026-10-18; das tatsächliche Verhalten der Plattform gilt)**: in dieser Phase kann ein registriertes Konto alle Funktionen direkt nutzen, und **ein Abo ist ein optionales Upgrade und keine Voraussetzung** — den Ablauf dieser Datei nur befolgen, wenn die Nutzer:in aktiv Mitgliedschaft möchte. Endet die Testphase, werden nicht abonnierte Konten beim Besuch von Inhaltsseiten auf die Abo-Seite umgeleitet; das Abo einfach nach dieser Datei abschließen.
+
 
 **Sowohl Alipay- als auch PayPal-Abos kann der agent übernehmen — Bestellung anlegen und Zahlungseingang verfolgen inklusive.**
 Alipay ist ein Einmalkauf ohne automatische Verlängerung, für Nutzer:innen in China und mit Alipay; PayPal verlängert sich monatlich automatisch und ist jederzeit kündbar,

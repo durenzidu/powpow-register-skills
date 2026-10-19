@@ -21,7 +21,7 @@ Mga detalye ng pagpapatupad ng bawat hakbang sa SKILL.md. Lahat ng command ay `n
 | `prepare-suggest` | `--username --nickname --email` | Itala ang kumpirmadong impormasyon sa state file (pagkatapos, hindi na kailangang ipasa muli sa register) |
 | `send-code` | `--email` | Pagsabihan ang plataporma na magpadala ng 6 na numerong verification code (bisa 10 minuto, 60s cooldown) |
 | `register` | `--code` (kinakailangan); `--username --nickname --avatar --phone` (opsyonal, hindi na kailangang ipasa kung nasa state file na) | Gumawa ng pending account; ang password ay sa `POWPOW_REGISTER_PASSWORD` environment variable; sa tagumpay, awtomatikong mase-save ang JWT sa state file |
-| `login-link` | `--target pending` o `--target home` | Gumawa ng one-click log-in link (two-link design, tingnan sa ibaba) |
+| `login-link` | `--target pending` o `--target home` | Gumagawa ng one-click login link (dual-link na disenyo, tingnan sa ibaba) |
 | `create-order` | `--package monthly\|quarterly\|yearly` (default ng Alipay)<br>`--provider alipay\|paypal` | Gumawa ng payment order; ibinabalik ng Alipay ang payment page file path + outTradeNo; ibinabalik ng PayPal ang authorization page file path + subscriptionId (awtomatikong nakatala sa state file) |
 | `query` | —— | Tingnan ang status ng order/subscription. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; poll kada 10–15s |
 | `refresh-login` | ang password ay sa environment variable | Mag-log in muli para sa **bagong JWT** (ang subscription claim ay nagiging ACTIVE mula NONE), kailangang patakbuhin pagkatapos dumating ang bayad |
@@ -39,39 +39,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<password>'; node scripts/powpow-register.mjs r
 set POWPOW_REGISTER_PASSWORD=<password> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## Two-link mechanism (pangunahing disenyo)
+## Dual-Link na Mekanismo (core na disenyo)
 
-Ang log-in status ng plataporma ay HttpOnly cookie, kaya hindi direktang maitatanim ng agent ang cookie sa browser; ang tulay ay ang opisyal na
-`/api/auth/me?token=<JWT>&redirect=<path sa loob ng site>` endpoint: beripikasyon ng signature → awtomatikong gagawa ng
-session para sa pending user → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 araw) → beripikasyon ng
-redirect (dapat magsimula sa isang slash, ipinagbabawal ang `//` at backslash, pagkatapos i-resolve ay dapat same-origin) → 307 temporary redirect sa target page.
+Ang login state ng platform ay HttpOnly cookie, na hindi kayang itanim ng agent para sa browser nang diretso; ang tulay ay ang opisyal na
+`/api/auth/me?token=<JWT>&redirect=<in-site na path>` endpoint: i-verify ang lagda → awtomatikong lumikha ng
+session → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 araw) → i-validate ang
+redirect (dapat magsimula sa single slash, ipinagbabawal ang `//` at backslash, dapat same-origin pagkatapos i-parse) → 307 temporary redirect sa target page.
 
-- **Link 1 (ibinibigay agad pagkatapos ng matagumpay na rehistro)**: `--target pending` → papunta sa `/subscription`.
-  Pumapasok ang browser ng gumagamit sa "half log in" state: ang subscription page at Alipay return page ay nakikita at magagamit; ang mga content page ay pipigilin pa rin at ibabalik sa subscription page (tatlong suson ng proteksyon: JWT claims gateway check → DB recheck → core API check, normal na gawi).
-- **Link 2 (ibinibigay pagkatapos makumpirma ang paid)**: patakbuhin muna ang `refresh-login` para sa bagong JWT (ang bayad ay nag-a-update lang sa DB, hindi nagbabago ng claims ng JWT na naibigay na; kapag hindi napalitan, magiging "nagbayad pero walang membership" ang dating), pagkatapos ay `--target home` → papunta sa home page
-  na may kumpletong membership state.
+May dalawang target ng link, **gumawa ng home muna, pagkatapos magdesisyon kung dadaan sa pending batay sa kung saan lilapag ang user**:
 
-## Kumpletong sequence (normal na daan)
+- **home link (ipinapadala bilang default, `--target home` → lilapag sa `/`)**: ginagawa at ipinapadala sa user kaagad pagkatapos ng matagumpay na pagpaparehistro.
+  Sa libreng panahon ng pagsubok ang user ay direktso sa home page, buong magagamit; **kung ang user ay nag-click ngunit lumapag sa subscription page, tapos na ang libreng panahon ng pagsubok** — lumipat sa daloy ng bayad (tingnan sa ibaba); hindi kailangan ng pagbabago sa script at hindi kailangang magparehistro muli.
+- **pending link (ginagamit sa daloy ng bayad, `--target pending` → lilapag sa `/subscription`)**:
+  ang browser ng user ay pumapasok sa "half-logged-in" na estado: nakikita at napapagana ang subscription page at payment return page. Pagkatapos dumating ang bayad,
+  patakbuhin ang `refresh-login` para palitan ng bagong JWT na may ACTIVE claim, pagkatapos ipadala muli ang home link para sa buong membership state.
+
+## Buong Sequence
+
+### Mabilis na Landas (sa libreng panahon ng pagsubok — ang napakaraming kaso)
 
 ```
-1.  status                          # Self-check ng kapaligiran
-2.  (Hakbang 2: kumpirmahin ang impormasyon sa usapan, password na piliin ang isa; generate mode: gen-password → sabihin agad na i-save ng gumagamit)
+1.  status                          # environment self-check
+2.  (Hakbang 2 na pag-uusap para kumpirmahin ang impormasyon, password alinman; generated mode: gen-password → paiponin agad sa user na itago ito)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → puntahan ng gumagamit ang email para sa code (tanging pag-alis sa usapan ①)
+4.  send-code --email E             # → tinitignan ng user ang code sa inbox (ang tanging oras na umaalis sa pag-uusap)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → ipasa ang Link 1 sa gumagamit
-7.  (Pipiliin ng gumagamit ang paraan ng bayad)
+6.  login-link --target home        # → ipadala ang link sa user; isang click at nasa home page na sila
+7.  (kinukumpirma ng user na nakapasok) → mag-wrap up diretso: cleanup + account card + gabayan ang unang hakbang
+```
+
+### Landas ng Bayad (kapag nais ng user ang membership, o tapos na ang libreng panahon ng pagsubok)
+
+```
+1–5. Katulad ng mabilis na landas (nasa state na ang token pagkatapos matagumpay na register)
+6.  login-link --target pending     # → half-login link, pinapanatiling gumagana ang payment return page
+7.  (pumili ang user ng paraan ng bayad)
     # Alipay: create-order --package monthly|quarterly|yearly
     # PayPal: create-order --provider paypal
-8.  start <payment page file>       # Windows; sa macOS gumamit ng open, sa Linux gumamit ng xdg-open
-    # → magbabayad/mag-aauthorize ang gumagamit sa Alipay/PayPal cashier (pag-alis sa usapan ②)
-9.  query (kada 10–15s) hanggang paid / ACTIVE
+8.  start <file ng payment page>       # Windows; gumagamit ng open ang macOS, xdg-open ang Linux
+    # → kinukumpleto ng user ang bayad/awtorisasyon sa Alipay/PayPal cashier (umaalis sa pag-uusap)
+9.  query (tuwing 10–15s) hanggang paid / ACTIVE
 10. refresh-login                   # palitan ng bagong JWT na may ACTIVE claim
-11. login-link --target home        # → ipasa ang Link 2 sa gumagamit
+11. login-link --target home        # → ipadala ang buong membership link sa user
 12. whoami                          # kumpirmahin ang subscriptionStatus: ACTIVE (opsyonal)
-13. cleanup                         # burahin ang state file
+13. cleanup                         # linisin ang state file
 ```
-
 ## Command → platform API mapping
 
 | Command ng script | Platform endpoint |
@@ -98,7 +110,8 @@ Pinagmulan ng mga patakaran: para sa mga field rule at rate limit sa rehistro, t
 | Pagkatapos ng `create-order`, isinara ng gumagamit ang payment page | Muling patakbuhin lang ang `create-order` (awtomatikong magsasara ang lumang order pagkatapos ng 2 oras; ang PayPal PENDING subscription ay mag-e-expire pagkatapos ng 1 oras) |
 | `create-order --provider paypal` nagbabalik ng 409 | May hindi pa natatapos na PayPal subscription; maghintay ng 1 oras para mag-expire, o tapusin ang lumang authorization sa browser |
 | `query` ay laging pending / PENDING | Maaaring hindi pa nagbayad ang gumagamit; magtanong. Kung talagang nagbayad → sundan ang troubleshooting table ng payment-and-activation.md |
-| `refresh-login` 403 `pending_payment` | Hindi pa dumarating ang bayad/authorization, bumalik sa Hakbang 9 at mag-poll muli |
+| Nag-click ang user sa home link ngunit lumapag sa subscription page | Tapos na ang libreng panahon ng pagsubok → lumipat sa daloy ng bayad: `login-link --target pending` → pumili ng paraan ng bayad → `create-order` |
+| `refresh-login` 403 `pending_payment` | Tapos na ang libreng panahon ng pagsubok at hindi pa dumarating ang bayad; bumalik sa hakbang 9 para magpatuloy ng pag-poll, o kumpirmahin kung natapos ng user ang bayad |
 | Nawala ang state file (nabura nang aksidente / lumipat ng makina) | Hindi na magagamit ang `whoami`/`refresh-login`; sabihan ang gumagamit na i-refresh ang subscription page mismo sa browser kung saan nabuksan ang Link 1 para kumpirmahin ang status, o mag-log in muli (web mode) |
 
 ## Fallback mode (pure guidance)
@@ -109,5 +122,5 @@ Sa alinmang sumusunod na sitwasyon, agad na bumalik sa v1-style na pure guidance
 - Malinaw na sinabi ng gumagamit na "ako mismo ang gagawa sa web page";
 - Pinaghihigpitan ng patakaran ng kumpanya/device ang pagkakakonekta ng script sa internet.
 
-Matapos bumalik: ibigay ang registration page https://global.powpow.online/register at subscription page
+Pagkatapos bumalik: ibigay ang registration page na https://global.powpow.online/register (sa libreng panahon ng pagsubok, ang web registration ay kasing-bilis; kapag kailangan ng subscription, ibigay din ang subscription page na https://global.powpow.online/subscription ), mag-troubleshoot kasabay ayon sa mga patakaran sa `registration-flow.md`, panatilihing pareho ang tono, at tapusin pa rin ang bawat turn ng "next step" block.
 https://global.powpow.online/subscription , gabayan ang pag-troubleshoot ayon sa mga patakaran sa `registration-flow.md`, hindi nagbabago ang tono, at ang bawat round pa rin ay nagtatapos sa "susunod na hakbang" block.

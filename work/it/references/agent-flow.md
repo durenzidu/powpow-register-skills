@@ -22,7 +22,7 @@ lo script è a **zero dipendenze**, richiede **Node ≥ 18**, e tutte le richies
 | `prepare-suggest` | `--username --nickname --email` | Segna nel file di stato le informazioni confermate (dopo, register non dovrà ripeterle) |
 | `send-code` | `--email` | Fa scattare l'invio da parte della piattaforma del codice a 6 cifre (valido 10 minuti, cooldown 60s) |
 | `register` | `--code` (obbligatorio); `--username --nickname --avatar --phone` (facoltativi, se già nel file di stato si omettono) | Crea l'account pending; la password passa per la variabile d'ambiente `POWPOW_REGISTER_PASSWORD`; riuscito, il JWT viene salvato automaticamente nel file di stato |
-| `login-link` | `--target pending` oppure `--target home` | Genera il link di accesso con un clic (design a doppio link, vedi sotto) |
+| `login-link` | `--target pending` o `--target home` | Genera un link di accesso con un clic (design a doppio link, vedi sotto) |
 | `create-order` | `--package monthly\|quarterly\|yearly` (Alipay predefinito)<br>`--provider alipay\|paypal` | Crea l'ordine di pagamento; Alipay restituisce il percorso del file della pagina di pagamento + outTradeNo; PayPal restituisce il percorso del file della pagina di autorizzazione + subscriptionId (registrato automaticamente nel file di stato) |
 | `query` | —— | Interroga lo stato dell'ordine/abbonamento. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; polling ogni 10–15s |
 | `refresh-login` | password via variabile d'ambiente | Rieffettua il login per un **nuovo JWT** (la dichiarazione di abbonamento passa da NONE ad ACTIVE), da eseguire obbligatoriamente dopo l'accredito |
@@ -40,44 +40,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<password>'; node scripts/powpow-register.mjs r
 set POWPOW_REGISTER_PASSWORD=<password> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## Meccanismo del doppio link (progetto centrale)
+## Meccanismo a doppio link (design centrale)
 
-Lo stato di accesso della piattaforma è un cookie HttpOnly, e l'agent non può piantare direttamente un cookie nel
-browser altrui; il ponte è l'endpoint ufficiale `/api/auth/me?token=<JWT>&redirect=<percorso del sito>`: verifica
-firma → l'utente pending riceve automaticamente una sessione → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax /
-7 giorni) → validazione del redirect (solo iniziante con uno slash, vietati `//` e backslash, dopo risoluzione deve
-essere same-origin) → redirect temporaneo 307 alla pagina di destinazione.
+Lo stato di accesso della piattaforma è un cookie HttpOnly, che l'agent non può piantare direttamente nel browser; il ponte è l'endpoint ufficiale
+`/api/auth/me?token=<JWT>&redirect=<percorso interno>`: verifica la firma → crea la sessione automaticamente
+→ `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 giorni) → valida
+il redirect (deve iniziare con una sola barra, `//` e barre rovesciate vietati, stessa origine dopo il parsing) → 307 reindirizzamento temporaneo alla pagina di destinazione.
 
-- **Link 1 (dato subito dopo la registrazione riuscita)**: `--target pending` → atterra su `/subscription`.
-  Il browser dell'utente entra nello stato di «semi-sessione»: pagina abbonamento e pagina di ritorno Alipay sono
-  visibili e operabili; le pagine di contenuto restano respinte dal paywall verso la pagina abbonamento (triplo
-  filtro: controllo del gateway sulle claims JWT → ricontrollo su DB → controllo delle API centrali, comportamento
-  normale).
-- **Link 2 (dato dopo la conferma di paid)**: prima `refresh-login` per un nuovo JWT (il pagamento aggiorna solo il
-  DB, non modifica le claims del JWT già emesso; senza rinnovo sembrerebbe «ho pagato ma non sono membro»), poi
-  `--target home` → atterra in home, stato membro completo.
+Ci sono due destinazioni di link, **genera prima home, poi decidi se passare da pending in base a dove finisce l'utente**:
 
-## Sequenza completa (percorso normale)
+- **link home (inviato per primo per impostazione predefinita, `--target home` → finisce su `/`)**: generato e inviato all'utente subito dopo la registrazione riuscita.
+  Nel periodo di prova gratuita l'utente entra direttamente sulla home, tutto utilizzabile; **se l'utente lo apre ma finisce sulla pagina di abbonamento, il periodo di prova gratuita è finito** — passa allora al percorso di pagamento (vedi sotto); nessuna modifica allo script e nessuna nuova registrazione necessaria.
+- **link pending (usato nel percorso di pagamento, `--target pending` → finisce su `/subscription`)**:
+  il browser dell'utente entra nello stato di «semi-accesso»: la pagina di abbonamento e la pagina di ritorno del pagamento sono visibili e utilizzabili. Dopo l'incasso,
+  esegui `refresh-login` per scambiare contro un nuovo JWT con la dichiarazione ACTIVE, poi invia di nuovo il link home per l'iscrizione completa.
+
+## Sequenza completa
+
+### Percorso rapido (nel periodo di prova gratuita — la stragrande maggioranza dei casi)
 
 ```
-1.  status                          # Autoverifica ambiente
-2.  (passo 2: conferma informazioni in conversazione, password doppia scelta; modalità generata: gen-password → far salvare subito all'utente)
+1.  status                          # auto-verifica dell'ambiente
+2.  (Passo 2 conversazione per confermare le info, password a scelta; modalità generata: gen-password → fai salvare subito all'utente)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → l'utente va nell'email a leggere il codice (unica uscita dalla conversazione ①)
+4.  send-code --email E             # → l'utente controlla il codice nella e-mail (unica uscita dalla conversazione)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → link 1 da mandare all'utente
+6.  login-link --target home        # → invia il link all'utente; un clic ed è sulla home
+7.  (l'utente conferma di essere entrato) → concludi direttamente: cleanup + scheda account + guida dei primi passi
+```
+
+### Percorso di pagamento (quando l'utente vuole l'iscrizione, o il periodo di prova gratuita è finito)
+
+```
+1–5. Come il percorso rapido (dopo il register riuscito il token è già nello state)
+6.  login-link --target pending     # → link di semi-accesso, mantiene funzionante la pagina di ritorno del pagamento
 7.  (l'utente sceglie il metodo di pagamento)
     # Alipay: create-order --package monthly|quarterly|yearly
     # PayPal: create-order --provider paypal
-8.  start <file pagina pagamento>   # Windows; macOS usa open, Linux usa xdg-open
-    # → l'utente completa pagamento/autorizzazione alla cassa Alipay/PayPal (uscita dalla conversazione ②)
-9.  query (ogni 10–15s) finché non è paid / ACTIVE
-10. refresh-login                   # nuovo JWT con dichiarazione ACTIVE
-11. login-link --target home        # → link 2 da mandare all'utente
-12. whoami                          # confermare subscriptionStatus: ACTIVE (facoltativo)
-13. cleanup                         # ripulire il file di stato
+8.  start <file della pagina di pagamento>   # Windows; macOS usa open, Linux usa xdg-open
+    # → l'utente completa il pagamento/l'autorizzazione alla cassa Alipay/PayPal (esce dalla conversazione)
+9.  query (ogni 10–15 s) fino a paid / ACTIVE
+10. refresh-login                   # scambia contro un nuovo JWT con la dichiarazione ACTIVE
+11. login-link --target home        # → invia il link di iscrizione completa all'utente
+12. whoami                          # conferma subscriptionStatus: ACTIVE (opzionale)
+13. cleanup                         # ripulisci il file di stato
 ```
-
 ## Mappatura comandi → API della piattaforma
 
 | Comando script | Interfaccia piattaforma |
@@ -104,7 +111,8 @@ attivazione in `payment-and-activation.md` (entrambi con i file sorgente della p
 | L'utente chiude la pagina di pagamento dopo `create-order` | Eseguire subito di nuovo `create-order` (il vecchio ordine si chiude da solo dopo 2h; gli abbonamenti PENDING PayPal scadono dopo 1h) |
 | `create-order --provider paypal` restituisce 409 | Esiste già un abbonamento PayPal non completato; attendi 1h perché scada o completa la vecchia autorizzazione nel browser |
 | `query` resta sempre pending / PENDING | Forse l'utente non ha pagato; chiedere. Se ha pagato davvero → seguire la tabella in payment-and-activation.md |
-| `refresh-login` 403 `pending_payment` | Il pagamento o l'autorizzazione non è ancora accreditato, tornare al passo 9 e continuare il polling |
+| L'utente apre il link home ma finisce sulla pagina di abbonamento | Il periodo di prova gratuita è finito → passa al percorso di pagamento: `login-link --target pending` → scegli un metodo di pagamento → `create-order` |
+| `refresh-login` 403 `pending_payment` | Il periodo di prova gratuita è finito e il pagamento non è ancora arrivato; torna al passo 9 per continuare a sondare, o conferma se l'utente ha completato il pagamento |
 | File di stato perso (cancellato per sbaglio / cambio macchina) | `whoami`/`refresh-login` non utilizzabili; far riaprire all'utente la pagina abbonamento nel browser dove ha già aperto il link 1 per confermare lo stato, oppure rifare il login (modalità web) |
 
 ## Modalità di ripiego (sola guida)
@@ -115,6 +123,6 @@ In uno qualunque di questi casi si rientra subito nella sola guida in stile v1, 
 - L'utente dice esplicitamente «faccio io dal browser»;
 - Politiche aziendali/di dispositivo che impediscono allo script di uscire in rete.
 
-Dopo il ripiego: fornire la pagina di registrazione https://global.powpow.online/register e la pagina abbonamento
+Dopo il rientro nella modalità guida: dai la pagina di registrazione https://global.powpow.online/register (nel periodo di prova gratuita, anche la registrazione web è equally immediata; quando serve un abbonamento, dai anche la pagina di abbonamento https://global.powpow.online/subscription ), accompagna la risoluzione secondo le regole di `registration-flow.md`, mantieni lo stesso tono e concludi ogni turno con un blocco «passo successivo».
 https://global.powpow.online/subscription , accompagnare la diagnosi secondo le regole di `registration-flow.md`,
 tono invariato, ogni turno si chiude comunque con il blocco «prossimo passo».

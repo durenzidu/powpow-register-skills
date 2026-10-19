@@ -210,7 +210,7 @@ async function cmdRegister() {
     step: 'registered-pending',
     registeredAt: new Date().toISOString(),
   });
-  ok('注册成功（pending 状态），可生成一键登录链接（target=pending）去订阅页', {
+  ok('注册成功，可生成一键登录链接（target=home 直达首页；target=pending 直达订阅页）', {
     accountStatus: 'pending_payment',
     username: r.data?.user?.username,
     avatarUrl: r.data?.user?.avatarUrl,
@@ -223,7 +223,7 @@ function cmdLoginLink() {
   const redirect = target === 'home' ? '/' : '/subscription';
   const url = `${BASE_URL}/api/auth/me?token=${encodeURIComponent(state.token)}&redirect=${encodeURIComponent(redirect)}`;
   ok(
-    target === 'home' ? '正式登录链接（付费完成后给用户，直达首页）' : 'pending 登录链接（注册后给用户，直达订阅页）',
+    target === 'home' ? '登录链接（直达首页；免费测试期内点开即用，测试期结束则会落到订阅页）' : 'pending 登录链接（直达订阅页，用于支付流程）',
     { url }
   );
 }

@@ -47,20 +47,23 @@ Script của skill gọi là **cùng một loạt API công khai** (`/api/auth/r
 mọi quy tắc trong file này đối với hai chế độ như nhau. Trình tự script và hợp đồng lệnh xem
 `references/agent-flow.md`.
 
-## Di chuyển trạng thái sau khi đăng ký thành công
+## Luồng Trạng Thái Sau Khi Đăng Ký Thành Công
 
-1. Người dùng được lưu vào DB với `accountStatus: 'pending'`, khởi điểm **3 huy hiệu** (register route).
-2. Máy chủ đồng thời gieo hai cookie HttpOnly: JWT (truy cập thẳng `/subscription` được) và
-   pendingUserToken (chứng thực thân phận cho quy trình gói).
-3. Trang đăng ký phát hiện `pending_payment` → chuyển hướng `/subscription` (giữ tham số nhảy về `next`);
-   trong chế độ agent thao tác hộ dùng `me?token=…&redirect=/subscription` đạt hiệu quả tương tự.
-4. Thanh toán hoàn tất → `accountStatus` thành `active` (**Alipay đi notify, máy chủ tự kích hoạt**;
-   PayPal đi Webhook tự kích hoạt; quét mã WeChat xác nhận thủ công; Huawei IAP đi `activate-huawei`).
-   Chi tiết xem `payment-and-activation.md`.
+> **Giai đoạn dùng thử miễn phí (bắt đầu từ 2026-10-18; hành vi thực tế của nền tảng là chuẩn)**: tài khoản mới đăng ký có thể **dùng mọi tính năng trực tiếp**
+> (bảng tin, bản đồ, nhân vật số, điểm danh, v.v.) không cần trả tiền; tài khoản chưa đăng ký gói không còn bị chặn khỏi các trang nội dung. Việc "chặn pending"
+> mô tả trong mục này là trạng thái thông thường sau khi giai đoạn dùng thử kết thúc — khi đến lúc đó, hành vi thực tế trên mạng là chuẩn.
 
-Người dùng chưa kích hoạt (pending) gọi API cốt lõi (bảng tin, bản đồ, trò chuyện nhân vật số, điểm danh v.v.)
-thảy đều 403; link chia sẻ bài đăng là ngoại lệ (giữ nguyên khả năng truy cập công khai).
+1. Người dùng được lưu với `accountStatus: 'pending'` và **3 huy hiệu khởi tạo** (route register).
+2. Máy chủ cũng gắn hai cookie HttpOnly: JWT (vào trang trực tiếp được) và pendingUserToken (chứng thực danh tính cho luồng đăng ký gói).
+3. Ở trạng thái thông thường (giai đoạn dùng thử kết thúc / không có giai đoạn miễn phí), trang đăng ký phát hiện `pending_payment` → chuyển hướng sang `/subscription`
+   (giữ tham số trả về `next`); ở chế độ agent đại diện, `me?token=…&redirect=/subscription` cho hiệu ứng tương đương.
+   **Trong giai đoạn dùng thử miễn phí, bước này không kích hoạt** — sau khi đăng ký, vào thẳng trang chủ và bắt đầu dùng.
+4. Thanh toán xong → `accountStatus` thành `active` (**Alipay tự kích hoạt phía máy chủ qua notify**;
+   PayPal kích hoạt qua Webhook; mã QR WeChat xác nhận thủ công; Huawei IAP đi qua `activate-huawei`).
+   Chi tiết ở `payment-and-activation.md`.
 
+Ở trạng thái thông thường, tài khoản chưa kích hoạt (pending) gọi các API lõi (bảng tin, bản đồ, chat nhân vật số, điểm danh, v.v.) sẽ bị 403;
+link bài đăng chia sẻ là ngoại lệ (vẫn mở công khai). Trong giai đoạn dùng thử miễn phí, việc chặn này tạm ngưng và mọi thứ đều mở.
 ## Bảng xử lý lỗi thường gặp
 
 | Hiện tượng | Nguyên nhân | Xử lý |
@@ -73,7 +76,8 @@ thảy đều 403; link chia sẻ bài đăng là ngoại lệ (giữ nguyên kh
 | 「注册请求过于频繁」 (yêu cầu đăng ký quá dày) / 429 | Đăng ký 3 lần/phút/IP chạm trần | Chờ vài phút rồi thử lại |
 | 409 「用户名或邮箱已被注册」 (tên người dùng hoặc email đã được đăng ký) | Đúng khoảnh khắc nộp bị đụng tên với người khác (lưới an toàn cạnh tranh) | Đổi tên người dùng hoặc email rồi thử lại |
 | 「图片大小不能超过5MB」 (kích thước ảnh không quá 5MB) / 「不支持 SVG」 (không hỗ trợ SVG) | Ảnh đại diện không đạt chuẩn | Đổi ảnh hoặc bỏ qua ảnh đại diện |
-| Đăng ký thành công nhưng đăng nhập 403 「请完成订阅以激活账户」 (vui lòng hoàn tất gói để kích hoạt tài khoản) | Tài khoản vẫn pending (trạng thái dự kiến trước khi trả tiền) | Trước khi trả tiền: đây là bình thường, hoàn tất gói trước; sau khi trả tiền vẫn 403: nghĩa là dùng JWT cũ, trong chế độ script trước tiên `refresh-login` đổi trạng thái đăng nhập mới |
+| Người dùng bấm link đăng nhập nhưng rơi vào trang gói hội viên (thay vì trang chủ) | Giai đoạn dùng thử miễn phí đã kết thúc, tường phí của nền tảng đã trở lại | Theo luồng thanh toán đăng ký gói ở bước 7 trong SKILL.md; sau khi đăng ký gói, chạy `refresh-login` rồi gửi link trang chủ |
+| Đăng ký thành công nhưng đăng nhập trả về 403 "请完成订阅以激活账户" | Tài khoản vẫn pending, và nền tảng không trong giai đoạn dùng thử miễn phí (trạng thái mong đợi trước khi trả tiền) | Trong giai đoạn dùng thử miễn phí sẽ không xảy ra; nếu xảy ra nghĩa là giai đoạn dùng thử đã kết thúc — hoàn tất đăng ký gói trước; nếu trả tiền rồi vẫn 403 thì đã dùng JWT cũ — ở chế độ script chạy `refresh-login` trước để đổi lấy trạng thái đăng nhập mới |
 | Đăng nhập 423 「账户已锁定」 (tài khoản đã bị khóa) | Mật khẩu sai liên tiếp 5 lần | Chờ 30 phút |
 | Đăng nhập 401 「还剩 N 次尝试机会」 (còn N lần thử) | Mật khẩu sai, gần chạm mức khóa | Nghĩ cho kỹ rồi thử, hoặc đi thẳng «quên mật khẩu» |
 | 「该账号未设置密码，请使用其他方式登录」 (tài khoản này chưa đặt mật khẩu, vui lòng dùng cách khác để đăng nhập) | Tài khoản bên thứ ba (Google/Watcha/Huawei) | Dùng nút bên thứ ba ban đầu để đăng nhập |

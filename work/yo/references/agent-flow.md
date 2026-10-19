@@ -21,7 +21,7 @@ Awọn alaye ṣiṣe ti awọn ipe SKILL.md. Gbogbo awọn aṣẹ jẹ `node s
 | `prepare-suggest` | `--username --nickname --email` | Kọ alaye ti a ti damiloju sinu faili ipo (lẹhinna register ko nilu tun ranṣẹ) |
 | `send-code` | `--email` | Nṣe okunfa pẹpẹ lati fi nọmba oni-nọmba 6 ranṣẹ (wulo fun iṣẹju 10, ihamọ iṣẹju 60) |
 | `register` | `--code` (dandan); `--username --nickname --avatar --phone` (iyanjiyan, ti faili ipo ba ni ko nilo tun ranṣẹ) | Ṣẹda akọọlẹ pending; ọrọ igbaniwọle nipasẹ oniyipada ayika `POWPOW_REGISTER_PASSWORD`; lẹhin aṣeyọri JWT fi sinu faili ipo laifọwọyi |
-| `login-link` | `--target pending` tabi `--target home` | Ṣe ipilẹṣẹ ọna asopọ wiwọle ọkan-tẹ (ero ọna asopọ meji, wo isalẹ) |
+| `login-link` | `--target pending` tabi `--target home` | Ṣe ẹda ọna iwọle ẹyọkan (apẹẹrẹ ọna meji, wo ni isalẹ) |
 | `create-order` | `--package monthly\|quarterly\|yearly` (Alipay aiyipada)<br>`--provider alipay\|paypal` | Ṣẹda aṣẹ isanwo; Alipay da ọna faili oju-iwe isanwo + outTradeNo pada; PayPal da ọna faili oju-iwe ifọwọsi + subscriptionId pada (fi sinu faili ipo laifọwọyi) |
 | `query` | —— | Ṣe ibeere ipo aṣẹ/ṣiṣe alaisanfarasin. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; ṣe ibeere ni iṣẹmu 10–15 |
 | `refresh-login` | Ọrọ igbaniwọle nipasẹ oniyipada ayika | Tun wọle lati ṣe paṣipaarọ JWT tuntun (ikede ṣiṣe alaisanfarasin lati NONE di ACTIVE), ṣiṣe lẹhin isanwo de |
@@ -39,37 +39,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<ọrọigbaniwọle>'; node scripts/powpow-reg
 set POWPOW_REGISTER_PASSWORD=<ọrọigbaniwọle> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## Ero ọna asopọ meji (apẹrẹ pataki)
+## Ilana Ọna Meji (apẹẹrẹ ipilẹ)
 
-Ipo wiwọle pẹpẹ jẹ cookie HttpOnly, agent ko le fi cookie fun aṣawakiri taara; afara naa jẹ aaye osise
-`/api/auth/me?token=<JWT>&redirect=<ipari aaye inu>` : ayẹwo ibuwọn → olumulo pending ni a ṣe igbese session → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / ọjọ 7) → ṣayẹwo
-redirect (bẹrẹ pẹlu slash kan nikan, fi `//` ati slash-pada le, lẹhin itupalẹ gbọdọ jẹ ibugbe kanna) → atunṣe 307 si oju-iwe ibi-afẹde.
+Ipo iwọle sajoo jẹ kuki HttpOnly, ti ajanṣan ko le gbin fun aṣawakiri taara; ọfa ni ofeefee
+`/api/auth/me?token=<JWT>&redirect=<ọna inu sajtii>`: jẹrisi ibuwọlu → ṣẹda ajo
+adaṣe → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / ọjọ 7) → jẹrisi
+itọkasi (gbọdọ bẹrẹ pẹlu kiakia kan, `//` ati kiakia ẹhin ko gba, gbọdọ jẹ orisun kan lẹhin atupale) → 307 itọkasi akoko si ojú-iwe ti a fẹ.
 
-- **Ọna asopọ 1 (fun olumulo lẹṣẹkan lẹhin iforukosile)** : `--target pending` → de `/subscription`.
-  Aṣawakiri olumulo wọ ipo "idaji-wiwọle": oju-iwe ṣiṣe alaisanfarasin, oju-iwe ipadabọ Alipay han ati ṣiṣẹ; awọn oju-iwe akoonu tun di didena si oju-iwe ṣiṣe alaisanfarasin (aabo awọn ipe mẹta: ayẹwo ẹnu-bode JWT → atunwo DB → ayẹwo API pataki, ihuwasi deede).
-- **Ọna asopọ 2 (fun lẹhin imudaniloju paid)** : kọkọ `refresh-login` ṣe paṣipaarọ JWT tuntun (isanwo n ṣe imudojuiwọn DB nikan, ko yi awọn ikede JWT ti a ti fowo si, ti ko ba ṣe paṣipaarọ yoo farahan bi "isanwo laisi ọmọ ẹgbẹ"), lẹhinna `--target home` → de oju-iwe ile, ipo ọmọ ẹgbẹ pipe.
+Awọn ọna meji wa, **ṣẹda ile kọọkan, lẹhinna pinnu boya yoo fa nipasẹ pending gẹgẹbi ibiti olumulo gbalẹ**:
 
-## Ṣiṣan akoko pipe (ọna deede)
+- **ọna ile (fi ranṣẹ gẹgẹbi aiyipada, `--target home` → gbalẹ lori `/`)**: ṣẹda ki o fi ranṣẹ si olumulo lẹyin iforukọsilẹ to ṣaṣeyọri.
+  Ni akoko idanwo ọfẹ olumulo lọ taara si ojú-iwe ile, gbogbo rẹ wa; **ti olumulo ba tẹ ṣugbọn gbalẹ lori ojú-iwe sập, akoko idanwo ọfẹ ti pari** — pada si ọna owo (wo ni isalẹ); ko nilo iyipada iwe ko si iforukọsilẹ titun.
+- **ọna pending (lo ni ọna owo, `--target pending` → gbalẹ lori `/subscription`)**:
+  aṣawakiri olumulo wọle ipo "idaji-iwọle": ojú-iwe sập ati ojú-iwe ipadabọ owo han ati ṣiṣẹ. Lẹhin owo de,
+  ṣiṣẹ `refresh-login` lati paṣiparọ fun JWT titun pẹlu asẹ ACTIVE, lẹhinna fi ọna ile ranṣẹ lẹẹkansi fun ipo ọmọ-ẹyọn kikun.
+
+## Gbogbo Ilana
+
+### Ọna Kia (ni akoko idanwo ọfẹ — ọpọlọpọ awọn ipo)
 
 ```
-1.  status                          # Ayẹwo ayika
-2.  (Ipe 2 ibaraẹnisọrọ damiloju alaye, yan ọrọ igbaniwọle; ipo ipilẹṣẹ: gen-password → jẹ ki olumulo tọju lẹṣẹkan)
+1.  status                          # ayẹwo ara ẹrọ
+2.  (iwiregba Igba 2 lati jẹrisi alaye, ọrọ igbaniwọle eyikeyi; ipo ipilẹṣẹ: gen-password → jẹ ki olumulo fipamọ lẹsẹkẹsẹ)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → olumulo lọ si imeeli wo koodu (ipin kan ṣoṣo ti o jade kuro ninu ibaraẹnisọrọ①)
+4.  send-code --email E             # → olumulo wo koodu ni apoti-ìwé rẹ (igba kan ṣoṣo ti o jade kuro ninu iwiregba)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → ọna asopọ 1 ranṣẹ si olumulo
-7.  (olumulo yan ọna isanwo)
+6.  login-link --target home        # → fi ọna ranṣẹ si olumulo; ẹyọkan ki o wà lori ojú-iwe ile
+7.  (olumulo jẹrisi pe o wọle) → pari taara: cleanup + kaadi akanti + ṣe itọsọna igba akọkọ
+```
+
+### Ọna Owo (nigbati olumulo fẹ ọmọ-ẹyọn, tabi akoko idanwo ọfẹ ti pari)
+
+```
+1–5. Gẹgẹbi ọna kia (ipo ni tokeni tẹlẹ lẹhin register ṣaṣeyọri)
+6.  login-link --target pending     # → ọna idaji-iwọle, jẹ ki ojú-iwe ipadabọ owo ṣiṣẹ
+7.  (olumulo yan ọna owo)
     # Alipay: create-order --package monthly|quarterly|yearly
     # PayPal: create-order --provider paypal
-8.  start <faili oju-iwe isanwo>              # Windows; macOS lo open, Linux lo xdg-open
-    # → olumulo sanwo/fọwọsi ni alagbata Alipay/PayPal (ipin ti o jade kuro ninu ibaraẹnisọrọ②)
-9.  query (ni iṣẹmu 10–15) titi yoo fi paid / ACTIVE
-10. refresh-login                   # Ṣe paṣipaarọ JWT tuntun oni ACTIVE
-11. login-link --target home        # → ọna asopọ 2 ranṣẹ si olumulo
-12. whoami                          # Jẹrisi subscriptionStatus: ACTIVE (iyanjiyan)
-13. cleanup                         # Nu faili ipo
+8.  start <faili ojú-iwe owo>       # Windows; macOS lo open, Linux lo xdg-open
+    # → olumulo pari owo/aṣẹ ni ile-owo Alipay/PayPal (o jade kuro ninu iwiregba)
+9.  query (gbogbọn 10–15s) titi paid / ACTIVE
+10. refresh-login                   # paṣiparọ fun JWT titun pẹlu asẹ ACTIVE
+11. login-link --target home        # → fi ọna ọmọ-ẹyọn kikun ranṣẹ si olumulo
+12. whoami                          # jẹrisi subscriptionStatus: ACTIVE (aṣayan)
+13. cleanup                         # nu faili ipo
 ```
-
 ## Maapu aṣẹ → API pẹpẹ
 
 | Aṣẹ iwe | Aaye pẹpẹ |
@@ -96,7 +110,8 @@ Orisun ofin: awọn aaye iforukosile ati ihamọ wo `registration-flow.md`; aw�
 | Lẹhin `create-order` olumulo ti pa oju-iwe isanwo | Tun ṣiṣẹ `create-order` taara (aṣẹ atijọ laipẹ pa laifọwọyi ni wakati 2; ṣiṣe alaisanfarasin PayPal PENDING yoo di ofo lẹhin wakati 1) |
 | `create-order --provider paypal` da 409 pada | Ṣiṣe alaisanfarasin PENDING PayPal ti ko pari wa; duro wakati 1 ki o to di ofo, tabi pari ifọwọsi atijọ ninu aṣawakiri |
 | `query` wa pending / PENDING nigbagbogbo | Olumulo le ma sanwo; beere ọrọ kan. Ti o ba sanwo gangan → tẹle tabili ṣiṣayẹwo `payment-and-activation.md` |
-| `refresh-login` 403 `pending_payment` | Isanwo/ifọwọsi ko tii de, pada si Ipe 9 tẹsiwaju ibeere |
+| Olumulo tẹ ọna ile ṣugbọn gbalẹ lori ojú-iwe sập | Akoko idanwo ọfẹ ti pari → pada si ọna owo: `login-link --target pending` → yan ọna owo → `create-order` |
+| `refresh-login` 403 `pending_payment` | Akoko idanwo ọfẹ ti pari ati owo ko de; pada si igba 9 lati tẹsiwaju ibi-iṣẹ, tabi jẹrisi boya olumulo pari owo |
 | Faili ipo sọnù (aṣiṣe nu / pa ẹrọ) | `whoami`/`refresh-login` ko le lo; jẹ ki olumulo ṣe awọn atunto ninu aṣawakiri nibiti o ti ṣii ọna asopọ 1 lati ṣayẹwo ipo, tabi tun wọle (ipo oju-iwe) |
 
 ## Ipo ipadabọ (itọsọna lasan)
@@ -107,6 +122,6 @@ Eyikeyi ninu awọn ipo wọnyi pada lẹṣẹkan si ipo itọsọna lasan v1, 
 - Olumulo sọ ni gbangba "ema ṣe lori oju-iwe funrarẹ";
 - Ilana ile/ẹrọ fi iwe de idiwọ nẹtiwọọki.
 
-Lẹhin ipadabọ: fun oju-iwe iforukosile https://global.powpow.online/register ati oju-iwe ṣiṣe alaisanfarasin
+Lẹhin pada: fi ojú-iwe iforukọsilẹ https://global.powpow.online/register (ni akoko idanwo ọfẹ, iforukọsilẹ wẹẹbu jẹ iyara kan; nigbati sập nilo, fi ojú-iwe sập ranṣẹ pẹlu https://global.powpow.online/subscription ), ṣe itọju pẹlu gẹgẹbi awọn ofin ni `registration-flow.md`, tọju iro kan, ati pari gbogbo iyi pẹlu bulọọki "igba ti o tẹle".
 https://global.powpow.online/subscription , tẹle awọn ofin `registration-flow.md` lati ṣe ibaṣepọ ṣiṣayẹwo aṣiṣe,
 ohun orin ko yipada, iyipo kọọkan tun pari pẹlu apa "igbesẹ ti nbọ".

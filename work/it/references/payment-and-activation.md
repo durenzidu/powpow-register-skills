@@ -1,6 +1,8 @@
 # Attivazione dell'abbonamento e pagamento — powpow-register
 
 ## Conclusione (prima la risposta)
+> **Periodo di prova gratuita (a partire dal 2026-10-18; vale il comportamento reale della piattaforma)**: in questo periodo un account registrato può usare direttamente tutte le funzioni, e **abbonarsi è un miglioramento opzionale e non un requisito** — segui il flusso di questo file solo quando l'utente vuole attivamente l'iscrizione. Quando il periodo di prova finirà, gli account senza abbonamento che visitano le pagine di contenuto verranno reindirizzati alla pagina di abbonamento; basta completare l'abbonamento secondo questo file.
+
 
 **Sia gli abbonamenti con Alipay sia quelli con PayPal possono essere gestiti dall'agent — creazione dell'ordine e tracciamento dell'accredito inclusi.**
 Alipay è un acquisto una tantum senza rinnovo automatico, per gli utenti in Cina continentale e chi ha Alipay; PayPal si rinnova automaticamente ogni mese e si può disdire in qualsiasi momento,

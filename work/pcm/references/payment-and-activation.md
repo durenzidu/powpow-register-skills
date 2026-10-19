@@ -1,6 +1,8 @@
 # Subscription activation and payment — powpow-register
 
 ## Conclusion (di answer first)
+> **Free testing period (starting 2026-10-18; di platform real behavior dey prevail)**: during dis period account wey don register fit use every feature directly, and **subscribing na optional upgrade no be requirement** — only follow dis file flow wen di user by imself want membership. Wen di testing period end, accounts wey no subscribe and visit content pages go dey redirect to di subscription page; just complete di subscription per dis file.
+
 
 **Both Alipay and PayPal subscription fit now dey handle by di agent — order creation and money-landing tracking included.**
 Alipay na one-time buy with no auto-renew, for mainland-China users and users wey get Alipay; PayPal dey auto-renew monthly and fit cancel any time, for overseas users and users wey no get Alipay. WeChat scan code (manual confirm) and Huawei IAP still dey available, but di skill no dey handle dem.

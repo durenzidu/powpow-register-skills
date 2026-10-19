@@ -1,6 +1,8 @@
 # Kunna membanci da biya — powpow-register
 
 ## Ƙarshe (amsa da farko)
+> **Lokacin gwaji kyauta (tun daga 2026-10-18; halayen yanar gizo na gaske ya fi)**: a wannan lokaci asusu da aka yi rajista zai iya amfani da dukkan fannoni kai tsaye, kuma **yi rajista kari ne na zabi ba wajibi ba** — bi jawardar wannan fayil kawai sa'adda mai amfani da kansa ya so mamba. Sa'adda lokacin gwaji ya kare, asusun da ba su yi rajista ba za a mayar da su zuwa shafin biya sa'adda suka shiga shafukan abun ciki; kammala rajista bisa wannan fayil.
+
 
 **Hanyoyin Alipay da PayPal duka yanzu agent za ta iya kula da su — ƙirƙirar oda da bin diddigin shigar kuɗi sun haɗa.**
 Alipay biya sau ɗaya ne ba ya sabunta kansa, ga masu amfani na China da waɗanda ke da Alipay; PayPal na sabunta kansa kowace wata kuma ana iya soke shi kowane lokaci,

@@ -46,20 +46,24 @@ El script de la habilidad llama a **el mismo conjunto de API públicas** (`/api/
 `/api/auth/me`), y recorre exactamente las mismas validaciones, límites de frecuencia y rutas de error que el envío del formulario de la página de registro — todas las
 reglas de este archivo se aplican por igual a ambos modos. La secuencia del script y el contrato de comandos están en `references/agent-flow.md`.
 
-## Transición de estados tras un registro con éxito
+## Flujo de estado tras el registro exitoso
 
-1. El usuario queda en la BD con `accountStatus: 'pending'` y **3 insignias** iniciales (register route).
-2. El servidor planta a la vez dos cookies HttpOnly: el JWT (permite acceder directamente a `/subscription`) y el
-   pendingUserToken (credencial de identidad del flujo de suscripción).
-3. La página de registro detecta `pending_payment` → redirige a `/subscription` (conservando el parámetro de retorno `next`);
-   en el modo de gestión delegada del agent se consigue lo mismo con `me?token=…&redirect=/subscription`.
-4. Pago completado → `accountStatus` pasa a `active` (**con Alipay la activación es automática del lado del servidor vía notify**;
-   con PayPal se activa automáticamente vía Webhook; con el código QR de WeChat es confirmación manual; con Huawei IAP se hace vía `activate-huawei`).
-   Detalles en `payment-and-activation.md`.
+> **Periodo de prueba gratuita (a partir del 2026-10-18; manda el comportamiento real de la plataforma)**: una cuenta recién registrada puede **usar todas las funciones directamente**
+> (feed, mapa, humanos digitales, check-ins, etc.) sin necesidad de pagar; las cuentas sin suscripción ya no son bloqueadas en las páginas de contenido. La descripción del
+> «bloqueo pending» de esta sección es el estado normal tras el fin del periodo de prueba — cuando llegue ese momento, manda el comportamiento real en línea.
 
-Los usuarios sin activar (pending) que llamen a las API centrales (feed, mapa, conversación con humanos digitales, check-in, etc.) reciben siempre 403;
-salvo los enlaces a posts compartidos (que se mantienen de acceso público).
+1. El usuario se guarda con `accountStatus: 'pending'` y **3 insignias iniciales** (register route).
+2. El servidor planta además dos cookies HttpOnly: el JWT (puede acceder a las páginas directamente) y
+   el pendingUserToken (credencial de identidad para el flujo de suscripción).
+3. En el estado normal (periodo de prueba terminado / sin periodo gratuito), la página de registro detecta `pending_payment` → redirige a `/subscription`
+   (conservando el parámetro de retorno `next`); en el modo asistido por agent, `me?token=…&redirect=/subscription` consigue el mismo efecto.
+   **Durante el periodo de prueba gratuita este paso no se dispara** — tras registrarte, entra directamente a la página de inicio y empieza a usar.
+4. Pago completado → `accountStatus` pasa a `active` (**Alipay activa automáticamente en el servidor vía notify**;
+   PayPal activa vía Webhook; el código QR de WeChat se confirma manualmente; Huawei IAP pasa por `activate-huawei`).
+   Ver detalles en `payment-and-activation.md`.
 
+En el estado normal, los usuarios inactivos (pending) que llamen a las API núcleo (feed, mapa, chat de humanos digitales, check-ins, etc.) reciben 403;
+los enlaces de posts compartidos son la excepción (se mantienen accesibles públicamente). Durante el periodo de prueba gratuita este bloqueo queda suspendido y todo está abierto.
 ## Tabla de diagnóstico de errores frecuentes
 
 | Síntoma | Causa | Qué hacer |
@@ -72,7 +76,8 @@ salvo los enlaces a posts compartidos (que se mantienen de acceso público).
 | 「注册请求过于频繁」 (solicitud de registro demasiado frecuente) / 429 | Techo de 3 registros/minuto/IP alcanzado | Esperar unos minutos y reintentar |
 | 409 「用户名或邮箱已被注册」 (nombre de usuario o correo ya registrado) | Choque de nombre con otra persona en el instante del envío (red de seguridad ante concurrencia) | Cambiar nombre de usuario o correo y reintentar |
 | 「图片大小不能超过5MB」 (la imagen no puede superar 5MB) / 「不支持 SVG」 (SVG no soportado) | Avatar fuera de norma | Cambiar de imagen o saltarse el avatar |
-| Registro con éxito pero al iniciar sesión 403 「请完成订阅以激活账户」 (completa la suscripción para activar la cuenta) | La cuenta sigue pending (estado esperado antes del pago) | Antes de pagar: es normal, completa primero la suscripción; si sigue dando 403 después de pagar: se está usando un JWT viejo; en modo script, ejecutar primero `refresh-login` para renovar el estado de sesión |
+| El usuario abre el enlace de login pero aterriza en la página de suscripción (en vez de la de inicio) | El periodo de prueba gratuita ha terminado y el muro de pago de la plataforma ha vuelto | Sigue el flujo de pago por suscripción del Paso 7 de SKILL.md; tras suscribirte, ejecuta `refresh-login` y luego envía el enlace a la página de inicio |
+| Registrado con éxito pero el login devuelve 403 «请完成订阅以激活账户» | La cuenta sigue pending, y la plataforma no está en un periodo de prueba gratuita (estado esperado antes de pagar) | No ocurre durante el periodo de prueba gratuita; si ocurre, el periodo de prueba ha terminado — completa primero la suscripción; si sigue dando 403 tras pagar, se usó un JWT antiguo — en el modo script ejecuta primero `refresh-login` para cambiar a un nuevo estado de sesión |
 | Inicio de sesión 423 「账户已锁定」 (cuenta bloqueada) | 5 fallos seguidos de contraseña | Esperar 30 minutos |
 | Inicio de sesión 401 「还剩 N 次尝试机会」 (te quedan N intentos) | Contraseña errónea, cerca del bloqueo | Pensarlo bien antes de reintentar, o ir directamente a 「忘记密码」(olvidé mi contraseña) |
 | 「该账号未设置密码，请使用其他方式登录」 (esta cuenta no tiene contraseña configurada, inicia sesión con otro método) | Cuenta de tercero (Google/Watcha/Huawei) | Iniciar sesión con el botón de terceros original |

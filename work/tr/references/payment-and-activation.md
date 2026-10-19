@@ -1,6 +1,8 @@
 # Abonelik etkinleştirme ve ödeme — powpow-register
 
 ## Sonuç (önce cevap)
+> **Ücretsiz test dönemi (2026-10-18'den başlayarak; platformun gerçek davranışı esastır)**: bu dönemde kayıtlı hesap tüm özellikleri doğrudan kullanabilir ve **abone olmak zorunluluk değil, isteğe bağlı bir yükseltmedir** — yalnızca kullanıcı kendiliğinden üyelik istediğinde bu dosyanın akışını izle. Test dönemi bittiğinde abonesi olmayan hesaplar içerik sayfalarına girdiğinde abonelik sayfasına yönlendirilir; aboneliği bu dosyaya göre tamamlaman yeter.
+
 
 **Hem Alipay hem de PayPal aboneliklerini artık vekâleten agent yürütebilir — sipariş açma ve hesaba geçiş takibi dahil.**
 Alipay otomatik yenilemesi olmayan tek seferlik satın alımdır; Çin'deki ve Alipay'i olan kullanıcılara uygundur. PayPal her ay otomatik yenilenir ve istenildiği anda iptal edilebilir,

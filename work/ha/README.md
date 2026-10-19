@@ -2,7 +2,8 @@
 
 Mai taimakon rijistar PowPow kumfa (bugu na OpenClaw): yana kai sabon mai amfani daga "ba ya san kumfa abin da yake" zuwa "akaunti ta kunno, shiga da danna sau ɗaya, fara wasa" — gabatarwar samfur (tare da hotunan allo), rijista agent tana taimakawa (tare da ɗora avatar), oda membanci ta Alipay/PayPal da bin diddigin shigar kuɗi, shiga da danna sau ɗaya da mahadi biyu, bincike da gyaran kuskure.
 
-**Tun daga v2.0.0 yanayin agent-yana-taimakawa ne, kuma tun daga v2.1.0 PayPal ma za a iya kula da ita**: babban script ɗin `scripts/powpow-register.mjs` ba shi da dogaro (Node >= 18), mai amfani ba ya bar tattaunawa gaba ɗaya, yana da sau biyu kawai na barin ɗan lokaci: zuwa imel duba lambar tabbatarwa, a cashier na Alipay/PayPal biya. Idan ba a sami Node ko mai amfani ya so ya yi da kansa, yana dawowa ta kai ga yanayin jagora kawai.
+**Tun daga v2.0.0 wannan yanayin magidiman ne, kuma tun daga v2.2.0 yana daidaita da lokacin gwaji kyauta na yanar gizo**: rubutu na asali `scripts/powpow-register.mjs` ba shi da bukatar abun biya
+(Node ≥ 18); mai amfani yana barin tattaunawa sau daya kawai: don duban lambar tabbatar da a akwatin sakonni. A cikin lokacin gwaji kyauta na yanzu, asusu da aka yi rajista zai iya amfani da dukkan fannoni nan take — biyan kudi na biya kari ne na zabi; in lokacin gwaji ya kare kuma mai amfani ya sauka a shafin biya, jawardar tana sauya kanta zuwa hanyar biya. Ba tare da Node, ko sa'adda mai amfani ya fi son yin shi da kansa, yana koma kai tsaye zuwa yanayin jagorar tsantsa.
 
 ## Shigarwa
 
@@ -14,7 +15,9 @@ openclaw skills install @durenzidu/powpow-register
 
 1. **Gabatarwar samfur**: gabatarwa da kalmomi ~120 + hotunan allo da aka haɗe da kunshin (a ƙarƙashin `assets/screenshots/` hotuna 6: shafin taswira, shafin cikakken bayanin sako, da sauransu, a zaɓa a aika 1–3 bisa yanayi; ba buƙatar mashigar hoto ta waje, tana aiki ba tare da intanet ba).
 2. **Rijistar agent tana taimakawa**: agent na ba da shawarar sunan mai amfani/laƙabi, kalmar sirri zaɓi ɗaya (mai amfani ya kawo ko agent ta ƙirƙira), aikawa da ƙaddamar da lambar tabbatarwa, ɗora avatar kai tsaye (≤5MB ba SVG ba), kula da kuskuren da aka saba ta kai (ma'amala/ƙarewa/iyakancewa).
-3. **Shiga da danna sau ɗaya (mahadi biyu)**: da zarar rijista ta yi nasara ana ba da mahaɗin "rabin shiga" mai kai tsaye zuwa shafin membanci; kuɗin ya shiga bayan musanya halin shiga sabuwar ana ba da cikakken mahaɗin membanci mai kai tsaye zuwa shafin gida (tana bi ta gada ta hukuma ta dandalin `me?token=`, tana shuka cookie ɗin HttpOnly da kai).
+3. **Shiga da danna daya (hanyoyi biyu)**: nan take bayan rajista ta samu nasara, hanyar shiga tana kai mai amfani kai tsaye zuwa shafin gida (a lokacin gwaji kyauta, danna daya kuma yana amfani);
+   in ya sauka a shafin biya (lokacin gwaji ya kare) ko mai amfani ya so kari, bi jawardar rajista — bayan saukar kudi, ana musanya sabon yanayin shiga kuma hanyar cikakken mamba tana kai shi zuwa shafin gida
+   (ta hanyar gada `me?token=` na yanar gizo na hukuma, wanda ke dasa kuki na HttpOnly kai tsaye).
 4. **Membanci da biya**: Alipay (wata ¥6.99 / kwata ¥19.99 / shekara ¥69.99, biya sau ɗaya ba ya sabunta kansa) da PayPal (Premium Monthly, kusan $1/wata, yana sabunta kansa, ana iya soke shi kowane lokaci) duka agent tana taimakawa ƙirƙirar oda + bin diddigin shigar kuɗi; nuna hanyar siffanta lambar QR ta WeChat / Huawei IAP.
 5. **Bincike da gyaran kuskure**: karɓar lambar tabbatarwa, sunan mai amfani/imel an yi amfani da su, 403 ba ta a kunna ba, asusu an kulle da sauran matsalolin da aka saba, duka sun fito daga code ɗin dandalin kuma an ambaci inda aka samo su.
 

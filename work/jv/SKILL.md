@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Mutulungi panganggo ngrampungake registrasi PowPow (Gelembung), aktivasi langganan liwat Alipay/PayPal, lan mlebu sapisan klik ing njero obrolan. Agen ngisi formulir (kalebu ngunggah avatar), ngirim kode verifikasi email, nggawe pesanan bayaran lan ngawasi tekan dhuwit; panganggo mung menehi info dhasar, nampa kode verifikasi sepisan, lan mbayar ing kasir Alipay/PayPal, tanpa metu saka obrolan. Aktif nalika panganggo ngomong 'ndhaftar Gelembung', 'ndhaftar akun powpow', 'piye carane ndhaftar powpow', 'sign up powpow'; uga nangani registrasi macet (kode verifikasi ora tekan, jeneng panganggo/email wis dienggo) lan masalah aktivasi (mlebu diarani 'akun durung aktif' / pending_payment, piye carane langganan mbayar). Butuh Node >= 18; yen ora kasedhiya otomatis bali menyang mode pandhuan murni. Ora kalebu ngirim kiriman/gawe manungsa digital (iku tugas powpow-simple), uga ora kalebu pangembangan kode.
-version: 2.1.0
+description: Mbantu pangguna ngrampungake registrasi PowPow (Bubble) lan mlebu siji klik ing sajroning rembugan. Agen ngisi formulir minangka pangguna (kalebu unggah avatar) lan ngirim kode verifikasi email; pangguna mung menehi informasi dhasar lan ndelok kode verifikasi sepisan — tanpa ninggal rembugan. Platform saiki lagi ing wektu coba gratis: akun sing wis didhaftar bisa langsung nggunakake kabeh fitur; pambayaran langganan (Alipay/PayPal) iku peningkatan keanggotaan opsional, sing uga bisa ditangani agen kanthi nggawe pesenan lan nglacak dana mlebu yen perlu. Dipicu nalika pangguna ngomong "dhaptar Bubble", "gawe akun powpow", "piye cara dhaptar Bubble", "mbantu aku gawe akun powpow", "sign up powpow"; uga nangani masalah registrasi (kode verifikasi ora teka, jeneng pangguna/email wis dijupuk) lan masalah aktivasi (nalika mlebu kandha "akun durung diaktifake" / pending_payment, piye cara langganan/mbayar, Bubble gratis utawa mbayar). Mbutuhake Node ≥ 18; yen ora kasedhiya, otomatis bali menyang mode pandhuan murni. Ora kalebu posting/gawe manungsa digital (iku tugas powpow-simple), uga ora kalebu pengembangan kode.
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,22 +10,22 @@ metadata:
 
 # PowPow Register (pambantu registrasi Gelembung)
 
-Ngeterake panganggo anyar saka "ora ngerti Gelembung iku apa" nganti "akun wis aktif, mlebu sapisan klik, miwiti dolanan" — kabeh rampung ing obrolan. Panganggo mung ping pindho kudu metu sauntara saka obrolan: **menyang email ndeleng kode verifikasi**, **mbayar ing kasir bayaran** (Alipay utawa PayPal — agen bakal mbukak kaca kasir kanthi otomatis).
+Nggawa pangguna anyar saka "aku ora ngerti Bubble kuwi apa" dadi "mlebu siji klik, siap dipa" — kabeh ing sajroning rembugan. Pangguna mung ninggal rembugan sepisan: **kanggo ndelok kode verifikasi ing inbox**. Platform saiki lagi ing wektu coba gratis: sawise dhaptar, kabeh fitur kasedhiya, ora perlu mbayar; pambayaran langganan iku peningkatan keanggotaan opsional (agen uga mbukak kasir lan nglacak dana mlebu).
 
-**Versi 2.1.0** · 2026-10-11 (wiwit v2 nganggo mode agen-ditindakake: kontrak skrip lan urutan lengkap ndeleng `references/agent-flow.md`; aturan kolom, watesan laju, lan diagnostik kesalahan ndeleng `references/registration-flow.md`; saluran bayaran ndeleng `references/payment-and-activation.md`; pratelan tangkapan layar produk ndeleng `references/screenshots.md`. Wiwit v2.1.0 langganan PayPal uga bisa ditangani agen, dadi pilihan bebarengan Alipay)
+**Versi 2.2.0** · 2026-10-18 (wiwit v2 iki mode bantuan agen: kontrak skrip lan urutan lengkap ana ing `references/agent-flow.md`; aturan kolom, wates laju, lan diagnosa kesalahan ana ing `references/registration-flow.md`; saluran pambayaran ana ing `references/payment-and-activation.md`; dhaptar cuplikan produk ana ing `references/screenshots.md`. Wiwit v2.1.0 langganan PayPal uga bisa ditangani agen, minangka pilihan bareng karo Alipay. Wiwit v2.2.0 platform mlebu wektu coba gratis: dhaptar banjur mlebu siji klik langsung bisa dipa; pambayaran dadi peningkatan opsional — yen pangguna mbukak link banjur mandheg ing kaca langganan, wektu coba wis rampung, tindakake alur pambayaran saka langkah 7; alurnya nyetel dhewe, ora perlu ngowahi skrip)
 
 ## Lingkungan Eksekusi
 
 - Skrip inti `scripts/powpow-register.mjs`: **tanpa dependensi**, butuh **Node >= 18**. Sadurunge miwiti, jalanke sepisan `node scripts/powpow-register.mjs status` kanggo masthekake lingkungan siap.
 - Kabeh panjalukan skrip mung menyang domain resmi `https://global.powpow.online`.
-- **Yen ora ana Node / skrip error**: otomatis bali menyang mode pandhuan murni — wenehake kaca registrasi https://global.powpow.online/register lan kaca langganan https://global.powpow.online/subscription marang panganggo, nuntun kanthi mèlu miturut `references/registration-flow.md`. Aja ngoyo nyoba skrip terus-terusan.
+- **Ora ana Node / kesalahan skrip**: otomatis bali menyang mode pandhuan murni — menehi pangguna kaca registrasi https://global.powpow.online/register lan nuntun bebarengan miturut `references/registration-flow.md` (ing wektu coba gratis, registrasi web uga padha cepet). Aja terus nggodhog skrip.
 - Sawise obrolan mandheg banjur nerusake: kapisan `status` kanggo ndeleng alur wis teka ing ngendi, banjur nglajengake.
 
 ## Trigger Conditions
 
 - Niat registrasi: "ndhaftar Gelembung", "ndhaftar akun powpow", "piye carane ndhaftar powpow", "sign up powpow"
 - Registrasi macet: "kode verifikasi ora tekan", "jeneng panganggo diarani wis ana", "tembung sandhi tansah ora lulus"
-- Masalah sawise registrasi: "mlebu diarani akun durung aktif", "403 pending_payment", "piye carane mbayar/langganan PowPow"
+- Masalah sawise registrasi: "nalika mlebu kandha akun durung diaktifake", "403 pending_payment", "piye cara mbayar/langganan ing Bubble", "Bubble gratis utawa mbayar"
 
 **Ora aktif kanggo**: ngirim kiriman/gawe manungsa digital (→ powpow-simple); pangembangan kode web (ndeleng skill pangembangan). Yen panganggo arep registrasi lan arep ngirim kiriman: rampungake skill iki dhisik, sawise aktif serahake menyang powpow-simple.
 
@@ -38,8 +38,8 @@ Ngeterake panganggo anyar saka "ora ngerti Gelembung iku apa" nganti "akun wis a
 | 3 Kirim kode verifikasi | `send-code` | —— |
 | 4 Waca kode verifikasi | —— | Menyang email ndeleng kode 6 digit, bali kirimake |
 | 5 Ngirimake registrasi | `register` (kalebu unggah avatar langsung), nangani kesalahan otomatis | —— |
-| 6 Mlebu setengah + bayaran | `login-link(pending)` → `create-order --provider alipay|paypal` → mbukak kasir → polling `query` | Klik tautan, mbayar |
-| 7 Mlebu resmi | `refresh-login` → `login-link(home)` | Klik tautan mlebu kaca ngarep |
+| 6 Mlebu siji klik | `login-link(home)` langsung menyang kaca ngarep; yen mandheg ing kaca langganan, mangkat menyang langkah 7 | Klik link lan miwiti dipa |
+| 7 Peningkatan langganan (opsional) | Mung nalika pangguna pengin keanggotaan / wektu gratis wis rampung: tangani alur pambayaran lengkap | Pilih cara, mbayar |
 | 8 Panutup | `cleanup` + menehi bukti + nuntun pengalaman + nyarani plugin | Miwiti dolanan |
 
 ## Langkah 1: Pratelan produk + tangkapan layar (ora bisa diliwati)
@@ -93,19 +93,30 @@ Sukses tegese akun wis digawe (status pending, karo 3 lencana awal). Kesalahan u
 | 邮箱验证码错误或已过期 (kode verifikasi email salah utawa kedaluwarsa) | Ngluwihi 10 menit → kirim maneh `send-code` |
 | 发送/注册过于频繁（429） (ngirim/registrasi kekerehan (429)) | Enteni 1 menit banjur coba maneh, cukup ngomong marang panganggo |
 
-## Langkah 6: Mlebu sapisan klik (tautan 1) + bayaran
+## Langkah 6: Mlebu siji klik (sawise registrasi langsung menyang kaca ngarep)
 
-1. Langsung sawise registrasi sukses:
+1. Sawise registrasi kasil:
+   ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. Kirim link menyang pangguna: **klik lan kowe langsung menyang kaca ngarep, wis mlebu**. Platform saiki lagi ing wektu coba gratis — sawise dhaptar, kabeh fitur bisa dipa (feed, peta, manungsa digital, check-in, lsp), **ora perlu mbayar**.
+3. Takon pangguna konfirmasi wis mlebu; ana rong kahanan:
+   - **Manggat menyang kaca ngarep** → langsung mangkat menyang langkah 8 kanggo ngrampungake; registrasi rampung;
+   - **Mandheg ing kaca langganan** → wektu coba gratis platform wis rampung; kandha pangguna "wektu coba gratis wis rampung, saiki butuh langganan keanggotaan", banjur tindakake langkah 7 kanggo ngrampungake langganan, lan sawise langganan bali menyang langkah 8.
+4. Yen pangguna dewe pengin nambah utawa ndhukung platform → uga tindakake langkah 7 (langganan sukarela; aja meksa).
+## Langkah 7: Peningkatan langganan (opsional — mung nalika langkah 6 njaluk)
+
+1. Dhisik kirim link mlebu separo supaya kaca bali sawise pambayaran bisa nuduhake "Pembayaran kasil" kanthi bener:
    ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   Kirimake tautan marang panganggo: **sawise diklik, browser langsung ndhodhok ing kaca langganan, wis ing status mlebu** — mengko nalika bayaran rampung, kaca bali bisa nampilake 「支付成功」 (bayaran sukses) kanthi bener. (Ing status iki, kaca isi isih ditulak menyang kaca langganan, iki kerja normal tembok bayaran platform, dudu bug, lan ora perlu nerangake mekanisme internal marang panganggo.)
-2. **Ajak panganggo milih cara bayar** — tuduhake saluran loro-lorone:
-   - **Alipay (ing njero China / panganggo sing duwe Alipay)**: tuku sepisan kanggo durasi sing cocog, **ora langganan otomatis**
-     - Wulanan **¥6.99** (disaranake nyoba dhisik) / Kuartalan **¥19.99** / Taunan **¥69.99**
-   - **PayPal (luar negeri / panganggo tanpa Alipay)**: langganan otomatis saben wulan, bisa dibatalake kapan wae
-     - Premium Monthly, kira-kira **$1/sasi** (kaya sing dituduhake ing kaca langganan; langganan otomatis)
-3. Sawise panganggo milih salah siji:
+   Kirim link menyang pangguna: klik lan browser langsung menyang kaca langganan, wis mlebu.
+2. **Takon pangguna milih cara pambayaran** — tuduhake rong saluran:
+   - **Alipay (daratan Cina / pangguna nganggo Alipay)**: tuku sepisan kanggo wektu sing cocog, **ora auto-renewal**
+     - Saben wulan **¥6.99** (disaranake kanggo nyoba) / Telung wulan **¥19.99** / Saben taun **¥69.99**
+   - **PayPal (maneka negara / tanpa Alipay)**: auto-renewal saben wulan, bisa dibatalake kapan wae
+     - Premium Monthly, kira-kira **$1/wulan** (kaya sing katuduhake ing kaca langganan; karo auto-renewal)
+3. Sawise pangguna milih siji:
    - **Alipay**:
      ```
      node scripts/powpow-register.mjs create-order --package monthly
@@ -114,29 +125,23 @@ Sukses tegese akun wis digawe (status pending, karo 3 lencana awal). Kesalahan u
      ```
      node scripts/powpow-register.mjs create-order --provider paypal
      ```
-   Skrip bali path berkas kaca bayaran, **mbukak langsung nganggo printah sistem** (Windows: `start <berkas>`; macOS: `open <berkas>`; Linux: `xdg-open <berkas>`). Browser otomatis mlumpat menyang kasir resmi Alipay/PayPal, panganggo ngrampungake bayaran utawa ijin tagihan.
-4. Saben 10–15 detik jalanke `query` nganti bali `paid` utawa `ACTIVE` (dhuwit/ijin lumebu umume sawetara detik nganti siji menit). Panganggo nutup kaca bayaran ing tengah dalan → langsung jalanke maneh `create-order` (pesanan lawas / langganan PENDING ditutup utawa kadaluwarsa sawise 2 jam, ora usah diatur).
-5. Saluran pindai kode WeChat dikonfirmasi manual, tekan dhuwit bisa telat; Huawei IAP mung kasedhiya ing njero app HarmonyOS. Skill ora nangani loro-lorone — sawise mbayar padha bali nglakoni langkah 7.
+   Skrip bakal mbalekake path file kaca pambayaran; **bukak langsung nganggo printah sistem** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). Browser bakal otomatis pindhah menyang kasir resmi Alipay/PayPal, panggonan pangguna ngrampungake pambayaran utawa otorisasi tagihan.
+4. Lakokake `query` saben 10–15 detik nganti mbalekake `paid` utawa `ACTIVE` (pembayaran/otorisasi biasane mlebu ing sawetara detik nganti sakmenit). Yen pangguna nutup kaca pambayaran ing tengah → mung `create-order` maneh (pesenan lawas / langganan mandheg bakal nutup utawa kadaluwarsa sawise 2 jam; aja digatekake).
+5. Saluran kode QR WeChat dikonfirmasi kanthi manual lan dana bisa mlecu; Huawei IAP mung kasedhiya ing sajroning aplikasi HarmonyOS. Skrip ora nangani loro kuwi — sawise mbayar, pangguna bali lan kandha agen, sing dhisik lakokake `whoami` kanggo konfirmasi dana mlebu, banjur kirim link kaca ngarep miturut poin 6 ing ngisor iki.
+6. Sawise dana mlebu dikonfirmasi, gentiak kahanan mlebu karo klaim langganan paling anyar, banjur kirim link langsung menyang kaca ngarep:
+   ```
+   POWPOW_REGISTER_PASSWORD=<sandi> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   Kirim link menyang pangguna: **klik lan kowe langsung menyang kaca ngarep karo status keanggotaan lengkap**.
+## Langkah 8: Ngrampungake
 
-## Langkah 7: Mlebu resmi (tautan 2)
-
-Sawise tekan dhuwit dikonfirmasi, dhisik njupuk status mlebu anyar sing nggawa klaim langganan paling anyar, banjur nggawe tautan langsung menyang kaca ngarep:
-
-```
-POWPOW_REGISTER_PASSWORD=<tembung sandhi> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-Kirimake tautan marang panganggo: **diklik langsung ndhodhok ing kaca ngarep, status anggota lengkap**, nganti kene alur registrasi kabeh rampung.
-
-## Langkah 8: Panutup
-
-1. `node scripts/powpow-register.mjs cleanup` ngresiki berkas status sementara mesin iki (kredensial sesi).
-2. Wenehake panganggo "kartu akun": jeneng panganggo, email, wektu anggota entek (tembung sandhi ora ditampilake maneh — mode nggawe nalika nggawe wis nyurup panganggo simpen; panganggo sing ndhelok tembung sandhi dhewe wis ngerti).
-3. Tuntun pengalaman: muter-muter peta, ngirim cathetan lelampahan pisanan (→ serahake menyang powpow-simple).
-4. Nyarani ekspansi: skill `@durenzidu/powpow-integration` lan plugin `@durenzidu/openclaw-channel-powpow` — nyambungake Gelembung menyang agen panganggo dhewe; yen arep ditambah, wenehake printah instalasi.
-5. Tutup karo bagean "langkah sabanjure".
-
+1. `node scripts/powpow-register.mjs cleanup` kanggo ngresiki file kahanan sementara lokal (kredensial sesi).
+2. Menehi pangguna "kartu akun": jeneng pangguna, email (sandi ora dituduhake maneh — ing mode generate pangguna dikon ndelok nalika digawe; yen pangguna nyetel dewe, dheweke ngerti).
+3. Pangeling-eling keanggotaan (kandha sepisan, aja meksa): saiki lagi wektu coba gratis lan akun bisa langsung dipa; nalika wektu coba rampung, akun tanpa langganan nalika mlebu kaca isi bakal dialihakake menyang kaca langganan — kanggo dipa suwe, bali lan langganan kapan wae.
+4. Tuduhake langkah awal: delok peta, posting jurnal perjalanan pisanan (→ serahake menyang powpow-simple).
+5. Rekomendasi ekstensi: skill `@durenzidu/powpow-integration` lan plugin `@durenzidu/openclaw-channel-powpow` — sambungake menyang agen dhewe pangguna; menehi printah instalasi yen dikarepake.
+6. Rampungake karo blok "langkah sabanjure".
 ## Conversation UX
 
 Nganut swara layanan khas PowPow:
@@ -157,7 +162,7 @@ Nganut swara layanan khas PowPow:
 - **Keamanan kredensial**: tembung sandhi mung diwenehake marang skrip liwat variabel lingkungan `POWPOW_REGISTER_PASSWORD`, **aja tau** ditulis ing paramèter printah (katon ing daftar proses), ora ditulis menyang berkas apa wae (mode nggawe nampilake sepisan supaya panganggo nyimpen, sawise iku ora diucapake maneh). Kode verifikasi mung dienggo API registrasi resmi, sawise dienggo langsung dibuang.
 - **Bates resmi**: kabeh panjalukan mung menyang `https://global.powpow.online` (wis dibangun ing skrip), aja tau ngirim info panganggo menyang alamat pihak katelu apa wae.
 - **Bates bayaran**: agen mung nggawe pesanan, mbukak kasir, takokake tekan dhuwit; **aja tau** nyentuh akun Alipay/PayPal/bukti bayaran panganggo, uga aja tau janji "mbayarke".
-- **Tembok bayaran dudu bug**: status pending bisa mlebu kaca langganan/kaca bali iku panglelepas ing desain; kaca isi ditulak yaiku tembok bayaran platform sing kerja normal, aja nyoba ngliwati.
+- **Paywall dudu bug**: ing wektu coba gratis saiki kabeh kaca isi kabukak; yen pangguna klik link kaca ngarep nanging mandheg ing kaca langganan — wektu coba wis rampung, tuduhake langganan liwat langkah 7. Aja nyoba ngapusi paywall, lan aja nerangake mekanisme internal menyang pangguna.
 - **Bebas bali maneh**: panganggo ing langkah apa wae arep dhewe nindakake, utawa lingkungan ora ndhukung skrip, kapan wae bisa bali menyang mode pandhuan murni — wenehake tautan, nerangake aturan, mèlu ngatasi masalah.
 - Aja nggawe-gawe aturan platform: aturan kolom, teks kesalahan, paramèter watesan laju kabeh asale saka kode platform (`references/registration-flow.md` ndhawuhake sumber kode), nganyari platform nganggo tumindak nyata minangka patokan.
 - Nampilake gambar mung nganggo tangkapan layar saka `assets/screenshots/` ing paket (gunane saben gambar ndeleng `references/screenshots.md`).

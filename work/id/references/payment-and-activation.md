@@ -1,6 +1,8 @@
 # Aktivasi langganan dan pembayaran — powpow-register
 
 ## Kesimpulan (jawaban dulu)
+> **Masa uji coba gratis (mulai 2026-10-18; perilaku aktual platform yang berlaku)**: selama periode ini akun yang sudah terdaftar bisa langsung memakai semua fitur, dan **berlangganan adalah peningkatan opsional, bukan keharusan** — ikuti alur di file ini hanya bila pengguna sendiri ingin keanggotaan. Ketika masa uji coba berakhir, akun tanpa langganan yang mengunjungi halaman konten akan dialihkan ke halaman langganan; cukup selesaikan langganannya sesuai file ini.
+
 
 **Kanal Alipay dan PayPal sekarang bisa dikerjakan agent — termasuk pembuatan pesanan dan pelacakan dana masuk.**
 Alipay beli putus sekali tanpa perpanjangan otomatis, untuk pengguna daratan Tiongkok dan pengguna yang punya Alipay;

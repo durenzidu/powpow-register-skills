@@ -2,7 +2,8 @@
 
 Mosalisi ya inscription ya PowPow Bule (version OpenClaw): koyekemela mosaleli ya sika uta «ayebi te Bule ezali nini» kino «kompte ezali active, koneksione ya kubeta mbala moko, ebandi kolala» — presentation ya produit (na lilinzo ya interface), inscription na agent esalaka (na upload ya lilinzo ya profil), commande ya abonnement Alipay/PayPal na kolandela mbongo ekota, koneksione ya kubeta mbala moko na liens mibale, kotunga mbeba.
 
-**Uta v2.0.0 ezali mode ya agent-esalaka, mpe uta v2.1.0 PayPal ekoki pe kosalema**: script monene `scripts/powpow-register.mjs` ezali na dependance te (Node >= 18), mosaleli abima na lisolola te, azali kobima mbala mibale kaka: kende na imele komona kodi ya ndingisa, na caisse ya Alipay/PayPal afuta. Soki Node ezali te to mosaleli alingi kosala moko moko, ezonga automatiquement na mode ya directives kaka.
+**Kobanda na v2.0.0 oyo ezali mode ya aide ya agent, pe kobanda na v2.2.0 ebongisami na période d'essai gratuit ya plateforme**: script central `scripts/powpow-register.mjs` azali na dépendances zéro
+(Node ≥ 18); motaleli atikaka masolo mbala moko sé: mpo na komona code de vérification na boîte de réception. Na période d'essai gratuit lelo, compte enregistré akoki kosalisa ba fonctionnalités nionso mbala moko — paiement ya abonnement ezali amélioration ya option; soki période d'essai esili pe motaleli akwei na page d'abonnement, flux ebongolaka yango moko na chemin ya paiement. Soki Node te, to tango motaleli alingi kosala yango moko, ezali koleka automatique na mode ya guide pur.
 
 ## Installation
 
@@ -14,7 +15,9 @@ openclaw skills install @durenzidu/powpow-register
 
 1. **Presentation ya produit**: presentation ya maloba ~120 + lilinzo ya interface ezali deja na pack (`assets/screenshots/` na se yango lilinzo 6: lokasa ya mapa, lokasa ya detail ya post, nsn., pona situation tinda 1–3; esengi image host ya libanda te, esalelama hors ligne).
 2. **Inscription na agent**: agent epesa ndingisa kombo ya mosaleli/surnom, password pona mibale (mosaleli apesa to agent esali), kotinda na kutinda kodi ya ndingisa, upload direct ya lilinzo ya profil (<=5MB te SVG), kosunga automatiquement mbeba ya mbala mingi (deja pris/ekufi/limite).
-3. **Koneksione ya kubeta mbala moko (liens mibale)**: nsima ya inscription succes mbala moko epesama lien «nusu-koneksione» ya direct na lokasa ya abonnement; nsima ya mbongo ekota, na kochanger etat ya koneksione sika, epesama lien ya membre mobimba ya direct na lokasa ya libanda (esalela pont officiel ya plateforme `me?token=`, ekanda cookie HttpOnly automatiquement).
+3. **Kokota na clic moko (ba liens mibale)**: mbala moko nsima ya enregistrement elongi, lien ya kokota ememaka motaleli directement na page d'accueil (na période d'essai gratuit, clic moko pe esalaka);
+   soki akwei na page d'abonnement (période d'essai esili) to motaleli alingi amélioration, landa flux d'abonnement — nsima ya argent ekwei, état ya kokota ya sika ebongolami pe lien ya membre mobimba ememaka ye na page d'accueil
+   (via pont officiel `me?token=` ya plateforme, oyo atiaka cookie HttpOnly automatique).
 4. **Abonnement na kofuta**: Alipay (mois ¥6.99 / trimestre ¥19.99 / annee ¥69.99, achat mbala moko ko-renouveler automatiquement te) na PayPal (Premium Monthly, soki $1/mois, e-renouveler automatiquement, ko-annuler ntango nionso) nyonso mibale agent esala commande + kolandela mbongo ekota; scan WeChat / Huawei IAP lakisa nzela.
 5. **Kotunga mbeba**: kodi ya ndingisa ekomi te, kombo ya mosaleli/imele deja pris, 403 ezali active te, kompte efungami, nsn. makambo ya mbala mingi, nionso ewuti na code ya plateforme mpe ezali na source.
 

@@ -23,7 +23,7 @@ biçimindedir; script **sıfır bağımlılıktır**, **Node ≥ 18** gerektirir
 | `prepare-suggest` | `--username --nickname --email` | Onaylanmış bilgileri durum dosyasına işler (sonrasında register'da tekrar geçmeye gerek yok) |
 | `send-code` | `--email` | Platformun 6 haneli doğrulama kodu göndermesini tetikler (10 dakika geçerli, 60s bekleme) |
 | `register` | `--code` (zorunlu); `--username --nickname --avatar --phone` (isteğe bağlı, durum dosyasında varsa geçilmez) | pending hesap oluşturur; şifre `POWPOW_REGISTER_PASSWORD` ortam değişkeniyle; başarılı olunca JWT otomatik olarak durum dosyasına yazılır |
-| `login-link` | `--target pending` veya `--target home` | Tek tıkla giriş bağlantısı üretir (çift bağlantı tasarımı, aşağıda) |
+| `login-link` | `--target pending` veya `--target home` | Tek tıkla giriş linki üretir (çift link tasarımı, aşağıya bak) |
 | `create-order` | `--package monthly\|quarterly\|yearly` (varsayılan Alipay)<br>`--provider alipay\|paypal` | Ödeme siparişini oluşturur; Alipay ödeme sayfası dosya yolunu + outTradeNo döndürür, PayPal onay sayfası dosya yolunu + subscriptionId döndürür (otomatik olarak durum dosyasına yazılır) |
 | `query` | —— | Sipariş/abonelik durumunu sorar. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; 10–15s arayla yoklanır |
 | `refresh-login` | şifre ortam değişkeniyle | Yeniden giriş yapıp **yeni JWT** alır (abonelik beyanı NONE'dan ACTIVE'e döner), para geçtikten sonra mutlaka çalıştırılır |
@@ -41,43 +41,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<şifre>'; node scripts/powpow-register.mjs reg
 set POWPOW_REGISTER_PASSWORD=<şifre> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## Çift bağlantı mekanizması (temel tasarım)
+## Çift Link Mekanizması (temel tasarım)
 
-Platformun oturum durumu HttpOnly cookie'dir; agent başkasının tarayıcısına doğrudan cookie yerleştiremez;
-köprü, resmî `/api/auth/me?token=<JWT>&redirect=<site içi yol>` uç noktasıdır: imza doğrulama → pending
-kullanıcıya otomatik oturum oluşturma → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 gün) → redirect
-doğrulaması (yalnızca tek eğik çizgiyle başlama, `//` ve ters eğik çizgi yasak, çözümlenince aynı kaynak olma) →
-hedef sayfaya 307 geçici yönlendirme.
+Platformun giriş durumu HttpOnly çerezidir, agent'ın doğrudan tarayıcıya ekleyemeyeceği; köprü resmi
+`/api/auth/me?token=<JWT>&redirect=<site içi yol>` uç noktasıdır: imzayı doğrula → otomatik olarak
+oturum oluştur → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 gün) → yönlendirmeyi
+doğrula (tek eğik çizgiyle başlamalı, `//` ve ters eğik çizgiler yasak, çözüldükten sonra aynı kaynak olmalı) → hedef sayfaya 307 geçici yönlendirme.
 
-- **Bağlantı 1 (kayıt başarılı olur olmaz verilir)**: `--target pending` → `/subscription`'a düşer.
-  Kullanıcının tarayıcısı «yarı oturum» durumuna girer: abonelik sayfası ve Alipay geri dönüş sayfası görülebilir
-  ve işlenebilir; içerik sayfaları yine ödeme duvarınca abonelik sayfasına itilir (üç katmanlı koruma: JWT claims
-  geçit denetimi → DB yeniden kontrol → çekirdek API denetimi; normal davranıştır).
-- **Bağlantı 2 (paid doğrulandıktan sonra verilir)**: önce `refresh-login` ile yeni JWT alınır (ödeme yalnızca
-  DB'yi günceller, verilmiş JWT'nin claims'ini değiştirmez; yenilenmezse «ödedim ama üye değilim» gibi görünür),
-  sonra `--target home` → ana sayfaya düşer, tam üye durumu.
+İki link hedefi vardır, **önce home üret, pending'den geçilip geçilmeyeceğine kullanıcı nereye düştüyse karar ver**:
 
-## Tam sıralama (normal yol)
+- **home linki (varsayılan olarak gönderilir, `--target home` → `/` sayfasına iner)**: kayıt başarılı olduktan hemen sonra üretilip kullanıcıya gönderilir.
+  Ücretsiz test döneminde kullanıcı doğrudan ana sayfaya gider, her şey kullanılabilir; **linke tıklayıp abonelik sayfasına düşerse ücretsiz test dönemi bitmiştir** — ödeme akışına geç (aşağıya bak); betik değişikliği ve yeniden kayıt gerekmez.
+- **pending linki (ödeme akışında kullanılır, `--target pending` → `/subscription` sayfasına iner)**:
+  kullanıcının tarayıcısı „yarı giriş” durumuna girer: abonelik sayfası ve ödeme dönüş sayfası görünür ve kullanılabilir. Ödeme indikten sonra
+  ACTIVE claim'li yeni bir JWT'ye takas etmek için `refresh-login` çalıştır, sonra tam üyelik durumu için home linkini bir kez daha gönder.
+
+## Tam Sekans
+
+### Hızlı Yol (ücretsiz test döneminde — durumların büyük çoğunluğu)
 
 ```
-1.  status                          # Ortam öz denetimi
-2.  (Adım 2: bilgiler sohbette onaylanır, şifre iki seçeneklidir; üretim modu: gen-password → kullanıcıya hemen kaydettirilir)
+1.  status                          # ortam öz-kontrolü
+2.  (2. adım: bilgiyi teyit için sohbet, şifre istediğin gibi; üretim modu: gen-password → kullanıcıdan hemen kaydetmesini iste)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → kullanıcı e-postasına gidip kodu okur (sohbetten tek ayrılış ①)
+4.  send-code --email E             # → kullanıcı kodu gelen kutuda kontrol eder (sohbetten tek çıkış)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → bağlantı 1 kullanıcıya verilir
-7.  (kullanıcı ödeme yöntemini seçer)
+6.  login-link --target home        # → linki kullanıcıya gönder; tek tıkla ana sayfada
+7.  (kullanıcı içeri girdiğini teyit eder) → doğrudan sar: cleanup + hesap kartı + ilk adımları yönlendir
+```
+
+### Ödeme Yolu (kullanıcı üyelik istediğinde veya ücretsiz dönem bittiğinde)
+
+```
+1–5. Hızlı Yol ile aynı (register başarılı olduktan sonra durumda token zaten var)
+6.  login-link --target pending     # → yarı-giriş linki, ödeme dönüş sayfası çalışmaya devam eder
+7.  (kullanıcı bir ödeme yöntemi seçer)
     # Alipay: create-order --package monthly|quarterly|yearly
     # PayPal: create-order --provider paypal
-8.  start <ödeme sayfası dosyası>   # Windows; macOS'ta open, Linux'ta xdg-open
-    # → kullanıcı Alipay/PayPal kasasında ödemeyi/onayı tamamlar (sohbetten ayrılış ②)
-9.  query (her 10–15s) paid / ACTIVE olana dek
-10. refresh-login                   # ACTIVE beyanlı yeni JWT alınır
-11. login-link --target home        # → bağlantı 2 kullanıcıya verilir
-12. whoami                          # subscriptionStatus: ACTIVE doğrulanır (isteğe bağlı)
-13. cleanup                         # durum dosyası temizlenir
+8.  start <ödeme sayfası dosyası>   # Windows; macOS open, Linux xdg-open
+    # → kullanıcı Alipay/PayPal kasasında ödemeyi/yetkiyi tamamlar (sohbetten çıkar)
+9.  query (her 10–15 s) paid / ACTIVE olana kadar
+10. refresh-login                   # ACTIVE claim'li yeni JWT'ye takas
+11. login-link --target home        # → kullanıcıya tam üyelik linkini gönder
+12. whoami                          # subscriptionStatus: ACTIVE olduğunu teyit et (isteğe bağlı)
+13. cleanup                         # durum dosyasını temizle
 ```
-
 ## Komut → platform API eşlemesi
 
 | Script komutu | Platform arayüzü |
@@ -104,7 +112,8 @@ için `payment-and-activation.md` (ikisinde de platform kaynak dosyaları belirt
 | `create-order`'dan sonra kullanıcı ödeme sayfasını kapattı | Doğrudan `create-order` yeniden (eski sipariş 2 saatte otomatik kapanır; PayPal PENDING abonelikler 1 saatte sona erer) |
 | `create-order --provider paypal` 409 döndürüyor | Hâlihazırda tamamlanmamış bir PayPal aboneliği var; 1 saat bekleyip sona ermesini bekleyin ya da eski onayı tarayıcıda tamamlayın |
 | `query` sürekli pending / PENDING | Kullanıcı ödememiş olabilir; bir cümle sorun. Gerçekten ödediyse → payment-and-activation.md'deki teşhis tablosunu izleyin |
-| `refresh-login` 403 `pending_payment` | Ödeme/onay henüz hesaba geçmedi, Adım 9'a dönüp yoklamaya devam |
+| Kullanıcı home linkine tıklıyor ama abonelik sayfasına düşüyor | Ücretsiz test dönemi bitti → ödeme akışına geç: `login-link --target pending` → ödeme yöntemi seç → `create-order` |
+| `refresh-login` 403 `pending_payment` | Ücretsiz test dönemi bitti ve ödeme inmedi; sorgulamaya devam etmek için 9. adıma dön ya da kullanıcının ödemeyi tamamlayıp tamamlamadığını teyit et |
 | Durum dosyası kayboldu (yanlışlıkla silindi / makine değişti) | `whoami`/`refresh-login` kullanılamaz; kullanıcıya, bağlantı 1'i açtığı tarayıcıda abonelik sayfasını yenileterek durumu doğrulatın ya da yeniden giriş yaptırın (web modu) |
 
 ## Geri dönüş modu (salt yol gösterme)
@@ -116,6 +125,6 @@ uğraştırılmaz:
 - Kullanıcı açıkça «ben web'de kendim yaparım» dedi;
 - Şirket/cihaz politikası scriptin ağa çıkmasını kısıtlıyor.
 
-Geri dönüş sonrası: kayıt sayfası https://global.powpow.online/register ve abonelik sayfası
+Geri düştükten sonra: kayıt sayfası https://global.powpow.online/register ver (ücretsiz test döneminde web kaydı da aynı şekilde anında çalışır; abonelik gerektiğinde abonelik sayfası https://global.powpow.online/subscription de ver ), `registration-flow.md`'deki kurallara göre yanında sorunu çöz, aynı tonu koru ve her turu yine bir „sonraki adım” bloğuyla bitir.
 https://global.powpow.online/subscription verilir, `registration-flow.md` kurallarına göre eşlik edilir, ton
 değişmez, her tur yine «sonraki adım» bloğuyla kapanır.

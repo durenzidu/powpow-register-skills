@@ -52,22 +52,24 @@ que la soumission du formulaire de la page d'inscription — toutes les règles 
 l'identique aux deux modes. La séquence du script et le contrat des commandes sont dans
 `references/agent-flow.md`.
 
-## Transition d'états après une inscription réussie
+## Flux d'état après une inscription réussie
 
-1. L'utilisateur est enregistré avec `accountStatus: 'pending'` et **3 badges** initiaux (register route).
-2. Le serveur pose simultanément deux cookies HttpOnly : le JWT (accès direct à `/subscription`
-   possible) et le pendingUserToken (justificatif d'identité du flux d'abonnement).
-3. La page d'inscription détecte `pending_payment` → redirige vers `/subscription` (en conservant le
-   paramètre de retour `next`) ; en mode délégué à l'agent, `me?token=…&redirect=/subscription` produit le
-   même effet.
-4. Paiement terminé → `accountStatus` devient `active` (**avec Alipay, activation automatique côté serveur
-   via notify** ; avec PayPal, activation automatique via Webhook ; avec le QR code WeChat, confirmation
-   manuelle ; avec Huawei IAP, via `activate-huawei`). Détails dans `payment-and-activation.md`.
+> **Période d'essai gratuit (à partir du 2026-10-18 ; le comportement réel de la plateforme prévaut)** : un compte nouvellement inscrit peut **utiliser toutes les fonctions directement**
+> (fil, carte, humains numériques, check-ins, etc.) sans paiement requis ; les comptes non abonnés ne sont plus bloqués des pages de contenu. La description du
+> « blocage pending » de cette section est l'état normal après la fin de la période d'essai — le moment venu, le comportement réel en ligne prévaut.
 
-Un utilisateur non activé (pending) qui appelle les API centrales (fil d'actualité, carte, conversation
-avec les humains numériques, check-in, etc.) reçoit systématiquement 403 ; à l'exception des liens de
-posts partagés (qui restent d'accès public).
+1. L'utilisateur est enregistré avec `accountStatus: 'pending'` et **3 badges initiaux** (register route).
+2. Le serveur plante aussi deux cookies HttpOnly : le JWT (peut accéder aux pages directement) et
+   le pendingUserToken (identifiant d'identité pour le flux d'abonnement).
+3. Dans l'état normal (période d'essai terminée / pas de période gratuite), la page d'inscription détecte `pending_payment` → redirige vers `/subscription`
+   (en conservant le paramètre de retour `next`) ; en mode assisté par agent, `me?token=…&redirect=/subscription` produit le même effet.
+   **Pendant la période d'essai gratuit, cette étape ne se déclenche pas** — après l'inscription, entre directement sur la page d'accueil et commence à utiliser.
+4. Paiement finalisé → `accountStatus` devient `active` (**Alipay active automatiquement côté serveur via notify** ;
+   PayPal active via Webhook ; le code QR WeChat est confirmé manuellement ; Huawei IAP passe par `activate-huawei`).
+   Détails dans `payment-and-activation.md`.
 
+Dans l'état normal, les utilisateurs inactifs (pending) appelant les API cœur (fil, carte, chat d'humains numériques, check-ins, etc.) reçoivent 403 ;
+les liens de posts partagés sont l'exception (restent accessibles publiquement). Pendant la période d'essai gratuit, ce blocage est suspendu et tout est ouvert.
 ## Tableau de diagnostic des erreurs courantes
 
 | Symptôme | Cause | Que faire |
@@ -80,7 +82,8 @@ posts partagés (qui restent d'accès public).
 | 「注册请求过于频繁」 (demande d'inscription trop fréquente) / 429 | Plafond de 3 inscriptions/minute/IP atteint | Attendre quelques minutes et réessayer |
 | 409 「用户名或邮箱已被注册」 (nom d'utilisateur ou e-mail déjà enregistré) | Collision avec quelqu'un d'autre à l'instant de la soumission (filet de sécurité contre la concurrence) | Changer de nom d'utilisateur ou d'e-mail puis réessayer |
 | 「图片大小不能超过5MB」 (l'image ne peut pas dépasser 5Mo) / 「不支持 SVG」 (SVG non pris en charge) | Avatar hors norme | Changer d'image ou passer l'avatar |
-| Inscription réussie mais connexion en 403 「请完成订阅以激活账户」 (terminez l'abonnement pour activer le compte) | Le compte est toujours pending (état attendu avant paiement) | Avant paiement : c'est normal, terminez d'abord l'abonnement ; 403 persistant après paiement : c'est un vieux JWT qui est utilisé ; en mode script, lancer d'abord `refresh-login` pour renouveler l'état de connexion |
+| L'utilisateur ouvre le lien de connexion mais atterrit sur la page d'abonnement (au lieu de la page d'accueil) | La période d'essai gratuit est terminée et le mur de paiement de la plateforme est revenu | Suis le flux de paiement par abonnement de l'étape 7 de SKILL.md ; après l'abonnement, lance `refresh-login` puis envoie le lien vers la page d'accueil |
+| Inscription réussie mais la connexion renvoie 403 « 请完成订阅以激活账户 » | Le compte est encore pending, et la plateforme n'est pas en période d'essai gratuit (état attendu avant paiement) | Ne se produit pas pendant la période d'essai gratuit ; si ça arrive, la période d'essai est terminée — finalise d'abord l'abonnement ; si toujours 403 après paiement, un ancien JWT a été utilisé — en mode script, lance d'abord `refresh-login` pour échanger contre un nouvel état de session |
 | Connexion 423 「账户已锁定」 (compte verrouillé) | 5 mots de passe erronés d'affilée | Attendre 30 minutes |
 | Connexion 401 「还剩 N 次尝试机会」 (il reste N tentatives) | Mot de passe erroné, proche du verrouillage | Réfléchir avant de réessayer, ou passer directement par 「忘记密码」(mot de passe oublié) |
 | 「该账号未设置密码，请使用其他方式登录」 (ce compte n'a pas de mot de passe défini, connectez-vous autrement) | Compte tiers (Google/Watcha/Huawei) | Se connecter avec le bouton tiers d'origine |

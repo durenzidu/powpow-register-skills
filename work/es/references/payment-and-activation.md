@@ -1,6 +1,8 @@
 # Activación de la suscripción y pago — powpow-register
 
 ## Conclusión (primero la respuesta)
+> **Periodo de prueba gratuita (a partir del 2026-10-18; manda el comportamiento real de la plataforma)**: durante este periodo una cuenta registrada puede usar todas las funciones directamente, y **suscribirse es una mejora opcional, no un requisito** — sigue el flujo de este archivo solo cuando el usuario quiera activamente la membresía. Cuando el periodo de prueba termine, las cuentas sin suscripción que visiten páginas de contenido serán redirigidas a la página de suscripción; basta con completar la suscripción según este archivo.
+
 
 **Tanto las suscripciones por Alipay como por PayPal las puede gestionar el agent: creación del pedido y seguimiento del cobro incluidos.**
 Alipay es una compra única sin renovación automática, para usuarios de China continental y usuarios con Alipay; PayPal se renueva automáticamente cada mes y se puede cancelar en cualquier momento,

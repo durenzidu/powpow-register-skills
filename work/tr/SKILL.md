@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Kullanıcının PowPow (Kabarcık) kaydını tamamlamasına, Alipay veya PayPal üzerinden aboneliği etkinleştirmesine ve sohbet içinde tek tıkla giriş yapmasına yardımcı olur. Agent form kullanıcının yerine doldurur (profil fotoğrafı yükleme dahil), e-posta ile doğrulama kodu gönderir, ödeme siparişi oluşturur ve hesaba geçişi izler; kullanıcının yapması gerekenler yalnızca temel bilgileri vermek, kodu e-postasından bir kez okumak ve Alipay/PayPal kasa sayfasında ödemeyi yapmak — tüm süreç sohbetten çıkmadan tamamlanır. Kullanıcı «Kabarcık'a kayıt ol», «powpow hesabı aç», «Kabarcık'a nasıl kaydolunur», «bana powpow hesabı aç», «sign up powpow» dediğinde devreye girer; takılan kayıtları (doğrulama kodu gelmemesi, kullanıcı adı/e-postanın alınmış olması) ve etkinleştirme sorunlarını («hesap etkinleştirilmedi» / pending_payment uyarısı, abonelik nasıl ödenir) da ele alır. Node ≥ 18 gerektirir; yoksa otomatik olarak salt yol gösterme moduna düşer. Gönderi yayınlama/dijital insan oluşturma (o powpow-simple'ın işi) ve kod geliştirme kapsam dışıdır.
-version: 2.1.0
+description: Kullanıcının PowPow (Bubble) kaydını ve tek tıkla girişini sohbet içinde baştan sona tamamlamasına yardımcı olur. Agent kullanıcı adına formu doldurur (avatar yükleme dahil) ve e-posta doğrulama kodunu gönderir; kullanıcı yalnızca temel bilgileri verir ve doğrulama kodunu bir kez kontrol eder — sohbetten hiç çıkmaz. Platform şu anda ücretsiz test döneminde: kayıtlı hesap tüm özellikleri hemen kullanabilir; abonelik ödemesi (Alipay/PayPal) isteğe bağlı bir üyelik yükseltmesidir, gerekirse agent sipariş oluşturma ve tahsilat takibi de yapar. Kullanıcı „Bubble'a kayıt ol”, „powpow hesabı aç”, „Bubble nasıl kayıt olunur”, „bana powpow hesabı oluştur”, „sign up powpow” dediğinde tetiklenir; kayıt sorunlarını (doğrulama kodu gelmiyor, kullanıcı adı/e-posta alınmış) ve etkinleştirme sorunlarını (girişte „hesap etkin değil” / pending_payment, nasıl abone olunur/ödenir, Bubble ücretsiz mi/ücretli mi) de ele alır. Node ≥ 18 gerektirir; yoksa otomatik olarak saf rehberlik moduna düşer. Gönderi yapmayı/dijital insan oluşturmayı kapsamaz (o powpow-simple'in işi), kod geliştirmeyi de kapsamaz.
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,22 +10,22 @@ metadata:
 
 # PowPow Register (Kabarcık kayıt asistanı)
 
-Yeni bir kullanıcıyı «Kabarcık'ın ne olduğunu bilmiyorum» noktasından «hesap etkinleşti, tek tıkla giriş, oyun başlıyor» noktasına götürür — hepsi sohbet içinde. Kullanıcı sohbetten yalnızca iki kısa anlık ayrılır: **e-postasına gidip doğrulama kodunu okumak** ve **kasa sayfasında ödemek** (Alipay veya PayPal — agent ödeme sayfasını kendiliğinden açar).
+Yeni kullanıcıyı „Bubble'ın ne olduğunu bilmiyorum” durumundan „tek tıkla giriş yaptım, oynamaya hazırım” noktasına götürür — tamamı sohbet içinde. Kullanıcı sohbetten yalnızca bir kez çıkar: **gelen kutudaki doğrulama kodunu kontrol etmek için**. Platform şu anda ücretsiz test döneminde: kayıt olduktan sonra tüm özellikler kullanılabilir, ödeme gerekmez; abonelik ödemesi isteğe bağlı bir üyelik yükseltmesidir (agent kasayı da açar ve tahsilatı takip eder).
 
-**Sürüm 2.1.0** · 2026-10-11 (v2'den itibaren agent vekâlet modudur: script sözleşmesi ve tam sıralama `references/agent-flow.md` içinde; alan kuralları, hız sınırları ve hata yönetimi `references/registration-flow.md` içinde; ödeme kanalları `references/payment-and-activation.md` içinde; ürün ekran görüntüleri listesi `references/screenshots.md` içindedir. v2.1.0'dan itibaren PayPal aboneliklerini de agent vekâleten yürütebilir, Alipay'in yanında bir seçenek olarak)
+**Sürüm 2.2.0** · 2026-10-18 (v2'den bu yana agent vekalet modu: betik sözleşmesi ve tam sekans `references/agent-flow.md`; alan kuralları, hız sınırları ve hata ayıklama `references/registration-flow.md`; ödeme kanalları `references/payment-and-activation.md`; ürün ekran görüntüsü listesi `references/screenshots.md`. v2.1.0'dan bu yana PayPal aboneliklerini de agent yürütebilir, Alipay ile birlikte. v2.2.0'dan bu yana platform ücretsiz test döneminde: kayıt ol ve tek tıkla giriş yap, hemen kullan; ödeme isteğe bağlı bir yükseltmeye döndü — kullanıcı linke tıklayıp abonelik sayfasına düşerse test dönemi bitmiştir, 7. adımdaki ödeme akışını izle; akış kendini uyarlar, betik değişikliği gerekmez)
 
 ## Çalışma ortamı
 
 - Ana script `scripts/powpow-register.mjs`: **sıfır bağımlılık**, **Node ≥ 18** gerektirir. Başlamadan önce ortamın çalıştığını doğrulamak için bir kez `node scripts/powpow-register.mjs status` çalıştırın.
 - Scriptin tüm istekleri yalnızca resmî alan adı `https://global.powpow.online`'a gider.
-- **Node yok / script hata veriyor**: otomatik olarak salt yol gösterme moduna düşün — kullanıcıya kayıt sayfası https://global.powpow.online/register ve abonelik sayfası https://global.powpow.online/subscription verin, `references/registration-flow.md`'ye göre eşlik edin. Scripti inatla denemeye devam etmeyin.
+- **Node yok / betik hatası**: otomatik olarak saf rehberlik moduna düş — kullanıcıya kayıt sayfası https://global.powpow.online/register ver ve `references/registration-flow.md`'e göre yanında rehberlik et (ücretsiz test döneminde web kaydı da aynı şekilde anında çalışır). Betiği ısrarla tekrar deneme.
 - Sohbet kesilirse kurtarma: önce `status` çalıştırıp akışın hangi adımda kaldığına bakın, oradan devam edin.
 
 ## Trigger Conditions
 
 - Kayıt niyeti: «Kabarcık'a kayıt ol», «powpow hesabı aç», «Kabarcık'a nasıl kaydolunur», «sign up powpow»
 - Takılan kayıt: «doğrulama kodu gelmiyor», «kullanıcı adı zaten var diyor», «şifre bir türlü kabul edilmiyor»
-- Kayıt sonrası sorunlar: «giriş yapınca hesap etkinleştirilmedi diyor», «403 pending_payment», «Kabarcık'ta abonelik nasıl ödenir»
+- Kayıt sonrası sorunlar: „girişte hesap etkin değil diyor”, „403 pending_payment”, „Bubble nasıl ödenir/abone olunur”, „Bubble ücretsiz mi/ücretli mi”
 
 **Şunlar için devreye girmez**: gönderi yayınlama/dijital insan oluşturma (→ powpow-simple); Web tarafı kod geliştirme (geliştirme skill'lerine bakın). Kullanıcı hem kayıt olmak hem gönderi yayınlamak istiyorsa: önce bu skill'i bitirin, etkinleşince powpow-simple'a devredin.
 
@@ -38,8 +38,8 @@ Yeni bir kullanıcıyı «Kabarcık'ın ne olduğunu bilmiyorum» noktasından �
 | 3 Kod gönderimi | `send-code` | —— |
 | 4 Kod okuma | —— | E-postasına gidip 6 haneli kodu okur, yazar |
 | 5 Kayıt gönderimi | `register` (profil fotoğrafını da yükler), hataları kendiliğinden yönetir | —— |
-| 6 Yarı oturum + ödeme | `login-link(pending)` → `create-order --provider alipay|paypal` → kasayı açar → `query` ile sorar | Bağlantıyı açar, öder |
-| 7 Resmî giriş | `refresh-login` → `login-link(home)` | Bağlantıyı açıp ana sayfaya girer |
+| 6 Tek tıkla giriş | `login-link(home)` doğrudan ana sayfaya; abonelik sayfasına düşerse 7. adıma git | Linke tıkla ve oynamaya başla |
+| 7 Abonelik yükseltmesi (isteğe bağlı) | Yalnızca kullanıcı üyelik istediğinde / ücretsiz dönem bittiğinde: tam ödeme akışı yürütülür | Yöntem seç, öde |
 | 8 Kapanış | `cleanup` + hesap bilgisi teslimi + deneyim rehberi + eklenti önerisi | Oynamaya başlar |
 
 ## Adım 1: ürün tanıtımı + ekran görüntüleri (atlanmaz)
@@ -93,19 +93,30 @@ Başarılı olursa hesap oluşur (pending durumu, 3 açılış rozetiyle birlikt
 | 「邮箱验证码错误或已过期」 (doğrulama kodu hatalı veya süresi geçmiş) | 10 dakikayı aşmışsa → `send-code`'u tekrar çalıştır |
 | Gönderim/kayıt çok sık (429) | 1 dakika bekle ve tekrar dene; kullanıcıya tek cümleyle haber vermek yeter |
 
-## Adım 6: tek tıkla giriş (bağlantı 1) + ödeme
+## Adım 6: Tek Tıkla Giriş (kayıttan sonra doğrudan ana sayfaya)
 
-1. Kayıt başarılı olur olmaz:
+1. Kayıt başarılı olduktan hemen sonra:
+   ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. Linki kullanıcıya gönder: **tıkladığında doğrudan ana sayfada, giriş yapılmış olarak açılır**. Platform şu anda ücretsiz test döneminde — kayıt olduktan sonra tüm özellikler (akış, harita, dijital insanlar, check-in'ler vb.) kullanılabilir, **ödeme gerekmez**.
+3. Kullanıcıdan içeri girdiğini onaylamasını iste; iki durum var:
+   - **Ana sayfaya düştü** → doğrudan 8. adıma geçip sar; kayıt tamamdır;
+   - **Abonelik sayfasına düştü** → platformun ücretsiz test dönemi bitmiştir; kullanıcıya „ücretsiz deneme süresi bitti, şimdi üyelik aboneliği gerekiyor” de, sonra aboneliği tamamlamak için 7. adımı izle ve abone olduktan sonra 8. adıma dön.
+4. Kullanıcı kendiliğinden yükseltmek veya platformu desteklemek isterse → yine 7. adıma git (abonelik gönüllüdür; ısrarcı olma).
+## Adım 7: Abonelik Yükseltmesi (isteğe bağlı — yalnızca 6. adım gerektirdiğinde)
+
+1. Ödeme dönüş sayfasının „Ödeme başarılı” yazısını doğru gösterebilmesi için önce yarı-giriş linkini gönder:
    ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   Bağlantıyı kullanıcıya verin: **tarayıcıda açınca doğrudan abonelik sayfasına düşer, giriş yapılmış durumdadır** — böylece ödeme bittiğinde tamamlama sayfası «ödeme başarılı» demeyi doğru gösterir. (Bu durumda içerik sayfaları yine abonelik sayfasına yönlendirilir: bu platformun ödeme duvarının normal işleyişidir, hata değildir; kullanıcının iç mekanizmaları anlatmasına da gerek yoktur.)
-2. **Kullanıcıya ödeme yöntemini seçtirin** — iki kanalı da gösterin:
-   - **Alipay (Çin / Alipay'i olan kullanıcılar)**: karşılık gelen sürenin tek seferlik satın alımı, **otomatik yenileme yok**
-     - Aylık **¥6.99** (ilk denemede önerilir) / Üç aylık **¥19.99** / Yıllık **¥69.99**
-   - **PayPal (yurt dışı / Alipay'i olmayan kullanıcılar)**: aylık otomatik yenileme, istenildiği anda iptal
-     - Premium Monthly, yaklaşık **$1/ay** (abonelik sayfasında gösterildiği şekilde; otomatik yenileme)
-3. Kullanıcı seçtikten sonra:
+   Linki kullanıcıya gönder: tıkladığında tarayıcı doğrudan abonelik sayfasında, giriş yapılmış olarak açılır.
+2. **Kullanıcıdan bir ödeme yöntemi seçmesini iste** — iki kanalı da göster:
+   - **Alipay (Çin ana karası / Alipay'i olan kullanıcılar)**: ilgili sürenin tek seferlik satın alımı, **otomatik yenileme yok**
+     - Aylık **¥6.99** (denemek için önerilir) / Üç Aylık **¥19.99** / Yıllık **¥69.99**
+   - **PayPal (yurt dışı / Alipay'i olmayanlar)**: ayda bir otomatik yenilenir, istendiğinde iptal edilir
+     - Premium Monthly, yaklaşık **$1/ay** (abonelik sayfasındaki gibi; otomatik yenilemeli)
+3. Kullanıcı birini seçtiğinde:
    - **Alipay**:
      ```
      node scripts/powpow-register.mjs create-order --package monthly
@@ -114,29 +125,23 @@ Başarılı olursa hesap oluşur (pending durumu, 3 açılış rozetiyle birlikt
      ```
      node scripts/powpow-register.mjs create-order --provider paypal
      ```
-   Script ödeme sayfası dosyasının yolunu döndürür; **sistem komutuyla doğrudan açın** (Windows: `start <dosya>`; macOS: `open <dosya>`; Linux: `xdg-open <dosya>`). Tarayıcı kendiliğinden Alipay ya da PayPal'ın resmî kasa sayfasına gider; kullanıcı ödemeyi veya ödeme talimatını orada tamamlar.
-4. `paid` ya da `ACTIVE` dönene dek 10–15 saniyede bir `query` çalıştırın (hesaba geçiş/autorizasyon genelde birkaç saniye ile bir dakika arası sürer). Kullanıcı ödeme sayfasını yarıda kapatırsa → hemen `create-order`'ı tekrar çalıştırın (eski siparişler ve bekleyen abonelikler 2 saatte kendiliğinden kapanır ya da sona erer; dert etmeyin).
-5. WeChat QR kanalı elle onay gerektirir, hesaba geçiş gecikebilir; Huawei IAP yalnızca HarmonyOS uygulaması içinde kullanılabilir. Bu ikisini skill vekâleten yürütmez — ödeme bittikten sonra yine Adım 7'ye dönülür.
+   Betik ödeme sayfası dosyasının yolunu döndürür; **doğrudan bir sistem komutuyla aç** (Windows: `start <dosya>`; macOS: `open <dosya>`; Linux: `xdg-open <dosya>`). Tarayıcı otomatik olarak resmi Alipay/PayPal kasasına geçer, kullanıcı ödemeyi veya tahsilat yetkisini orada tamamlar.
+4. `paid` veya `ACTIVE` dönene kadar her 10–15 saniyede bir `query` çalıştır (ödeme/yetki genelde birkaç saniye ile bir dakika arasında iner). Kullanıcı ödeme sayfasını yarıda kapatırsa → doğrudan `create-order` komutunu yeniden çalıştır (eski siparişler ve bekleyen abonelikler 2 saatte kendiliğinden kapanır veya düşer; aldırma).
+5. WeChat QR kod kanalı elle onaylanır, tahsilat gecikebilir; Huawei IAP yalnızca HarmonyOS uygulaması içinde kullanılabilir. Skill bu ikisini yürütmez — ödeme yaptıktan sonra kullanıcı dönüp agenta bildirir, agent önce `whoami` çalıştırıp tahsilatı onaylar, sonra aşağıdaki 6. maddedeki gibi ana sayfa linkini gönderir.
+6. Tahsilat onaylandıktan sonra en güncel abonelik claim'iyle yeni bir giriş durumuna takas et, sonra linki doğrudan ana sayfaya gönder:
+   ```
+   POWPOW_REGISTER_PASSWORD=<şifre> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   Linki kullanıcıya gönder: **tıkladığında doğrudan ana sayfada, tam üyelik durumuyla açılır**.
+## Adım 8: Sarma
 
-## Adım 7: resmî giriş (bağlantı 2)
-
-Paranın geçtiği doğrulanınca önce abonelik beyanları en güncel haliyle yeni oturum durumuna geçilir, sonra ana sayfaya doğrudan bağlantı üretilir:
-
-```
-POWPOW_REGISTER_PASSWORD=<şifre> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-Bağlantıyı kullanıcıya verin: **açınca doğrudan ana sayfaya düşer, üye durumu tamdır**; buraya kadar kayıt akışının tamamı tamamlanmıştır.
-
-## Adım 8: kapanış
-
-1. `node scripts/powpow-register.mjs cleanup` makinedeki geçici durum dosyalarını temizler (oturum açma bilgileri).
-2. Kullanıcıya bir «hesap kartı» verin: kullanıcı adı, e-posta ve üyelik bitiş tarihi (şifre bir daha gösterilmez — üretim modunda zaten kullanıcıya kaydettirilmişti; kendi belirlediyse zaten biliyor).
-3. İlk deneyim rehberi: haritada gez, ilk seyahat günlüğünü yayınla (→ powpow-simple'a devret).
-4. Genişletme önerisi: `@durenzidu/powpow-integration` skill'i ve `@durenzidu/openclaw-channel-powpow` eklentisi — Kabarcık'ı kullanıcının kendi agent'ına bağlar; ilgilenerse kurulum komutunu verin.
-5. «Sonraki adım» bloğuyla kapatın.
-
+1. Yerel geçici durum dosyalarını (oturum kimlik bilgilerini) temizlemek için `node scripts/powpow-register.mjs cleanup` çalıştır.
+2. Kullanıcıya bir „hesap kartı” ver: kullanıcı adı, e-posta (şifre bir daha gösterilmez — üretim modunda kullanıcıdan üretildiğinde kaydetmesi istenmiştir; kullanıcı kendisi belirlediyse zaten bilir).
+3. Üyelik hatırlatması (bir kez söyle, ısrarcı olma): şu anda ücretsiz test dönemi ve hesap hemen kullanılabilir; test dönemi bittiğinde abonesi olmayan hesaplar içerik sayfalarına girdiğinde abonelik sayfasına yönlendirilir — uzun süreli kullanım için dilediğinde gel ve abone ol.
+4. İlk adımları yönlendir: haritaya göz at, ilk seyahat günlüğünü paylaş (→ powpow-simple'e devret).
+5. Eklentileri öner: `@durenzidu/powpow-integration` skill'i ve `@durenzidu/openclaw-channel-powpow` eklentisi — Bubble'ı kullanıcının kendi agentına bağla; isterse kurulum komutunu ver.
+6. Bir „sonraki adım” bloğuyla bitir.
 ## Conversation UX
 
 powpow'un alışılmış hizmet tonunu koruyun:
@@ -157,7 +162,7 @@ powpow'un alışılmış hizmet tonunu koruyun:
 - **Kimlik bilgisi güvenliği**: şifre scripte yalnızca `POWPOW_REGISTER_PASSWORD` ortam değişkeniyle geçirilir, **asla** komut satırı parametresine konmaz (süreç listesinde görünür), hiçbir dosyaya yazılmaz (üretim modunda kullanıcı kaydetsin diye bir kez gösterilir, sonra bir daha anılmaz). Doğrulama kodu yalnızca resmî kayıt arayüzünde kullanılır ve işi bitince atılır.
 - **Resmîlik sınırı**: tüm istekler yalnızca `https://global.powpow.online`'a gider (scripte yerleşiktir); kullanıcı bilgilerini asla üçüncü taraf adreslere göndermeyin.
 - **Ödeme sınırı**: agent yalnızca sipariş açar, kasayı açar, para geçişini sorgular; kullanıcının Alipay/PayPal hesabına/ödeme belgelerine **asla** dokunmaz, «ben öderim» diye söz de vermez.
-- **Ödeme duvarı hata değildir**: pending durumun abonelik sayfasına/tamamlama sayfasına erişebilmesi tasarımda bırakılmış bilinçli bir geçittir; içerik sayfalarının engellenmesi ödeme duvarının normal işleyişidir; onu aşmanın yollarını aramayın.
+- **Ödeme duvarı bir hata değil**: mevcut ücretsiz test döneminde tüm içerik sayfaları açık; kullanıcı ana sayfa linkine tıklayıp abonelik sayfasına düşerse test dönemi bitmiştir — 7. adım üzerinden aboneliğe yönlendir. Ödeme duvarını aşmaya çalışma ve kullanıcıya içsel mekanizmaları açma.
 - **Geri dönme özgürlüğü**: herhangi bir adımda kullanıcı kendi yapmak isterse ya da ortam scripti çalıştıramıyorsa, istediğiniz an salt yol gösterme moduna dönün — bağlantıları verin, kuralları anlatın, hataları birlikte çözün.
 - Platform kuralı uydurmayın: alan kuralları, hata metinleri ve hız sınırı parametrelerinin tamamı platform kodundan gelir (`references/registration-flow.md` kaynağı gösterir); platform güncellenirse fiilî davranış esas alınır.
 - Görsel gösterirken yalnızca paketteki `assets/screenshots/` ekran görüntülerini kullanın (her birinin kullanımı `references/screenshots.md`'de).

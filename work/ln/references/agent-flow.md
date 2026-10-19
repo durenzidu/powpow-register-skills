@@ -21,7 +21,7 @@ Detail ya execution ya etapes nionso ya SKILL.md. Commandes nionso ezali `node s
 | `prepare-suggest` | `--username --nickname --email` | Koma bansongo oyo epanzani na fichier etat (nsima register esengi kotinda lisusu te) |
 | `send-code` | `--email` | Peser plateforme etinda kodi ya nombo 6 (valide miniti 10, cooldown secondes 60) |
 | `register` | `--code` (obligatoire); `--username --nickname --avatar --phone` (optionnel, soki fichier etat ezali na yango esengi te) | Sala kompte pending; password na variable d'environnement `POWPOW_REGISTER_PASSWORD`; nsima succes JWT ekanda automatiquement na fichier etat |
-| `login-link` | `--target pending` to `--target home` | Sala lien ya koneksione ya kubeta mbala moko (design ya liens mibale, tala se) |
+| `login-link` | `--target pending` to `--target home` | Esalaka lien ya kokota na clic moko (design ya ba liens mibale, tala awa na se) |
 | `create-order` | `--package monthly\|quarterly\|yearly` (défaut Alipay)<br>`--provider alipay\|paypal` | Sala commande ya kofuta; Alipay ezongisa chemin ya fichier ya lokasa ya kofuta + outTradeNo; PayPal ezongisa chemin ya fichier ya lokasa ya ndingisa + subscriptionId (ekanda automatiquement na fichier etat) |
 | `query` | —— | Tuna etat ya commande/abonnement. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; poller chaque secondes 10–15 |
 | `refresh-login` | Password na variable d'environnement | Koneksione lisusu mpo azwa **JWT sika** (declaration ya abonnement echangaka uta NONE kino ACTIVE), obligatoire nsima mbongo ekota |
@@ -39,36 +39,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<password>'; node scripts/powpow-register.mjs r
 set POWPOW_REGISTER_PASSWORD=<password> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## Mecanisme ya liens mibale (design ya kati)
+## Mécanisme ya ba liens mibale (design central)
 
-Etat ya koneksione ya plateforme ezali cookie HttpOnly, agent ekoki kanda cookie na navigateur directement te; pont ezali endpoint officiel
-`/api/auth/me?token=<JWT>&redirect=<chemin interne>`: verification signature → mosaleli pending efungolaka session automatiquement → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / jours 7) → verification redirect (ebanda na slash moko kaka, interdit `//` na backslash, nsima ya resolution esengi ezala origine moko moko) → redirection temporaire 307 na lokasa cible.
+État ya kokota ya plateforme ezali cookie HttpOnly, oyo agent akoki kotya yango directement na navigateur te; pont ezali endpoint officiel
+`/api/auth/me?token=<JWT>&redirect=<chemin na kati ya site>`: vérifier signature → création automatique
+session → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 jours) → valider
+redirect (esengeli abanda na slash moko, `//` pe ba slash ya nsima epekisami, esengeli ezala same-origin nsima ya analyse) → 307 redirection temporaire na page cible.
 
-- **Lien 1 (pesa mbala moko nsima inscription succes)**: `--target pending` → ekota `/subscription`.
-  Navigateur ya mosaleli ekota etat «nusu-koneksione»: lokasa ya abonnement, lokasa ya retour ya Alipay emonana mpe esalelama; lokasa ya contenu ebombama nsima kino lokasa ya abonnement (protection ya niveaux misato: verification ya claims ya JWT na porte → verification DB → verification API core, ezali comportement normal).
-- **Lien 2 (pesa nsima confirmation paid)**: liboso `refresh-login` mpo azwa JWT sika (kofuta echangaka DB kaka, echangaka claims ya JWT deja signe te, soki echangisami te ekomonana «ofuti kasi membre te»), nsima `--target home` → ekota lokasa ya libanda, etat ya membre mobimba.
+Ba cibles ya lien mibale ezali, **liboso créer home, nsima décider passer par to te selon epai motaleli akwei**:
 
-## Molongo mobimba (nzela normal)
+- **lien home (etindami par défaut, `--target home` → akwei na `/`)**: ecreami pe etindami na motaleli mbala moko nsima ya enregistrement elongi.
+  Na période d'essai gratuit motaleli akende directement na page d'accueil, utilisation mobimba; **soki abendi lien pe akwei na page d'abonnement — période d'essai gratuit esili** — bongola na flux ya paiement (tala awa na se); bosenga te ya kobongola script pe enregistrement lisusu.
+- **lien pending (esalemi na flux ya paiement, `--target pending` → akwei na `/subscription`)**:
+  navigateur ya motaleli ekoti na état "demi-kokota": page d'abonnement pe page ya retour nsima ya paiement emonani pe esalaka. Nsima ya argent ekwei,
+  salisa `refresh-login` mpo na bongola JWT ya sika na affirmation ACTIVE, nsima tinda lien home lisusu mpo na état ya membre mobimba.
+
+## Ordre mobimba
+
+### Chemin rapide (na période d'essai gratuit — majorité ya ba cas)
 
 ```
-1.  status                          # Verification ya environnement
-2.  (Etape 2 lisolola confirmer bansongo, password pona mibale; mode generation: gen-password → pesa mosaleli abomba mbala moko)
+1.  status                          # auto-vérification d'environnement
+2.  (étape 2 masolo mpo na confirmer informations, mot de passe nionso; mode généré: gen-password → láta motaleli abomba mbala moko)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → mosaleli kende na imele komona kodi (sehemu moko kaka ya kobima na lisolola①)
+4.  send-code --email E             # → motaleli atala code na boîte de réception (tangoko ya kokabola masolo)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → lien 1 na mosaleli
-7.  (Mosaleli aponi nzela ya kofuta)
+6.  login-link --target home        # → tinda lien na motaleli; clic moko pe na page d'accueil
+7.  (motaleli andimisi akoti) → silisa directement: cleanup + carte de compte + lakisa ba étapes ya liboso
+```
+
+### Chemin ya paiement (tango motaleli alingi membre, to période d'essai gratuit esili)
+
+```
+1–5. Lokola chemin rapide (état ezali na token nsima ya enregistrement elongi)
+6.  login-link --target pending     # → lien demi-kokota, ebombaka page ya retour ya paiement esala
+7.  (motaleli apona méthode ya paiement)
     # Alipay: create-order --package monthly|quarterly|yearly
     # PayPal: create-order --provider paypal
-8.  start <fichier ya lokasa ya kofuta>              # Windows; macOS esalela open, Linux esalela xdg-open
-    # → mosaleli asilisa kofuta/ndingisa na caisse ya Alipay/PayPal (sehemu ya kobima na lisolola②)
-9.  query (chaque secondes 10–15) kino paid / ACTIVE
-10. refresh-login                   # echangala JWT sika na declaration ACTIVE
-11. login-link --target home        # → lien 2 na mosaleli
-12. whoami                          # confirmer subscriptionStatus: ACTIVE (optionnel)
-13. cleanup                         # facera fichier etat
+8.  start <fichier ya page ya paiement>       # Windows; macOS esaleli open, Linux esaleli xdg-open
+    # → motaleli asilisaka paiement/autorisation na caisse Alipay/PayPal (akabwaka masolo)
+9.  query (na 10–15s) tii paid / ACTIVE
+10. refresh-login                   # bongola JWT ya sika na affirmation ACTIVE
+11. login-link --target home        # → tinda lien membre mobimba na motaleli
+12. whoami                          # confirmer subscriptionStatus: ACTIVE (option)
+13. cleanup                         # petola fichier ya état
 ```
-
 ## Commande → API ya plateforme
 
 | Commande ya script | Interface ya plateforme |
@@ -95,7 +110,8 @@ Source ya mangonga: mangonga ya champs na limites ya inscription tala `registrat
 | Nsima ya `create-order` mosaleli afunga lokasa ya kofuta | Sala directement lisusu `create-order` (commande ya kala efungwama automatiquement nsima heures 2; ba abonnements PENDING ya PayPal esila nsima heure 1) |
 | `create-order --provider paypal` ezongisi 409 | Abonnement PayPal moko esilama naino te; zela heure 1 esila, to silisa ndingisa ya kala na navigateur |
 | `query` ezali kofanda pending / PENDING | Ekoki kozala mosaleli afuti te; tuna moko. Asili afuti → landa table ya kotunga ya payment-and-activation.md |
-| `refresh-login` 403 `pending_payment` | Kofuta/ndingisa naino ekomi te, zonga Etape 9 landa poller |
+| Motaleli abendi lien home pe akwei na page d'abonnement | Période d'essai gratuit esili → bongola na flux ya paiement: `login-link --target pending` → pona méthode ya paiement → `create-order` |
+| `refresh-login` 403 `pending_payment` | Période d'essai gratuit esili pe paiement ekwei te; zonga na étape 9 kokoba interroger, to confirmer soki motaleli asilisaki paiement |
 | Fichier etat etangami te (efacami na mabe / ekoti na machine mosusu) | `whoami`/`refresh-login` esalelama te; pesa mosaleli na navigateur oyo efungolaki lien 1 abandisa lokasa ya abonnement mpo aconfirmer etat, to koneksione lisusu (mode web) |
 
 ## Mode ya retour (directives kaka)
@@ -106,6 +122,6 @@ Na cas nionso oyo elandi, zonga mbala moko na mode ya directives kaka ya v1, sou
 - Mosaleli alobi clairement «ngai moko nakosala na web»;
 - Politique ya entreprise/appareil peki script ekende na internet.
 
-Nsima ya retour: pesa lokasa ya inscription https://global.powpow.online/register na lokasa ya abonnement
+Nsima ya kozonga: pesa page d'enregistrement https://global.powpow.online/register (na période d'essai gratuit, enregistrement na web ezali mbala moko rapide; tango abonnement esengeli, pesa page d'abonnement pe https://global.powpow.online/subscription ), silisa problème na côté selon ba règles na `registration-flow.md`, bombaka ton moko, pe silisa na tour nionso na bloc "étape oyo elandi".
 https://global.powpow.online/subscription, landa mangonga ya `registration-flow.md` mpo kosunga na ye, voix
 echangama te, chaque tour esila na bloc «etape oyo elandi».

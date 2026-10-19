@@ -1,6 +1,8 @@
 # Aktywacja subskrypcji i płatność — powpow-register
 
 ## Konkluzja (najpierw odpowiedź)
+> **Bezpłatny okres testowy (od 2026-10-18; faktyczne zachowanie platformy ma pierwszeństwo)**: w tym okresie zarejestrowane konto korzysta ze wszystkich funkcji od razu, a **subskrypcja jest opcjonalnym upgradem, nie wymogiem** — kieruj się przepływem tego pliku tylko, gdy użytkownik sam chce członkostwa. Gdy okres testowy się skończy, konta bez subskrypcji wchodzące na strony treści będą przekierowywane na stronę subskrypcji; po prostu dokończ subskrypcję wg tego pliku.
+
 
 **Zarówno subskrypcje przez Alipay, jak i przez PayPal może obsługiwać agent — składanie zamówienia i śledzenie księgowania włącznie.**
 Alipay to jednorazowy zakup bez automatycznego odnawiania, dla użytkowników z Chin i tych z Alipay; PayPal odnawia się automatycznie co miesiąc i można zrezygnować w każdej chwili,

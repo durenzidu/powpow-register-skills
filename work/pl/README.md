@@ -5,10 +5,8 @@ Bańka" do „konto aktywne, logowanie jednym kliknięciem, zaczynamy" — preze
 interfejsu), rejestracja załatwiana przez agenta (łącznie z wgrywaniem avatara), zamówienie subskrypcji Alipay/PayPal
 i śledzenie księgowania, logowanie jednym kliknięciem na podwójnym linku, rozwiązywanie błędów.
 
-**Od v2.0.0 tryb agenta działającego w imieniu użytkownika, od v2.1.0 także PayPal**: główny skrypt `scripts/powpow-register.mjs` zero
-zależności (Node ≥ 18); użytkownik przez cały czas nie wychodzi z rozmowy, tylko dwa razy na chwilę: po kod do
-skrzynki e-mail i na płatność w kasie Alipay lub PayPal. Bez Node'a albo gdy użytkownik chce działać sam — automatyczny
-powrót do trybu czystych wskazówek.
+**Od v2.0.0 tryb pośrednictwa agenta, a od v2.2.0 jeszcze i adaptacja do bezpłatnego okresu testowego platformy**: podstawowy skrypt `scripts/powpow-register.mjs` bez zależności
+(Node ≥ 18); użytkownik opuszcza rozmowę tylko raz: żeby sprawdzić kod weryfikacyjny w skrzynce. W obecnym bezpłatnym okresie testowym zarejestrowane konto od razu korzysta ze wszystkich funkcji — płatność subskrypcyjna jest opcjonalna; jeśli okres testowy się skończy i użytkownik trafi na stronę subskrypcji, przepływ przełącza się automatycznie na płatność. Bez Node, albo gdy użytkownik woli sam, automatyczny powrót do trybu czystych wskazówek.
 
 ## Instalacja
 
@@ -24,9 +22,9 @@ openclaw skills install @durenzidu/powpow-register
 2. **Rejestracja załatwiana przez agenta**: agent proaktywnie proponuje nazwę użytkownika/pseudonim, hasło z dwóch
    wariantów (podaje użytkownik albo generuje agent), wysyłka i zgłoszenie kodu weryfikacyjnego, bezpośrednie
    wgranie avatara (≤5MB, nie SVG), automatyczna obsługa częstych błędów (zajęte/wygasłe/limity).
-3. **Logowanie jednym kliknięciem (podwójny link)**: po udanej rejestracji od razu link „półzalogowania" prosto na
-   stronę subskrypcji; po zaksięgowaniu płatności wymiana na nowy stan logowania i link z pełnym członkostwem
-   prosto na stronę główną (przez oficjalny mostek `me?token=` platformy, automatycznie ustawia cookie HttpOnly).
+3. **Logowanie jednym kliknięciem (dwa linki)**: od razu po udanej rejestracji link logowania prowadzi użytkownika wprost na stronę główną (w bezpłatnym okresie testowym klik — i działa);
+   jeśli trafi na stronę subskrypcji (okres testowy skończony) lub użytkownik chce upgradę — kieruj się przepływem subskrypcji — po wpływie płatności wymienia się świeży stan logowania, a link z pełnym członkostwem prowadzi na stronę główną
+   (przez oficjalny most platformy `me?token=`, który sam sadzi ciasteczko HttpOnly).
 4. **Płatność subskrypcji**: zarówno Alipay (miesięcznie ¥6.99 / kwartalnie
    ¥19.99 / rocznie ¥69.99, jednorazowy zakup bez automatycznego odnawiania), jak i PayPal (Premium Monthly, ok. $1/mies., automatyczne odnawianie, rezygnacja w każdej chwili) załatwia agent + odpytywanie o księgowanie;
    skanowanie WeChat/Huawei IAP tylko ze wskazaniem drogi.

@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Pomaga użytkownikowi dokończyć w rozmowie rejestrację PowPow (Bańka), aktywację subskrypcji Alipay lub PayPal i logowanie jednym kliknięciem. Agent wypełnia formularz w jego imieniu (łącznie z wgrywaniem avatara), wysyła kod weryfikacyjny e-mailem, tworzy zamówienie płatności i śledzi księgowanie; użytkownik podaje tylko podstawowe dane, raz zagląda do skrzynki po kod i płaci w kasie Alipay lub PayPal — bez wychodzenia z rozmowy. Wyzwalane zdaniami „zarejestruj Bańkę", „załóż konto powpow", „jak się rejestruje w Bańce", „pomóż mi założyć konto powpow", „sign up powwow"; obsługuje też utknięcie rejestracji (kod nie dochodzi, nazwa użytkownika/e-mail zajęte) i problemy z aktywacją (login mówi „konto nieaktywne" / pending_payment, jak opłacić subskrypcję). Wymaga Node ≥ 18; przy braku automatycznie przechodzi w tryb czystych wskazówek. Nie obejmuje publikowania postów/tworzenia cyfrowych ludzi (to robota powpow-simple) ani developmentu kodu.
-version: 2.1.0
+description: Pomaga użytkownikowi w pełni zrealizować rejestrację w PowPow (Bubble) i logowanie jednym kliknięciem bezpośrednio w rozmowie. Agent wypełnia formularz w jego imieniu (w tym przesyła awatar) i wysyła kod weryfikacyjny na e-mail; użytkownik podaje tylko podstawowe dane i sprawdza kod weryfikacyjny raz — nie opuszczając rozmowy. Platforma jest obecnie w bezpłatnym okresie testowym: zarejestrowane konto od razu korzysta ze wszystkich funkcji; płatność subskrypcyjna (Alipay/PayPal) to opcjonalne rozszerzenie członkostwa, które agent też może przeprowadzić wraz z tworzeniem zamówienia i śledzeniem wpływu. Uruchamia się, gdy użytkownik mówi „zarejestruj się w Bubble”, „załóż konto powpow”, „jak się zarejestrować w Bubble”, „pomóż mi założyć konto powpow”, „sign up powpow”; zajmuje się też problemami rejestracji (nie dotarł kod weryfikacyjny, nazwa użytkownika/e-mail zajęte) i aktywacji (logowanie mówi „konto nieaktywowane” / pending_payment, jak subskrybować/płacić, czy Bubble jest darmowy/płatny). Wymaga Node ≥ 18; przy braku automatyczny powrót do trybu czystych wskazówek. Nie obejmuje publikowania/tworzenia cyfrowych ludzi (to zadanie powpow-simple), ani rozwoju kodu.
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,22 +10,22 @@ metadata:
 
 # PowPow Register (asystent rejestracji w Bańce)
 
-Przeprowadzamy nowego użytkownika od „nie wiem, czym jest Bańka" do „konto aktywne, logowanie jednym kliknięciem, można zaczynać" — w całości w rozmowie. Użytkownik tylko dwa razy musi na chwilę wyjść z rozmowy: **wejść do skrzynki e-mail po kod weryfikacyjny** i **zapłacić w kasie** (Alipay lub PayPal — agent sam otworzy stronę kasy).
+Prowadzi nowego użytkownika od „nie wiem, czym jest Bubble” do „zalogowany jednym kliknięciem, gotowy do zabawy” — całość w rozmowie. Użytkownik opuszcza rozmowę tylko raz: **żeby sprawdzić kod weryfikacyjny w skrzynce**. Platforma jest obecnie w bezpłatnym okresie testowym: po rejestracji wszystkie funkcje działają, płatność niepotrzebna; płatność subskrypcyjna to opcjonalne rozszerzenie członkostwa (agent otwiera też kasę i śledzi wpływ).
 
-**Wersja 2.1.0** · 2026-10-11 (od v2 tryb agenta działającego w imieniu użytkownika: kontrakt skryptu i pełna sekwencja w `references/agent-flow.md`; reguły pól, limity i rozwiązywanie błędów w `references/registration-flow.md`; kanały płatności w `references/payment-and-activation.md`; lista zrzutów ekranu produktu w `references/screenshots.md`. Od v2.1.0 subskrypcje PayPal też może obsługiwać agent, jako opcję obok Alipay)
+**Wersja 2.2.0** · 2026-10-18 (od v2 tryb pośrednictwa agenta: kontrakt skryptu i pełna sekwencja w `references/agent-flow.md`; reguły pól, limity i diagnozowanie błędów w `references/registration-flow.md`; kanały płatności w `references/payment-and-activation.md`; lista zrzutów produktu w `references/screenshots.md`. Od v2.1.0 agent może prowadzić też subskrypcje PayPal — obok Alipay. Od v2.2.0 platforma weszła w bezpłatny okres testowy: rejestracja i logowanie jednym kliknięciem wystarczą, żeby korzystać; płatność stała się opcjonalnym upgradem — jeśli użytkownik otworzy link i trafi na stronę subskrypcji, okres testowy się skończył, kieruj się przepływem płatności z kroku 7; przepływ adaptuje się sam, zmiana skryptu niepotrzebna)
 
 ## Środowisko uruchomieniowe
 
 - Skrypt główny `scripts/powpow-register.mjs`: **zero zależności**, wymaga **Node ≥ 18**. Przed startem uruchom raz `node scripts/powpow-register.mjs status`, żeby potwierdzić, że środowisko działa.
 - Wszystkie zapytania skryptu idą wyłącznie do oficjalnej domeny `https://global.powpow.online`.
-- **Brak Node'a / błąd skryptu**: automatyczny powrót do trybu czystych wskazówek — daj użytkownikowi stronę rejestracji https://global.powpow.online/register i stronę subskrypcji https://global.powpow.online/subscription i prowadź go według `references/registration-flow.md`. Nie ponawiaj na siłę kolejnych prób skryptu.
+- **Brak Node / błędy skryptu**: automatyczny powrót do trybu czystych wskazówek — podaj użytkownikowi stronę rejestracji https://global.powpow.online/register i prowadź go wg `references/registration-flow.md` (w bezpłatnym okresie testowym rejestracja przez stronę jest równie natychmiastowa). Nie wciskaj skryptu w kółko.
 - Wznowienie po przerwaniu rozmowy: najpierw `status`, żeby zobaczyć, na którym kroku utknęło, potem idź dalej.
 
 ## Trigger Conditions
 
 - Zamiar rejestracji: „zarejestruj Bańkę", „załóż konto powpow", „jak się rejestruje w Bańce", „sign up powpow"
 - Rejestracja utknęła: „kod weryfikacyjny nie dochodzi", „mówi, że nazwa użytkownika już istnieje", „hasło ciągle odrzucane"
-- Problemy po rejestracji: „przy logowaniu mówi, że konto nieaktywne", „403 pending_payment", „jak zapłacić/wykupić subskrypcję w Bańce"
+- Problemy po rejestracji: „logowanie mówi, że konto nie jest aktywowane”, „403 pending_payment”, „jak zapłacić za Bubble / subskrybować”, „czy Bubble jest darmowe/płatne”
 
 **Nie wyzwala się dla**: publikowania postów/tworzenia cyfrowych ludzi (→ powpow-simple); developmentu kodu po stronie Web (osobny skill deweloperski). Gdy użytkownik chce się rejestrować i od razu publikować: najpierw dokończ ten skill, po aktywacji przekaż do powpow-simple.
 
@@ -38,8 +38,8 @@ Przeprowadzamy nowego użytkownika od „nie wiem, czym jest Bańka" do „konto
 | 3 Wysyłka kodu | `send-code` | —— |
 | 4 Odczyt kodu | —— | Wchodzi do skrzynki, odczytuje 6-cyfrowy kod, odsyła go |
 | 5 Zgłoszenie rejestracji | `register` (z bezpośrednim wgraniem avatara), błędy obsługuje automatycznie | —— |
-| 6 Półzalogowanie + płatność | `login-link(pending)` → `create-order --provider alipay|paypal` → otwiera kasę → odpytuje `query` | Klika link, płaci |
-| 7 Pełne logowanie | `refresh-login` → `login-link(home)` | Klika link i wchodzi na stronę główną |
+| 6 Logowanie jednym kliknięciem | `login-link(home)` wprost na stronę główną; jeśli trafi na stronę subskrypcji — krok 7 | Kliknąć link i zacząć |
+| 7 Upgrade subskrypcji (opcjonalnie) | Tylko gdy użytkownik chce członkostwa / bezpłatny okres się skończył: prowadzimy pełny przepływ płatności | Wybrać metodę, zapłacić |
 | 8 Zamknięcie | `cleanup` + przekazanie danych konta + wprowadzenie do zabawy + polecenie wtyczki | Zaczyna zabawę |
 
 ## Krok 1: prezentacja produktu + zrzuty ekranu (nie pomijać)
@@ -93,18 +93,29 @@ Sukces = konto założone (stan pending, z 3 odznakami startowymi). Częste bł�
 | 「邮箱验证码错误或已过期」 (kod weryfikacyjny błędny lub wygasł) | Minęło ponad 10 minut → wyślij `send-code` ponownie |
 | Zbyt częste wysyłanie/rejestracja (429) | Odczekaj 1 minutę i ponów; wystarczy jedno zdanie do użytkownika |
 
-## Krok 6: logowanie jednym kliknięciem (link 1) + płatność
+## Krok 6: Logowanie jednym kliknięciem (po rejestracji wprost na stronę główną)
 
 1. Zaraz po udanej rejestracji:
    ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. Wyślij link użytkownikowi: **klikniesz — i jesteś od razu na stronie głównej, już zalogowany**. Platforma jest obecnie w bezpłatnym okresie testowym — po rejestracji wszystkie funkcje działają (feed, mapa, cyfrowi ludzie, odznaki itd.), **płatność niepotrzebna**.
+3. Poproś użytkownika o potwierdzenie, że wchodzi; dwa przypadki:
+   - **Trafił na stronę główną** → przejdź od razu do kroku 8 na domknięcie; rejestracja zakończona;
+   - **Trafił na stronę subskrypcji** → bezpłatny okres testowy platformy się skończył; powiedz użytkownikowi „bezpłatny okres próbny się skończył, teraz potrzebna subskrypcja”, potem przeprowadź krok 7, żeby dokończyć subskrypcję, i po niej wróć do kroku 8.
+4. Jeśli użytkownik sam chce upgradę lub wesprzeć platformę → też prowadź do kroku 7 (subskrypcja jest dobrowolna; nie naciskaj).
+## Krok 7: Upgrade subskrypcji (opcjonalnie — tylko gdy krok 6 tego wymaga)
+
+1. Najpierw wyślij link pół-logowania, żeby strona powrotu po płatności pokazała poprawnie „Płatność zakończona”:
+   ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   Wyślij link użytkownikowi: **po otwarciu przeglądarka ląduje wprost na stronie subskrypcji, już zalogowana** — dzięki temu po zapłaceniu strona powrotu poprawnie pokaże „płatność zakończona". (W tym stanie strony treści nadal są odsyłane do strony subskrypcji: to normalna praca paywalla platformy, nie bug, i nie trzeba tłumaczyć użytkownikowi mechaniki wewnętrznej.)
-2. **Poproś użytkownika o wybór metody płatności** — pokaż oba kanały:
-   - **Alipay (Chiny / użytkownicy z Alipay)**: jednorazowy zakup odpowiedniego okresu, **bez automatycznego odnawiania**
-     - Miesięcznie **¥6.99** (polecany na start) / Kwartalnie **¥19.99** / Rocznie **¥69.99**
-   - **PayPal (zagranica / bez Alipay)**: automatyczne odnawianie co miesiąc, rezygnacja w każdej chwili
-     - Premium Monthly, ok. **$1/mies.** (zgodnie z tym, co pokazuje strona subskrypcji; automatyczne odnawianie)
+   Wyślij link użytkownikowi: klik — i przeglądarka od razu na stronie subskrypcji, już zalogowany.
+2. **Każ użytkownikowi wybrać metodę płatności** — pokaż oba kanały:
+   - **Alipay (Chiny kontynentalne / użytkownicy z Alipay)**: jednorazowy zakup na dany okres, **bez auto-odnawiania**
+     - Miesięczny **¥6.99** (polecany do próby) / Kwartalny **¥19.99** / Roczny **¥69.99**
+   - **PayPal (zagranica / bez Alipay)**: auto-odnawianie co miesiąc, rezygnacja w dowolnym momencie
+     - Premium Monthly, około **$1/mies.** (jak na stronie subskrypcji; auto-odnawianie)
 3. Gdy użytkownik wybierze:
    - **Alipay**:
      ```
@@ -114,29 +125,23 @@ Sukces = konto założone (stan pending, z 3 odznakami startowymi). Częste bł�
      ```
      node scripts/powpow-register.mjs create-order --provider paypal
      ```
-   Skrypt zwróci ścieżkę pliku strony płatności; **otwórz ją bezpośrednio poleceniem systemowym** (Windows: `start <plik>`; macOS: `open <plik>`; Linux: `xdg-open <plik>`). Przeglądarka sama przejdzie do oficjalnej kasy Alipay lub PayPal, gdzie użytkownik sfinalizuje płatność albo autoryzację obciążenia.
-4. Co 10–15 sekund uruchamiaj `query`, aż zwróci `paid` lub `ACTIVE` (księgowanie/autoryzacja zwykle trwa od kilku sekund do minuty). Jeśli użytkownik zamknie stronę płatności w trakcie → po prostu ponów `create-order` (stare zamówienia i wiszące subskrypcje zamykają się lub wygasają po 2 godzinach; nie przejmuj się nimi).
-5. Kanał skanowania WeChat wymaga ręcznego potwierdzenia i księgowanie może się opóźnić; Huawei IAP działa tylko w aplikacji HarmonyOS. Tych dwóch skill nie załatwia — po zapłacie i tak wracają do kroku 7.
+   Skrypt zwróci ścieżkę do pliku strony płatności; **otwórz ją bezpośrednio komendą systemową** (Windows: `start <plik>`; macOS: `open <plik>`; Linux: `xdg-open <plik>`). Przeglądarka automatycznie przejdzie do oficjalnej kasy Alipay/PayPal, gdzie użytkownik dokończy płatność lub autoryzację obciążeń.
+4. Uruchamiaj `query` co 10–15 sekund, aż zwróci `paid` lub `ACTIVE` (wpływ/autoryzacja zwykle między sekundą a minutą). Jeśli użytkownik zamknął stronę płatności w połowie → po prostu zrób `create-order` jeszcze raz (stare zamówienia i zawieszone subskrypcje zamykają się lub wygasają po 2 godzinach; nie zwracaj uwagi).
+5. Kanał kodu QR WeChat jest potwierdzany ręcznie, wpływ może się opóźnić; Huawei IAP dostępny tylko w aplikacji HarmonyOS. Skrypt nie prowadzi tych dwóch — po zapłacie użytkownik wraca i mówi agentowi, który najpierw uruchamia `whoami`, żeby potwierdzić wpływ, potem wysyła link do strony głównej wg punktu 6 poniżej.
+6. Po potwierdzeniu wpływu wymień na świeży stan logowania z aktualnym claimem subskrypcji, potem wyślij link wprost na stronę główną:
+   ```
+   POWPOW_REGISTER_PASSWORD=<hasło> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   Wyślij link użytkownikowi: **klikniesz — i jesteś od razu na stronie głównej z pełnym statusem członkostwa**.
+## Krok 8: Domknięcie
 
-## Krok 7: pełne logowanie (link 2)
-
-Po potwierdzeniu księgowania najpierw wymień stan logowania na z najnowszym claimem subskrypcji, dopiero potem wygeneruj link wprost na stronę główną:
-
-```
-POWPOW_REGISTER_PASSWORD=<hasło> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-Wyślij link użytkownikowi: **po otwarciu ląduje wprost na stronie głównej, z pełnym stanem członkostwa** — i tu cały proces rejestracji jest zakończony.
-
-## Krok 8: zamknięcie
-
-1. `node scripts/powpow-register.mjs cleanup` czyści tymczasowy plik stanu na maszynie (dane sesji).
-2. Daj użytkownikowi „kartę konta": nazwa użytkownika, e-mail, data wygaśnięcia członkostwa (hasło nie jest pokazywane ponownie — w trybie generowania użytkownik zapisał je przy tworzeniu; własne sam zna).
-3. Wprowadzenie do zabawy: spacer po mapie, pierwszy dziennik z podróży (→ przekaż do powpow-simple).
-4. Poleć rozszerzenia: skill `@durenzidu/powpow-integration` i wtyczka `@durenzidu/openclaw-channel-powpow` — podłączenie Bańki do własnego agenta użytkownika; jeśli chce, podaj polecenie instalacji.
-5. Zamknij turę blokiem „następny krok".
-
+1. `node scripts/powpow-register.mjs cleanup`, żeby wyczyścić lokalne tymczasowe pliki stanu (dane logowania sesji).
+2. Daj użytkownikowi „kartę konta”: nazwa użytkownika, e-mail (hasła nie pokazujemy ponownie — w trybie generowania prosimy użytkownika o zapisanie go przy generacji; jeśli użytkownik ustawił je sam, je zna).
+3. Przypomnienie o członkostwie (powiedz raz, nie naciskaj): obecnie bezpłatny okres testowy, konto jest od razu używalne; gdy okres testowy się skończy, konta bez subskrypcji wchodzące na strony treści będą przekierowywane na stronę subskrypcji — do długoterminowego użytkowania wróć i zasubskrybuj w dowolnym momencie.
+4. Prowadź pierwsze kroki: przejrzyj mapę, opublikuj pierwszy dziennik podróży (→ przekaż do powpow-simple).
+5. Poleć rozszerzenia: skill `@durenzidu/powpow-integration` i wtyczkę `@durenzidu/openclaw-channel-powpow` — podłącz Bubble do własnego agenta użytkownika; daj komendę instalacji, jeśli zechce.
+6. Zamknij blokiem „następny krok”.
 ## Conversation UX
 
 Utrzymuj charakterystyczny dla powpow ton nastawiony na obsługę:
@@ -157,7 +162,7 @@ Utrzymuj charakterystyczny dla powpow ton nastawiony na obsługę:
 - **Bezpieczeństwo poświadczeń**: hasło trafia do skryptu wyłącznie przez zmienną środowiskową `POWPOW_REGISTER_PASSWORD`, **nigdy** przez argumenty wiersza poleceń (widoczne w liście procesów) i nigdy do żadnego pliku (w trybie generowania pokazane raz, żeby użytkownik zapisał, potem nie wraca). Kod weryfikacyjny służy tylko oficjalnemu interfejsowi rejestracji i po użyciu przepada.
 - **Granica oficjalności**: wszystkie zapytania idą wyłącznie do `https://global.powpow.online` (wbudowane w skrypt); nigdy nie wysyłaj danych użytkownika pod żaden adres trzeciej strony.
 - **Granica płatności**: agent tylko tworzy zamówienie, otwiera kasę, sprawdza księgowanie; **nigdy** nie dotyka konta Alipay/PayPal/dowodów płatności użytkownika i nigdy nie obiecuje „zapłacenia za niego".
-- **Paywall to nie bug**: dostęp stanu pending do strony subskrypcji/strony powrotu to świadome przepuszczenie w projekcie; blokowanie stron treści to normalna praca paywalla platformy, nie próbuj tego obchodzić.
+- **Płatny mur nie jest bugiem**: w obecnym bezpłatnym okresie testowym wszystkie strony treści są otwarte; jeśli użytkownik klika link do strony głównej, a trafia na stronę subskrypcji — okres testowy się skończył, przeprowadź subskrypcję przez krok 7. Nie próbuj omijać paywalla i nie wyjaśniaj użytkownikowi wewnętrznych mechanizmów.
 - **Wolność cofnięcia**: gdy na dowolnym kroku użytkownik chce zrobić coś sam albo środowisko nie wspiera skryptu, w każdej chwili wracaj do trybu czystych wskazówek — daj linki, opowiedz zasady, rozwiązuj błędy razem z nim.
 - Nie zmyślaj reguł platformy: reguły pól, teksty błędów i parametry limitów pochodzą w całości z kodu platformy (`references/registration-flow.md` podaje źródła); przy aktualizacji platformy obowiązuje rzeczywiste zachowanie.
 - Do pokazywania obrazków używaj wyłącznie zrzutów z `assets/screenshots/` w pakiecie (zastosowania każdego zrzutu w `references/screenshots.md`).

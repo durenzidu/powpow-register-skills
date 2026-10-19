@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: 帮用户在对话内完成 PowPow（泡泡）注册、支付宝/PayPal 订阅激活与一键登录。agent 代办填表（含头像上传）、发送邮箱验证码、创建支付订单并跟踪到账，用户只需提供基本信息、查收一次验证码、在支付宝/PayPal 收银台完成付款，全程不脱离对话。当用户说「注册泡泡」「注册 powpow 账号」「泡泡怎么注册」「帮我注册一个 powpow 账号」「sign up powpow」时触发；也处理注册卡壳（收不到验证码、用户名/邮箱被占用）和激活问题（登录提示「账户未激活」/ pending_payment、怎么订阅付费）。需要 Node ≥ 18；不可用时自动退回纯指引模式。不含发帖/创建数字人（那是 powpow-simple 的事），不含代码开发。
-version: 2.1.0
+description: 帮用户在对话内完成 PowPow（泡泡）注册与一键登录。agent 代办填表（含头像上传）、发送邮箱验证码，用户只需提供基本信息、查收一次验证码，全程不脱离对话；当前平台免费测试期内注册后即可直接使用全部功能，订阅支付（支付宝/PayPal）为可选的会员升级，需要时 agent 同样代办下单与到账跟踪。当用户说「注册泡泡」「注册 powpow 账号」「泡泡怎么注册」「帮我注册一个 powpow 账号」「sign up powpow」时触发；也处理注册卡壳（收不到验证码、用户名/邮箱被占用）和激活问题（登录提示「账户未激活」/ pending_payment、怎么订阅付费、泡泡收费吗）。需要 Node ≥ 18；不可用时自动退回纯指引模式。不含发帖/创建数字人（那是 powpow-simple 的事），不含代码开发。
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,24 +10,24 @@ metadata:
 
 # PowPow Register（泡泡注册助手）
 
-带一个新用户从「不知道泡泡是什么」走到「账号激活、一键登录、开始玩」——全程在对话里完成。用户只有两次需要暂时离开对话：**去邮箱看验证码**、**在支付收银台付款**（支付宝/PayPal，agent 会自动打开收银台页面）。
+带一个新用户从「不知道泡泡是什么」走到「一键登录、开始玩」——全程在对话里完成。用户只有一次需要暂时离开对话：**去邮箱看验证码**。当前平台处于免费测试期，注册后即可使用全部功能，无需付费；订阅支付是可选的会员升级（agent 也会代办打开收银台与跟踪到账）。
 
-**版本 2.1.0** · 2026-10-11（v2 起为 agent 代办模式：脚本契约与完整时序见 `references/agent-flow.md`；字段规则、限流与报错排查见 `references/registration-flow.md`；支付通道见 `references/payment-and-activation.md`；产品截图清单见 `references/screenshots.md`。v2.1.0 起 PayPal 订阅也可由 agent 代办，与支付宝并列可选）
+**版本 2.2.0** · 2026-10-18（v2 起为 agent 代办模式：脚本契约与完整时序见 `references/agent-flow.md`；字段规则、限流与报错排查见 `references/registration-flow.md`；支付通道见 `references/payment-and-activation.md`；产品截图清单见 `references/screenshots.md`。v2.1.0 起 PayPal 订阅也可由 agent 代办，与支付宝并列可选。v2.2.0 起平台进入免费测试期：注册后一键登录即可使用，支付改为可选升级——若用户点开链接落在订阅页，说明测试期已结束，按第 7 步支付流程走即可，流程自适应无需改脚本）
 
 ## 运行环境
 
 - 核心脚本 `scripts/powpow-register.mjs`：**零依赖**，需要 **Node ≥ 18**。开始前跑一次 `node scripts/powpow-register.mjs status` 确认环境可用。
 - 脚本所有请求只发往官方域名 `https://global.powpow.online`。
-- **没有 Node / 脚本报错时**：自动退回纯指引模式——把注册页 https://global.powpow.online/register 和订阅页 https://global.powpow.online/subscription 给用户，按 `references/registration-flow.md` 陪伴式引导。不要反复硬试脚本。
+- **没有 Node / 脚本报错时**：自动退回纯指引模式——把注册页 https://global.powpow.online/register 给用户，按 `references/registration-flow.md` 陪伴式引导（免费测试期内网页注册同样即时可用）。不要反复硬试脚本。
 - 对话中断后恢复：先 `status` 看流程到哪一步了，接着走。
 
 ## Trigger Conditions
 
 - 注册意图：「注册泡泡」「注册一个 powpow 账号」「泡泡怎么注册」「sign up powpow」
 - 注册卡住：「收不到验证码」「用户名说已存在」「密码老是不合格」
-- 注册后问题：「登录说账户未激活」「403 pending_payment」「泡泡怎么付费/订阅」
+- 注册后问题：「登录说账户未激活」「403 pending_payment」「泡泡怎么付费/订阅」「泡泡收费吗/免费吗」
 
-**不触发**：发布帖子/创建数字人（→ powpow-simple）；Web 端代码开发（另见开发类 skill）。用户既想注册又想发帖时：先走完本 skill，激活后再交给 powpow-simple。
+**不触发**：发布帖子/创建数字人（→ powpow-simple）；Web 端代码开发（另见开发类 skill）。用户既想注册又想发帖时：先走完本 skill，登录成功后再交给 powpow-simple。
 
 ## 流程总览
 
@@ -38,8 +38,8 @@ metadata:
 | 3 发验证码 | `send-code` | —— |
 | 4 验证码回读 | —— | 去邮箱看 6 位码，回来发送 |
 | 5 提交注册 | `register`（含头像直传），报错自动处理 | —— |
-| 6 半登录 + 支付 | `login-link(pending)` → `create-order --provider alipay|paypal` → 打开收银台 → 轮询 `query` | 点链接、付款 |
-| 7 正式登录 | `refresh-login` → `login-link(home)` | 点链接进首页 |
+| 6 一键登录 | `login-link(home)` 直接进首页；落在订阅页则转第 7 步 | 点链接开始玩 |
+| 7 订阅升级（可选） | 仅当用户想要会员/免费期已结束：支付全流程代办 | 选方式、付款 |
 | 8 收尾 | `cleanup` + 交付凭证 + 引导体验 + 推荐插件 | 开始玩 |
 
 ## 第 1 步：产品介绍 + 截图（不可跳过）
@@ -84,7 +84,7 @@ node scripts/powpow-register.mjs send-code --email <邮箱>
 POWPOW_REGISTER_PASSWORD=<密码> node scripts/powpow-register.mjs register --code <验证码> [--username U] [--nickname N] [--avatar <本地图片路径>] [--phone P]
 ```
 
-成功即建号（pending 状态，附 3 个初始徽章）。常见报错自动处理，不打断用户：
+成功即建号（附 3 个初始徽章）。常见报错自动处理，不打断用户：
 
 | 报错 | 处理 |
 |---|---|
@@ -93,13 +93,25 @@ POWPOW_REGISTER_PASSWORD=<密码> node scripts/powpow-register.mjs register --co
 | 邮箱验证码错误或已过期 | 超过 10 分钟 → 重新 `send-code` |
 | 发送/注册过于频繁（429） | 等 1 分钟再试，跟用户说一声即可 |
 
-## 第 6 步：一键登录（链接 1）+ 支付
+## 第 6 步：一键登录（注册后直接进首页）
 
 1. 注册成功后立即：
    ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. 把链接发给用户：**点开直接落在首页，已是登录状态**。当前平台处于免费测试期，注册后即可使用全部功能（信息流、地图、数字人、打卡等），**无需付费**。
+3. 请用户确认是否成功进入，分两种情形：
+   - **成功进入首页** → 直接跳到第 8 步收尾，注册全流程完成；
+   - **落在订阅页** → 说明平台免费测试期已结束，告诉用户「免费体验期结束了，现在需要订阅会员才能使用」，然后走第 7 步完成订阅，订完后同样回第 8 步。
+4. 用户主动想升级会员或支持平台 → 也走第 7 步（订阅为自愿，不催不劝）。
+
+## 第 7 步：订阅升级（可选，仅第 6 步需要时走）
+
+1. 先发半登录链接，保证支付回跳页能正确显示「支付成功」：
+   ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   把链接发给用户：**点开后浏览器直接落在订阅页，已是登录状态**——之后支付完成时回跳页能正确显示「支付成功」。（此状态下内容页仍会被挡到订阅页，这是平台付费墙的正常工作，不是 bug，也不用向用户解释内部机制。）
+   把链接发给用户：点开后浏览器直接落在订阅页，已是登录状态。
 2. **让用户选择支付方式**，展示两种通道：
    - **支付宝（大陆/有支付宝用户）**：一次性买断对应时长，**不自动续费**
      - 月度 **¥6.99**（推荐先试）/ 季度 **¥19.99** / 年度 **¥69.99**
@@ -116,26 +128,22 @@ POWPOW_REGISTER_PASSWORD=<密码> node scripts/powpow-register.mjs register --co
      ```
    脚本返回支付页文件路径，**用系统命令直接打开**（Windows：`start <文件>`；macOS：`open <文件>`；Linux：`xdg-open <文件>`）。浏览器会自动跳到支付宝/PayPal 官方收银台，用户完成付款或签约授权。
 4. 每 10–15 秒跑一次 `query` 直到返回 `paid` 或 `ACTIVE`（到账/授权一般几秒到一分钟）。用户中途关掉支付页 → 直接重新 `create-order`（旧订单/待处理订阅 2 小时自动关闭/过期，不用管）。
-5. 微信扫码通道是人工确认、到账有延迟；华为 IAP 仅鸿蒙 App 内可用。这两类 skill 不代办，付完一样回来走第 7 步。
-
-## 第 7 步：正式登录（链接 2）
-
-到账确认后，先换取带最新订阅声明的登录态，再生成直达首页的链接：
-
-```
-POWPOW_REGISTER_PASSWORD=<密码> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-把链接发给用户：**点开直接落在首页，完整会员状态**，到此注册全流程完成。
+5. 微信扫码通道是人工确认、到账有延迟；华为 IAP 仅鸿蒙 App 内可用。这两类 skill 不代办——用户付完后回来告知，agent 先跑 `whoami` 确认到账，再按上面第 6 点发首页链接。
+6. 到账确认后，换取带最新订阅声明的登录态，再发直达首页的链接：
+   ```
+   POWPOW_REGISTER_PASSWORD=<密码> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   把链接发给用户：**点开直接落在首页，完整会员状态**。
 
 ## 第 8 步：收尾
 
 1. `node scripts/powpow-register.mjs cleanup` 清理本机临时状态文件（会话凭据）。
-2. 给用户一张「账号卡片」：用户名、邮箱、会员到期时间（密码不重复显示——生成模式在生成时已让用户保存；用户自设的他自己知道）。
-3. 引导体验：逛地图、发第一篇游记（→ 交给 powpow-simple）。
-4. 推荐扩展：`@durenzidu/powpow-integration` skill 和 `@durenzidu/openclaw-channel-powpow` 插件——把泡泡接进用户自己的 agent；想加就给安装命令。
-5. 以「下一步」区块收尾。
+2. 给用户一张「账号卡片」：用户名、邮箱（密码不重复显示——生成模式在生成时已让用户保存；用户自设的他自己知道）。
+3. 会员相关提醒（只说一次，不劝购）：当前是免费测试期，账号可直接使用；测试期结束后未订阅账号访问内容页会转到订阅页，想长期使用可随时回来找 agent 订阅。
+4. 引导体验：逛地图、发第一篇游记（→ 交给 powpow-simple）。
+5. 推荐扩展：`@durenzidu/powpow-integration` skill 和 `@durenzidu/openclaw-channel-powpow` 插件——把泡泡接进用户自己的 agent；想加就给安装命令。
+6. 以「下一步」区块收尾。
 
 ## Conversation UX
 
@@ -150,14 +158,14 @@ node scripts/powpow-register.mjs login-link --target home
      （收到后我马上把账号建好）
   ```
 - **不主动对密码做安全说教**；不解释内部机制、限流或安全设计，除非用户问。
-- agent 代办时更要报进度：每个脚本步骤后用一句话告诉用户刚才发生了什么（「账号建好了」「支付页已经帮你打开了」）。
+- agent 代办时更要报进度：每个脚本步骤后用一句话告诉用户刚才发生了什么（「账号建好了」「登录链接帮你生成好了，点开就能玩」）。
 
 ## 硬规则
 
 - **凭证安全**：密码只通过环境变量 `POWPOW_REGISTER_PASSWORD` 传给脚本，**绝不**写进命令行参数（进程列表可见）、不写入任何文件（生成模式显示一次是为了让用户保存，之后不再复述）。验证码只用于官方注册接口，用完即弃。
 - **官方边界**：所有请求只发往 `https://global.powpow.online`（脚本已内置），绝不把用户信息发给任何第三方地址。
-- **支付边界**：agent 只创建订单、打开收银台、查询到账；**绝不**接触用户的支付宝/PayPal 账号/支付凭证，也绝不承诺"代付"。
-- **付费墙不是 bug**：pending 状态能进订阅页/回跳页是设计内放行；内容页被挡是平台付费墙在正常工作，不要试图绕过。
+- **支付边界**：agent 只创建订单、打开收银台、查询到账；**绝不**接触用户的支付宝/PayPal 账号/支付凭证，也绝不承诺"代付"。订阅是自愿行为，不催不劝。
+- **付费墙不是 bug**：当前免费测试期内内容页全部开放；若用户点开首页链接却落在订阅页，说明测试期已结束，按第 7 步引导订阅即可，不要试图绕过付费墙，也不要向用户解释内部机制。
 - **回退自由**：用户任何一步想自己动手，或环境不支持脚本，随时退回纯指引模式——给链接、讲规则、陪排错。
 - 不要编造平台规则：字段规则、报错文案、限流参数全部来自平台代码（`references/registration-flow.md` 有源码出处），平台更新以实际行为为准。
 - 展示图片只用包内 `assets/screenshots/` 的截图（各图用途见 `references/screenshots.md`）。

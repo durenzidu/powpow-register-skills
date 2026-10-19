@@ -44,20 +44,23 @@ Skrip skill nelpon **set API umum sing padha** (`/api/auth/register`, `send-code
 `/api/auth/me`), karo formulir kaca registrasi ngliwati jalur validasi, watesan laju, lan kesalahan sing padha persis — kabeh
 aturan ing berkas iki berlaku rata kanggo loro mode. Urutan skrip lan kontrak printah ndeleng `references/agent-flow.md`.
 
-## Aliran status sawise registrasi sukses
+## Alur kahanan sawise registrasi kasil
 
-1. Panganggo kasimpen kanthi `accountStatus: 'pending'`, **3 lencana awal** (register route).
-2. Server bebarengan nandur loro cookie HttpOnly: JWT (bisa langsung ngakses `/subscription`) lan
-   pendingUserToken (bukti identitas alur langganan).
-3. Kaca registrasi ndeteksi `pending_payment` → mlumpat menyang `/subscription` (ngreksa paramèter bali `next`);
-   mode agen-ditindakake nganggo `me?token=…&redirect=/subscription` kanggo nggayuh efek padha.
-4. Bayaran rampung → `accountStatus` dadi `active` (**Alipay liwat notify server ngaktifake otomatis**;
-   PayPal liwat Webhook ngaktifake otomatis; pindai kode WeChat dikonfirmasi manual; Huawei IAP liwat `activate-huawei`).
-   Detail ndeleng `payment-and-activation.md`.
+> **Wektu coba gratis (wiwit 2026-10-18; tumindak platform nyata sing absah)**: akun anyar sing didhaftar bisa **langsung nggunakake kabeh fitur**
+> (feed, peta, manungsa digital, check-in, lsp) tanpa pambayaran; akun tanpa langganan ora dikurung maneh saka kaca isi. "Pencekalan pending"
+> sing dijelasake ing bagean iki yaiku kahanan lumrah sawise wektu coba rampung — nalika wektu kuwi teka, tumindak online nyata sing absah.
 
-Panganggo durung aktif (pending) nelpon API inti (aliran info, peta, obrolan manungsa digital, check-in lsp.) tansah 403;
-kejuali tautan kiriman sing dibagi (tetep umum bisa diakses).
+1. Pangguna disimpen karo `accountStatus: 'pending'` lan **3 lencana awal** (rute register).
+2. Server uga nancepake rong cookie HttpOnly: JWT (bisa mlebu kaca langsung) lan pendingUserToken (kredensial identitas kanggo alur langganan).
+3. Ing kahanan lumrah (wektu coba rampung / ora ana wektu gratis), kaca registrasi ndeteksi `pending_payment` → dialihakake menyang `/subscription`
+   (njaga parameter bali `next`); ing mode bantuan agen, `me?token=…&redirect=/subscription` entuk efek sing padha.
+   **Ing wektu coba gratis langkah iki ora dipicu** — sawise dhaptar, langsung menyang kaca ngarep lan miwiti dipa.
+4. Pambayaran rampung → `accountStatus` dadi `active` (**Alipay ngaktifake kanthi otomatis sisi server liwat notify**;
+   PayPal ngaktifake liwat Webhook; kode QR WeChat dikonfirmasi manual; Huawei IAP liwat `activate-huawei`).
+   Delok `payment-and-activation.md` kanggo rincian.
 
+Ing kahanan lumrah, pangguna ora aktif (pending) nimbali API inti (feed, peta, obrolan manungsa digital, check-in, lsp) entuk 403;
+link posting sing dibagi dadi pengecualian (tetap bisa diakses publik). Ing wektu coba gratis pencekalan iki disendheksa lan kabeh kabukak.
 ## Tabel diagnostik kesalahan umum
 
 | Fenomena | Sebab | Kepriye |
@@ -70,7 +73,8 @@ kejuali tautan kiriman sing dibagi (tetep umum bisa diakses).
 | 「注册请求过于频繁」/ 429 (panjalukan registrasi kekerehan) | Registrasi 3 ping/menit/IP kena plafon | Enteni sawetara menit banjur coba maneh |
 | 409「用户名或邮箱已被注册」 (jeneng panganggo utawa email wis kadhaptar) | Ing wektu ngirim bentrok jeneng karo wong liya (jaring pengaman konkurensi) | Ganti jeneng panganggo utawa email banjur coba maneh |
 | 「图片大小不能超过5MB」/「不支持 SVG」 (ukuran gambar ora bisa ngluwihi 5MB / ora ndhukung SVG) | Avatar ora mumpuni | Ganti gambar utawa lalewatan avatar |
-| Registrasi sukses nanging mlebu 403「请完成订阅以激活账户」 (mangga rampungake langganan kanggo ngaktifake akun) | Akun isih pending (status walik sadurunge mbayar) | Sadurunge mbayar: iki normal, dhisik rampungake langganan; sawise mbayar isih 403: tegese nganggo JWT lawas, mode skrip dhisik `refresh-login` ngganti status mlebu anyar |
+| Pangguna klik link mlebu nanging mandheg ing kaca langganan (dudu kaca ngarep) | Wektu coba gratis wis rampung lan paywall platform bali | Tindakake alur pambayaran langganan langkah 7 ing SKILL.md; sawise langganan, lakokake `refresh-login` banjur kirim link kaca ngarep |
+| Kasil registrasi nanging mlebu mbalekake 403 "请完成订阅以激活账户" | Akun isih pending, lan platform ora ing wektu coba gratis (kahanan sing dikarepake sadurunge pambayaran) | Ora bakal kelakon ing wektu coba gratis; yen kelakon, wektu coba wis rampung — rampungake langganan dhisik; yen isih 403 sawise mbayar, JWT lawas sing dipakai — ing mode skrip dhisik lakokake `refresh-login` kanggo gentiak kahanan mlebu anyar |
 | Mlebu 423「账户已锁定」 (akun dikunci) | Tembung sandhi salah berturut-turut 5 ping | Enteni 30 menit |
 | Mlebu 401「还剩 N 次尝试机会」 (isih ana N kesempatan nyoba) | Tembung sandhi salah, cedhak dikunci | Mikir pantes banjur coba, utawa langsung tindak 忘记密码 (luput tembung sandhi) |
 | 「该账号未设置密码，请使用其他方式登录」 (akun iki durung nyetel tembung sandhi, mangga nganggo cara mlebu liya) | Akun pihak katelu (Google/Watcha/Huawei) | Nganggo tombol pihak katelu asal kanggo mlebu |

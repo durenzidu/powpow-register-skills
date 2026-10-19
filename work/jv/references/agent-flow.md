@@ -22,7 +22,7 @@ skrip **tanpa dependensi**, butuh **Node >= 18**, kabeh panjalukan mung menyang 
 | `prepare-suggest` | `--username --nickname --email` | Nyathet info sing wis dikonfirmasi menyang berkas status (sawise iku register ora perlu dikirim maneh) |
 | `send-code` | `--email` | Micu platform ngirim kode verifikasi 6 digit (sah 10 menit, cooldown 60 detik) |
 | `register` | `--code` (wajib); `--username --nickname --avatar --phone` (opsional, yen berkas status wis ana, ora perlu dikirim) | Nggawe akun pending; tembung sandhi liwat variabel lingkungan `POWPOW_REGISTER_PASSWORD`; sawise sukses JWT otomatis disimpen ing berkas status |
-| `login-link` | `--target pending` utawa `--target home` | Nggawe tautan mlebu sepisan klik (desain tautan dobel, ndeleng ing ngisor) |
+| `login-link` | `--target pending` utawa `--target home` | Nggawe link mlebu siji klik (desain rong link, delok ngisor) |
 | `create-order` | `--package monthly\|quarterly\|yearly` (gawan Alipay)<br>`--provider alipay\|paypal` | Nggawe pesanan bayaran; Alipay mbalekake path berkas kaca bayaran + outTradeNo; PayPal mbalekake path berkas kaca ijin + subscriptionId (otomatis dicathet ing berkas status) |
 | `query` | —— | Ndeleng status pesanan/langganan. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; polling 10–15 detik |
 | `refresh-login` | tembung sandhi liwat variabel lingkungan | Mlebu maneh kanggo njupuk **JWT anyar** (klaim langganan owah saka NONE dadi ACTIVE), wajib jalanke sawise bayaran tekan |
@@ -40,39 +40,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<tembung sandhi>'; node scripts/powpow-register
 set POWPOW_REGISTER_PASSWORD=<tembung sandhi> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## Mekanisme tautan dobel (desain inti)
+## Mekanisme rong link (desain inti)
 
-Status mlebu platform yaiku cookie HttpOnly, agen ora bisa langsung nandur cookie menyang browser; jembatane yaiku endpoint resmi
-`/api/auth/me?token=<JWT>&redirect=<path-njeron-situs>`: verifikasi tandha → panganggo pending otomatis digaweake
-session → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 dina) → validasi
-redirect (mung diwiwiti siji garis miring, larang `//` lan backslash, sawise diurai kudu same-origin) → 307 pangalihan sauntara menyang kaca target.
+Kahanan mlebu platform iku cookie HttpOnly, sing ora bisa ditancemake agen langsung menyang browser; jembatan iku titik pungkasan resmi
+`/api/auth/me?token=<JWT>&redirect=<path ing sajroning situs>`: verifikasi tanda tangan → gawe otomatis
+sesi → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 dina) → validasi
+redirect (kudu diwiwani karo slash tunggal, `//` lan slash mburi dilarang, kudu same-origin sawise diurai) → 307 redirect sementara menyang kaca target.
 
-- **Tautan 1 (diwenehake langsung sawise registrasi sukses)**: `--target pending` → mlebu `/subscription`.
-  Browser panganggo mlebu status "mlebu setengah": kaca langganan, kaca bali Alipay bisa dideleng lan bisa dioperasikake; kaca isi isih ditulak menyang kaca langganan dening tembok bayaran (telung lapisan protèksi: priksa gerbang klaim JWT → priksa maneh DB → priksa API inti, iku tumindak normal).
-- **Tautan 2 (diwenehake sawise paid dikonfirmasi)**: dhisik `refresh-login` njupuk JWT anyar (bayaran mung nganyari DB, ora ngowahi klaim JWT sing wis ditandatangani, yen ora diganti bakal katon "wis mbayar nanging dudu anggota"), banjur `--target home` → mlebu kaca ngarep,
-  status anggota lengkap.
+Ana rong target link, **dhisik gawe home, banjur mutusake liwat pending utawa ora adhedhasar ngendi pangguna mandheg**:
 
-## Urutan lengkap (jalur normal)
+- **link home (dikirim kanthi default, `--target home` → mandheg ing `/`)**: digawe lan dikirim menyang pangguna sawise registrasi kasil.
+  Ing wektu coba gratis pangguna langsung menyang kaca ngarep, kabeh bisa dipa; **yen dheweke klik nanging mandheg ing kaca langganan — wektu coba gratis wis rampung** — pindhah menyang alur pambayaran (delok ngisor); ora perlu ngowahi skrip lan registrasi maneh.
+- **link pending (dipakai ing alur pambayaran, `--target pending` → mandheg ing `/subscription`)**:
+  browser pangguna mlebu kahanan "mlebu separo": kaca langganan lan kaca bali sawise pambayaran katon lan bisa dioperasikake. Sawise pambayaran mlebu,
+  lakokake `refresh-login` kanggo gentiak JWT anyar karo klaim ACTIVE, banjur kirim link home maneh kanggo status keanggotaan lengkap.
+
+## Urutan lengkap
+
+### Alur cepet (ing wektu coba gratis — mayoritas kahanan)
 
 ```
-1.  status                          # self-test lingkungan
-2.  (Langkah 2 konfirmasi info ing obrolan, tembung sandhi milih siji; mode nggawe: gen-password → nyurup panganggo gelis simpen)
+1.  status                          # pemeriksaan kahanan lingkungan
+2.  (langkah 2 rembugan konfirmasi informasi, sandi bebas; mode generate: gen-password → kon pangguna simen langsung)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → panganggo menyang email ndeleng kode (siji-sijine bagean metu obrolan①)
+4.  send-code --email E             # → pangguna ndelok kode ing inbox (sasi-sasi ninggal rembugan)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → tautan 1 dikirim marang panganggo
-7.  (panganggo milih cara bayar)
+6.  login-link --target home        # → kirim link menyang pangguna; siji klik langsung ing kaca ngarep
+7.  (pangguna konfirmasi wis mlebu) → langsung rampung: cleanup + kartu akun + tuduhake langkah awal
+```
+
+### Alur pambayaran (nalika pangguna pengin keanggotaan, utawa wektu coba gratis wis rampung)
+
+```
+1–5. Padha karo alur cepet (kahanan wis nduweni token sawise registrasi kasil)
+6.  login-link --target pending     # → link mlebu separo, njaga kaca bali pambayaran bisa mlaku
+7.  (pangguna milih cara pambayaran)
     # Alipay: create-order --package monthly|quarterly|yearly
     # PayPal: create-order --provider paypal
-8.  start <berkas kaca bayaran>              # Windows; macOS nganggo open, Linux nganggo xdg-open
-    # → panganggo ngrampungake bayaran/ijin ing kasir Alipay/PayPal (bagean metu obrolan②)
-9.  query (saben 10–15 detik) nganti paid / ACTIVE
-10. refresh-login                   # njupuk JWT anyar kanthi klaim ACTIVE
-11. login-link --target home        # → tautan 2 dikirim marang panganggo
+8.  start <file kaca pambayaran>       # Windows; macOS nggunakake open, Linux nggunakake xdg-open
+    # → pangguna ngrampungake pambayaran/otorisasi ing kasir Alipay/PayPal (ninggal rembugan)
+9.  query (saben 10–15s) nganti paid / ACTIVE
+10. refresh-login                   # gentiak JWT anyar karo klaim ACTIVE
+11. login-link --target home        # → kirim link keanggotaan lengkap menyang pangguna
 12. whoami                          # konfirmasi subscriptionStatus: ACTIVE (opsional)
-13. cleanup                         # mbusak berkas status
+13. cleanup                         # resikake file kahanan
 ```
-
 ## Pemetaan printah → API platform
 
 | Printah skrip | API platform |
@@ -99,7 +111,8 @@ Sumber aturan: aturan kolom lan watesan laju registrasi ndeleng `registration-fl
 | Sawise `create-order` panganggo nutup kaca bayaran | Langsung jalanke maneh `create-order` (pesanan lawas otomatis ditutup sawise 2 jam; langganan PayPal PENDING kadaluwarsa sawise 1 jam) |
 | `create-order --provider paypal` mbalekake 409 | Ana langganan PayPal sing durung rampung; enteni 1 jam nganti kadaluwarsa, utawa rampungake ijin lawas ing browser |
 | `query` tansah pending / PENDING | Panganggo mbokmenawa durung mbayar; takona sepisan. Yen pancen wis mbayar → tindakake tabel diagnostik payment-and-activation.md |
-| `refresh-login` 403 `pending_payment` | Bayaran/ijin durung tekan, bali menyang langkah 9 nerusake polling |
+| Pangguna klik link home nanging mandheg ing kaca langganan | Wektu coba gratis wis rampung → pindhah menyang alur pambayaran: `login-link --target pending` → pilih cara pambayaran → `create-order` |
+| `refresh-login` 403 `pending_payment` | Wektu coba gratis wis rampung lan pambayaran durung mlebu; bali menyang langkah 9 terus ngenteni, utawa konfirmasi apa pangguna wis ngrampungake pambayaran |
 | Berkas status ilang (kecele dibusak / ganti mesin) | `whoami`/`refresh-login` ora bisa dienggo; nyurup panganggo ing browser sing tau mbukak tautan 1 langsung nganyari kaca langganan kanggo konfirmasi status, utawa mlebu maneh (mode web) |
 
 ## Mode fallback (pandhuan murni)
@@ -110,6 +123,6 @@ Kahanan ing ngisor iki, langsung bali menyang mode pandhuan murni gaya v1, aja r
 - Panganggo jelas ngomong "aku dhewe sing ngoperasikake ing web";
 - Kebijakan perusahaan/perangkat mbatesi skrip nyambung internet.
 
-Sawise fallback: wenehake kaca registrasi https://global.powpow.online/register lan kaca langganan
+Sawise bali: menehi kaca registrasi https://global.powpow.online/register (ing wektu coba gratis, registrasi web uga padha cepet; nalika langganan dibutuhake, menehi kaca langganan uga https://global.powpow.online/subscription ), tangani bebarengan miturut aturan ing `registration-flow.md`, njaga swara padha, lan tansah rampungake saben giliran karo blok "langkah sabanjure".
 https://global.powpow.online/subscription , ngetutake aturan `registration-flow.md` mèlu ngatasi masalah, swara
 ora owah, saben giliran isih ditutup karo bagean "langkah sabanjure".

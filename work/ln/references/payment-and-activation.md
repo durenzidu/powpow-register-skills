@@ -1,6 +1,8 @@
 # Activation ya abonnement na kofuta — powpow-register
 
 ## Conclusion (reponse liboso)
+> **Période d'essai gratuit (kobanda 2026-10-18; comportement réel ya plateforme ezali oyo eleki)**: na période oyo compte enregistré akoki kosalisa ba fonctionnalités nionso directement, pe **sala abonnement ezali amélioration ya option te exigence** — landa flux ya fichier oyo sé tango motaleli moko alingi membre. Tango période d'essai esili, ba comptes sans abonnement tango bakokota na ba pages ya contenu bakozwa redirection na page d'abonnement; silisa abonnement selon fichier oyo.
+
 
 **Nzela ya Alipay na PayPal nyonso mibale sikoyo ekoki kosalema na agent — kosala commande na kolandela mbongo ekota.**
 Alipay ezali achat mbala moko, e-renouveler automatiquement te, mpo na ba mosaleli ya Chine na ba oyo bazali na Alipay; PayPal e-renouveler automatiquement chaque mois mpe ekoki ko-annuler ntango nionso,

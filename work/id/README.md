@@ -5,10 +5,8 @@ Gelembung» sampai «akun aktif, login sekali klik, mulai bermain» — perkenal
 antarmuka), pendaftaran yang dikerjakan agent (termasuk unggah foto profil), pesanan dan pemantauan langganan
 Alipay/PayPal, login sekali klik dengan tautan ganda, penelusuran galat.
 
-**Sejak v2.0.0 adalah mode agent yang bertindak atas nama, dan sejak v2.1.0 PayPal juga bisa dikerjakan**: skrip utama `scripts/powpow-register.mjs` nol
-dependensi (Node ≥ 18), pengguna sepanjang proses tidak keluar dari percakapan, hanya dua kali meninggalkan
-sebentar: masuk email membaca kode verifikasi, dan membayar di kasir Alipay/PayPal. Tanpa Node, atau bila pengguna ingin
-mengerjakan sendiri, otomatis mundur ke mode panduan murni.
+**Sejak v2.0.0 ini mode perantara agent, dan sejak v2.2.0 juga menyesuaikan diri dengan masa uji coba gratis platform**: skrip inti `scripts/powpow-register.mjs` tanpa dependensi
+(Node ≥ 18); pengguna hanya meninggalkan percakapan satu kali: untuk memeriksa kode verifikasi di kotak masuk. Selama masa uji coba gratis saat ini, akun yang sudah terdaftar langsung bisa memakai semua fitur — pembayaran langganan opsional; jika masa uji coba berakhir dan pengguna mendarat di halaman langganan, alur otomatis beralih ke jalur pembayaran. Tanpa Node, atau bila pengguna lebih suka melakukannya sendiri, otomatis beralih ke mode panduan murni.
 
 ## Pemasangan
 
@@ -24,9 +22,9 @@ openclaw skills install @durenzidu/powpow-register
 2. **Pendaftaran atas nama**: agent proaktif menyarankan nama pengguna/nama panggilan, kata sandi pilih 1 dari 2
    (diberikan pengguna atau dibuat agent), pengiriman dan pengisian kode verifikasi, unggah foto profil langsung
    (≤5MB non SVG), penanganan otomatis galat umum (dipakai/kedaluwarsa/limit laju).
-3. **Login sekali klik (tautan ganda)**: begitu daftar berhasil diberikan tautan «setengah sesi» yang mendarat
-   langsung di halaman langganan; setelah dana masuk, ganti status login baru lalu berikan tautan keanggotaan
-   penuh yang mendarat langsung di beranda (lewat jembatan resmi `me?token=` platform, otomatis menanam cookie
+3. **Login sekali klik (dua link)**: tepat setelah pendaftaran berhasil, link login membawa pengguna langsung ke beranda (selama masa uji coba gratis, sekali klik langsung bisa dipakai);
+   jika mendarat di halaman langganan (masa uji coba berakhir) atau pengguna ingin meningkatkan, ikuti alur langganan — setelah dana masuk, status login terbaru ditukar dan link keanggotaan penuh membawa ke beranda
+   (melalui jembatan resmi platform `me?token=`, yang otomatis menanam cookie HttpOnly).
    HttpOnly).
 4. **Pembayaran langganan**: baik Alipay (bulanan ¥6.99 / triwulan ¥19.99 /
    tahunan ¥69.99, beli putus sekali tanpa perpanjangan otomatis) maupun PayPal (Premium Monthly, sekitar $1/bulan,

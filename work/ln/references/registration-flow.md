@@ -43,20 +43,23 @@ Lokasa mpe ezali na boutons misato ya koneksione ya bato ya misato: **Google, Wa
 Scripts ya skill ezali kobenga **API publiques moko moko** (`/api/auth/register`, `send-code`, `login`,
 `/api/auth/me`), na fome ya lokasa ya inscription ekota na verification, limites na nzela ya mbeba moko moko — mangonga nionso ya fichier oyo ezali ndenge moko mpo na modes mibale. Molongo na contract ya commandes tala `references/agent-flow.md`.
 
-## Etat nsima ya inscription succes
+## Flux ya état nsima ya enregistrement elongi
 
-1. Mosaleli akota na base na `accountStatus: 'pending'`, **badges 3 ya ebandeli** (register route).
-2. Serveur mpe ekanda cookie mibale ya HttpOnly: JWT (ekoki kota directement `/subscription`) na
-   pendingUserToken (identite ya mosala ya abonnement).
-3. Lokasa ya inscription emoni `pending_payment` → ekende na `/subscription` (ebombi parametre `next` ya retour);
-   mode ya agent esalela `me?token=…&redirect=/subscription` mpo ezala resultat ndenge moko.
-4. Kofuta esila → `accountStatus` ekomi `active` (**Alipay na notify serveur activation automatique**;
-   PayPal na Webhook activation automatique; scan WeChat confirmation ya moto; Huawei IAP na `activate-huawei`).
-   Detail tala `payment-and-activation.md`.
+> **Période d'essai gratuit (kobanda 2026-10-18; comportement réel ya plateforme ezali oyo eleki)**: compte ya sika enregistré akoki **kosalisa ba fonctionnalités nionso directement**
+> (feed, carte, humains numériques, check-ins, etc.) paiement te; ba comptes sans abonnement bazali sé na ba pages ya contenu lisusu te. "Blocage pending"
+> oyo edescriptami na section oyo ezali état normal nsima ya période d'essai — tango tango wana ekoya, comportement réel en ligne ezali oyo eleki.
 
-Mosaleli non-active (pending) abenga API core (feed, mapa, lisolola na moto numerique, check-in, nsn.) nionso ezongisa 403;
-lien ya post partagé ezali exception (ezali public, ekoki kofungwama).
+1. Motaleli abombami na `accountStatus: 'pending'` pe **3 badges ya liboso** (route register).
+2. Serveur atiaka pe cookies mibale HttpOnly: JWT (akoki kokota na ba pages directement) pe pendingUserToken (identifiant ya flux ya abonnement).
+3. Na état normal (période d'essai esili / période gratuite te), page d'enregistrement edetecte `pending_payment` → redirection na `/subscription`
+   (ebombaka paramètre ya retour `next`); na mode ya aide ya agent, `me?token=…&redirect=/subscription` esalaka effet moko.
+   **Na période d'essai gratuit étape oyo etambulaka te** — nsima ya enregistrement, kende directement na page d'accueil pe banda kosala.
+4. Paiement esili → `accountStatus` ekomi `active` (**Alipay eactive automatique côté serveur via notify**;
+   PayPal eactive via Webhook; code QR WeChat endimisaka na loboko; Huawei IAP epusi via `activate-huawei`).
+   Tala `payment-and-activation.md` mpo na détails.
 
+Na état normal, ba utilisateurs inactifs (pending) bakobenga API central (feed, carte, discussion ya humain numérique, check-ins, etc.) bazwaka 403;
+ba liens ya publication partagés bazali exception (ebombami accessibles publiquement). Na période d'essai gratuit blocage oyo esalemaka te pe nionso ezali ouvert.
 ## Table ya kotunga mbeba ya mbala mingi
 
 | Tukio | Tina | Kosala nini |
@@ -69,7 +72,8 @@ lien ya post partagé ezali exception (ezali public, ekoki kofungwama).
 | 「注册请求过于频繁」/ 429 (demande ya inscription mingi mingi / 429) | Inscription mbala 3/minute/IP efika kilele | Zela minutes moke nsima meka |
 | 409「用户名或邮箱已被注册」 (409 kombo ya mosaleli to imele déjà inscrit) | Na ntango ya kutinda ekangani na moto mosusu (protection ya concurrence) | Changer kombo ya mosaleli to imele nsima meka lisusu |
 | 「图片大小不能超过5MB」/「不支持 SVG」 (lilinzo monene koleka 5MB / esupporte SVG te) | Lilinzo ya profil ezali malamu te | Changer lilinzo to bwaka lilinzo ya profil |
-| Inscription succes kasi koneksione 403「请完成订阅以激活账户」 (sila kosala abonnement mpo activer kompte) | Kompte naino pending (etat ya ko attendre liboso ya kofuta) | Liboso ya kofuta: yango normal, liboso sila abonnement; nsima ya kofuta naino 403: elobi osalelaki JWT ya kala, mode script liboso `refresh-login` echangala etat ya koneksione sika |
+| Motaleli abendi lien ya kokota pe akwei na page d'abonnement (esika ya page d'accueil) | Période d'essai gratuit esili pe paywall ya plateforme azongi | Landa flux ya paiement d'abonnement étape 7 na SKILL.md; nsima ya abonnement, salisa `refresh-login` nsima tinda lien ya page d'accueil |
+| Enregistrement elongi mais kokota azongisi 403 "请完成订阅以激活账户" | Compte azali pending, pe plateforme ezali na période d'essai gratuit te (état attendu avant paiement) | Ekosalema te na période d'essai gratuit; soki esalemi, période d'essai esili — silisa abonnement liboso; soki 403 kaka nsima ya paiement, JWT ya kala esalemaki — na mode script liboso salisa `refresh-login` mpo na bongola état ya kokota ya sika |
 | Koneksione 423「账户已锁定」 (kompte efungami) | Password mbeba continu mbala 5 | Zela minutes 30 |
 | Koneksione 401「还剩 N 次尝试机会」 (bado N ya essais ekoki) | Password mbeba, peneza efungama | Kanisa malamu nsima meka, to directement na «忘记密码» |
 | 「该账号未设置密码，请使用其他方式登录」 (kompte oyo ezali na password te, salela nzela mosusu ya koneksione) | Kompte ya bato ya misato (Google/Watcha/Huawei) | Salela bouton ya bato ya misato ya liboso mpo koneksione |

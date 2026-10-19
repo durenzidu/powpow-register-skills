@@ -1,117 +1,128 @@
-# Agent 代办流程与脚本契约 — powpow-register
+# Agent-Assisted Flow and Script Contract — powpow-register
 
-SKILL.md 各步骤的执行细节。所有命令都是 `node scripts/powpow-register.mjs <子命令> [参数]`，
-脚本**零依赖**、需 **Node ≥ 18**，所有请求只发 `https://global.powpow.online`。
+Execution details for each step of SKILL.md. All commands are `node scripts/powpow-register.mjs <subcommand> [args]`,
+the script is **zero-dependency** and requires **Node ≥ 18**, and all requests go to `https://global.powpow.online` only.
 
-## 安全设计（为什么这样设计）
+## Security Design (why it's built this way)
 
-| 设计 | 原因 |
+| Design | Reason |
 |---|---|
-| 密码只经环境变量 `POWPOW_REGISTER_PASSWORD` 传入 | 进程命令行参数对同机其他进程可见（argv 泄露面），环境变量在脚本内读后即用 |
-| 密码**绝不写入状态文件**、绝不出现在日志 | 状态文件可能在磁盘上留存；对话里生成模式只显示一次是为了让用户保存 |
-| 状态文件存于系统临时目录（`os.tmpdir()/powpow-register-state.json`，0600） | 只含 email / username / nickname / token / outTradeNo 五个字段，`cleanup` 一键清除 |
-| agent 拿到的 JWT 通过官方 `me?token=` 端点换浏览器 cookie | 平台为鸿蒙 WebView 设计的官方桥；验签只查签名+有效期，不绑设备指纹，用户浏览器可用 |
-| 支付只做 create-order / query / 打开收银台 | 付款动作与支付凭证永远在用户与支付宝官方收银台之间，agent 不经手 |
+| The password is passed only via the `POWPOW_REGISTER_PASSWORD` environment variable | Process command-line arguments are visible to other processes on the same machine (argv leak surface); the environment variable is read inside the script and used immediately |
+| The password is **never written to the state file** and never appears in logs | The state file may persist on disk; in generated mode it's shown once in the conversation only so the user can save it |
+| The state file lives in the system temp directory (`os.tmpdir()/powpow-register-state.json`, 0600) | Contains only five fields — email / username / nickname / token / outTradeNo; `cleanup` removes it in one shot |
+| The JWT obtained by the agent is exchanged for browser cookies via the official `me?token=` endpoint | The platform's official bridge designed for the HarmonyOS WebView; signature verification checks signature + validity only, no device fingerprint binding, so the user's browser can use it |
+| Payment only does create-order / query / opening the cashier | The payment action and payment credentials always stay between the user and the official Alipay cashier; the agent never handles them |
 
-## 命令参考
+## Command Reference
 
-| 命令 | 关键参数 | 作用 / 时机 |
+| Command | Key arguments | Purpose / when |
 |---|---|---|
-| `status` | —— | 查看流程进度（读状态文件）；对话中断后先跑这个 |
-| `gen-password` | —— | 生成 24 位强密码（含大小写+数字），stdout 显示**仅此一次** |
-| `prepare-suggest` | `--username --nickname --email` | 把确认好的信息记入状态文件（之后 register 不用重复传） |
-| `send-code` | `--email` | 触发平台发 6 位验证码（10 分钟有效，60s 冷却） |
-| `register` | `--code`（必填）；`--username --nickname --avatar --phone`（可选，状态文件有则免传） | 建 pending 账号；密码经 `POWPOW_REGISTER_PASSWORD` 环境变量；成功后 JWT 自动存状态文件 |
-| `login-link` | `--target pending` 或 `--target home` | 生成一键登录链接（双链接设计，见下） |
-| `create-order` | `--package monthly\|quarterly\|yearly`（支付宝默认）<br>`--provider alipay\|paypal` | 创建支付订单；支付宝返回支付页文件路径 + outTradeNo；PayPal 返回授权页文件路径 + subscriptionId（自动记入状态文件） |
-| `query` | —— | 查订单/订阅状态。支付宝：`paid / pending / closed / unknown`；PayPal：`ACTIVE / PENDING`，10–15s 轮询 |
-| `refresh-login` | 密码经环境变量 | 重新登录换**新 JWT**（订阅声明从 NONE 变 ACTIVE），付款到账后必跑 |
-| `whoami` | —— | 用状态文件里的 token 查账号与订阅状态（验证激活是否生效） |
-| `cleanup` | —— | 删除状态文件（收尾必跑） |
+| `status` | —— | Check flow progress (reads the state file); run this first after an interrupted conversation |
+| `gen-password` | —— | Generate a 24-character strong password (upper + lower case + digits), shown on stdout **once only** |
+| `prepare-suggest` | `--username --nickname --email` | Record the confirmed info into the state file (register won't need them again afterwards) |
+| `send-code` | `--email` | Trigger the platform to send the 6-digit code (valid 10 minutes, 60s cooldown) |
+| `register` | `--code` (required); `--username --nickname --avatar --phone` (optional; skip if already in the state file) | Create the pending account; the password goes through the `POWPOW_REGISTER_PASSWORD` environment variable; on success the JWT is stored into the state file automatically |
+| `login-link` | `--target pending` or `--target home` | Generates a one-click login link (dual-link design, see below) |
+| `create-order` | `--package monthly\|quarterly\|yearly` (Alipay default)<br>`--provider alipay\|paypal` | Creates the payment order; Alipay returns the payment page file path + outTradeNo; PayPal returns the authorization page file path + subscriptionId (recorded into the state file automatically) |
+| `query` | —— | Checks the order/subscription status. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; poll every 10–15s |
+| `refresh-login` | password via environment variable | Log in again to get a **new JWT** (subscription claim changes from NONE to ACTIVE); must run after payment arrives |
+| `whoami` | —— | Use the token in the state file to check the account and subscription status (verify the activation took effect) |
+| `cleanup` | —— | Delete the state file (must run at wrap-up) |
 
-**环境变量传递**（密码永不上命令行）：
+**Passing the environment variable** (the password never goes on the command line):
 
 ```bash
 # bash / zsh / WSL
-POWPOW_REGISTER_PASSWORD='<密码>' node scripts/powpow-register.mjs register --code 123456
+POWPOW_REGISTER_PASSWORD='<password>' node scripts/powpow-register.mjs register --code 123456
 # PowerShell
-$env:POWPOW_REGISTER_PASSWORD = '<密码>'; node scripts/powpow-register.mjs register --code 123456
+$env:POWPOW_REGISTER_PASSWORD = '<password>'; node scripts/powpow-register.mjs register --code 123456
 # cmd
-set POWPOW_REGISTER_PASSWORD=<密码> && node scripts/powpow-register.mjs register --code 123456
+set POWPOW_REGISTER_PASSWORD=<password> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## 双链接机制（核心设计）
+## Dual-Link Mechanism (core design)
 
-平台登录态是 HttpOnly cookie，agent 无法直接替浏览器种 cookie；桥是官方
-`/api/auth/me?token=<JWT>&redirect=<站内路径>` 端点：验签 → pending 用户自动补建
-session → `Set-Cookie: powpow_token`（HttpOnly / SameSite=Lax / 7 天）→ 校验
-redirect（仅单斜杠开头、禁 `//` 与反斜杠、解析后须同源）→ 307 临时重定向到目标页。
+The platform's login state is an HttpOnly cookie, which the agent cannot plant for the browser directly; the bridge is the official
+`/api/auth/me?token=<JWT>&redirect=<in-site path>` endpoint: verify signature → auto-create
+session → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 days) → validate
+redirect (must start with a single slash, `//` and backslashes forbidden, must be same-origin after parsing) → 307 temporary redirect to the target page.
 
-- **链接 1（注册成功后立刻给）**：`--target pending` → 落 `/subscription`。
-  用户浏览器进入"半登录"态：订阅页、支付宝回跳页可见可操作；内容页仍被付费墙
-  挡回订阅页（三层防护：JWT claims 网关检查 → DB 复查 → 核心 API 检查，属正常行为）。
-- **链接 2（确认 paid 后给）**：先 `refresh-login` 换新 JWT（支付只更新 DB，不改已
-  签发 JWT 的 claims，不换新会表现成"付了没会员"），再 `--target home` → 落首页，
-  完整会员态。
+There are two link targets, **generate home first, then decide whether to go through pending based on where the user lands**:
 
-## 完整时序（正常路径）
+- **home link (sent by default, `--target home` → lands on `/`)**: generated and sent to the user immediately after successful registration.
+  During the free testing period the user goes straight to the home page, fully usable; **if the user clicks it but lands on the subscription page, the free testing period has ended** — switch to the payment path (see below); no script changes and no re-registration needed.
+- **pending link (used in the payment path, `--target pending` → lands on `/subscription`)**:
+  the user's browser enters a "half-logged-in" state: the subscription page and payment return page are visible and operable. After payment arrives,
+  run `refresh-login` to exchange for a new JWT with the ACTIVE claim, then send the home link once more for the full membership state.
+
+## Full Sequence
+
+### Fast Path (during the free testing period — the vast majority of cases)
 
 ```
-1.  status                          # 环境自检
-2.  （第 2 步对话确认信息，密码二选一；生成模式：gen-password → 让用户立即保存）
+1.  status                          # environment self-check
+2.  (Step 2 conversation to confirm info, password either/or; generated mode: gen-password → have the user save it immediately)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → 用户去邮箱看码（唯一离开对话环节①）
+4.  send-code --email E             # → user checks the code in their inbox (the only time leaving the conversation)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → 链接 1 发给用户
-7.  （用户选支付方式）
-    # 支付宝：create-order --package monthly|quarterly|yearly
-    # PayPal：create-order --provider paypal
-8.  start <支付页文件>              # Windows；macOS 用 open，Linux 用 xdg-open
-    # → 用户在支付宝/PayPal 收银台完成付款/授权（离开对话环节②）
-9.  query（每 10–15s）直到 paid / ACTIVE
-10. refresh-login                   # 换 ACTIVE 声明的新 JWT
-11. login-link --target home        # → 链接 2 发给用户
-12. whoami                          # 确认 subscriptionStatus: ACTIVE（可选）
-13. cleanup                         # 清状态文件
+6.  login-link --target home        # → send the link to the user; one click and they're on the home page
+7.  (user confirms they're in) → wrap up directly: cleanup + account card + guide first steps
 ```
 
-## 命令 → 平台 API 映射
+### Payment Path (when the user wants membership, or the free testing period has ended)
 
-| 脚本命令 | 平台接口 |
+```
+1–5. Same as the fast path (the state already has the token after register succeeds)
+6.  login-link --target pending     # → half-login link, keeps the payment return page working
+7.  (user picks a payment method)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
+8.  start <payment page file>       # Windows; macOS uses open, Linux uses xdg-open
+    # → the user completes payment/authorization at the Alipay/PayPal cashier (leaves the conversation)
+9.  query (every 10–15s) until paid / ACTIVE
+10. refresh-login                   # exchange for a new JWT with the ACTIVE claim
+11. login-link --target home        # → send the full-membership link to the user
+12. whoami                          # confirm subscriptionStatus: ACTIVE (optional)
+13. cleanup                         # clear the state file
+```
+## Command → Platform API Mapping
+
+| Script command | Platform endpoint |
 |---|---|
 | `send-code` | `POST /api/auth/register/send-code` |
-| `register` | `POST /api/auth/register`（multipart，头像直传） |
-| `login-link` | `GET /api/auth/me?token=…&redirect=…`（链接本身，浏览器点击时生效） |
-| `create-order` | `POST /api/payment/alipay/create-order`（Bearer，支付宝）<br>`GET /api/subscription/plans` + `POST /api/subscription/create`（Bearer，PayPal） |
-| `query` | `GET /api/payment/alipay/query?outTradeNo=…`（Bearer，支付宝）<br>`GET /api/subscription/create`（Bearer，PayPal） |
-| `refresh-login` | `POST /api/auth/login`（`{step:1, username, password}`） |
+| `register` | `POST /api/auth/register` (multipart, direct avatar upload) |
+| `login-link` | `GET /api/auth/me?token=…&redirect=…` (the link itself; takes effect when the browser opens it) |
+| `create-order` | `POST /api/payment/alipay/create-order` (Bearer, Alipay)<br>`GET /api/subscription/plans` + `POST /api/subscription/create` (Bearer, PayPal) |
+| `query` | `GET /api/payment/alipay/query?outTradeNo=…` (Bearer, Alipay)<br>`GET /api/subscription/create` (Bearer, PayPal) |
+| `refresh-login` | `POST /api/auth/login` (`{step:1, username, password}`) |
 | `whoami` | `GET /api/auth/me?token=…` |
 
-规则出处：注册字段与限流见 `registration-flow.md`；套餐与激活链路见
-`payment-and-activation.md`（均标注平台源码文件）。
+Where the rules come from: registration fields and rate limits in `registration-flow.md`; plans and the activation chain in
+`payment-and-activation.md` (both cite the platform source files).
 
-## 脚本级报错处理
+## Script-Level Error Handling
 
-| 现象 | 处理 |
+| Symptom | Handling |
 |---|---|
-| `Node 版本过低` | 退回纯指引模式，别硬试 |
-| 网络错误 / 超时 | 重试一次；仍失败让用户检查网络后继续（状态文件还在，从头跑 `status` 恢复） |
-| register 报业务错（用户名已存在等） | 按 SKILL.md 第 5 步的表处理，**验证码不用重发**（10 分钟内仍有效） |
-| register 报「邮箱验证码错误或已过期」 | 超时 → 重新 `send-code` |
-| `create-order` 后用户关了支付页 | 直接重新 `create-order`（旧单 2h 自动关闭；PayPal PENDING 订阅 1h 后自动过期） |
-| `create-order --provider paypal` 报 409 | 已有未完成的 PayPal 订阅；等 1h 自动过期，或在浏览器完成旧授权 |
-| `query` 一直 pending / PENDING | 用户可能没付；问一句。真付了 → 按 payment-and-activation.md 排查表走 |
-| `refresh-login` 403 `pending_payment` | 付款/授权还没到账，回第 9 步继续轮询 |
-| 状态文件丢失（手滑删了 / 换机器） | `whoami`/`refresh-login` 无法用；让用户在链接 1 打开过的浏览器里直接刷新订阅页确认状态，或重新登录（网页模式） |
+| `Node version too low` | Fall back to pure guidance mode; don't keep trying |
+| Network error / timeout | Retry once; if it still fails, have the user check the network and continue (the state file is still there; run `status` from the top to resume) |
+| register returns a business error (username already exists, etc.) | Handle per the table in Step 5 of SKILL.md; **no need to resend the verification code** (still valid within 10 minutes) |
+| register returns "email verification code incorrect or expired" | Timed out → `send-code` again |
+| User closed the payment page after `create-order` | Just `create-order` again (the old order auto-closes after 2h; PayPal PENDING subscriptions expire after 1h) |
+| `create-order --provider paypal` returns 409 | There is already an unfinished PayPal subscription; wait 1h for it to expire, or complete the old authorization in the browser |
+| `query` stays pending / PENDING | The user may not have paid; ask. If they really paid → follow the troubleshooting table in payment-and-activation.md |
+| User clicks the home link but lands on the subscription page | The free testing period has ended → switch to the payment path: `login-link --target pending` → pick a payment method → `create-order` |
+| `refresh-login` 403 `pending_payment` | The free testing period has ended and payment hasn't arrived; go back to step 9 to keep polling, or confirm whether the user completed the payment |
+| State file lost (accidentally deleted / different machine) | `whoami`/`refresh-login` are unusable; have the user refresh the subscription page directly in the browser that opened Link 1 to check the status, or log in again (web mode) |
 
-## 回退模式（纯指引）
+## Fallback Mode (pure guidance)
 
-以下任一情况立即退回 v1 式纯指引，不再折腾脚本：
+Fall back to the v1-style pure guidance immediately — stop wrestling with the script — when any of these happens:
 
-- 没有 Node ≥ 18 或脚本连续两次同类失败；
-- 用户明确说"我自己在网页上操作"；
-- 公司/设备策略限制脚本联网。
+- No Node ≥ 18, or the script fails the same way twice in a row;
+- The user explicitly says "I'll do it myself on the website";
+- Company/device policy restricts the script's network access.
 
-回退后：给注册页 https://global.powpow.online/register 与订阅页
-https://global.powpow.online/subscription ，按 `registration-flow.md` 的规则陪跑排错，
-语气不变，每轮仍以「下一步」区块收尾。
+After falling back: give the registration page https://global.powpow.online/register (during the free testing period, web registration is equally instant; when a subscription is needed, also give the subscription page https://global.powpow.online/subscription ), troubleshoot alongside per the rules in `registration-flow.md`, keep the same tone, and still end every turn with a "next step" block.
+https://global.powpow.online/subscription, walk alongside the user per the rules in `registration-flow.md` and help troubleshoot,
+keep the same tone, and still end every turn with a "next step" block.

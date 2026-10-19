@@ -1,6 +1,6 @@
 ## Description:
 
-Helps users register a PowPow account, activate a subscription through Alipay or PayPal, and obtain a sign-in link.
+Ajuda usuários a criar uma conta PowPow, verificar o e-mail, ativar uma assinatura pelo Alipay ou PayPal e acessar a plataforma por um link de login.
 
 This skill is ready for commercial/non-commercial use.
 
@@ -14,7 +14,7 @@ MIT-0
 
 ## Use Case:
 
-People signing up for PowPow can use this skill to complete email-verified registration, choose an Alipay or PayPal subscription, check activation, and receive a sign-in link. If automated registration is unavailable, it offers guided steps instead.
+Pessoas que desejam usar o PowPow podem obter ajuda para criar a conta, resolver problemas de verificação e ativar uma assinatura. O usuário confirma o código recebido por e-mail e conclui pessoalmente o pagamento no Alipay ou PayPal; sem Node.js 18 ou superior, a skill oferece orientação manual.
 
 ### Deployment Geography for Use:
 
@@ -22,35 +22,39 @@ Global
 
 ## Known Risks and Mitigations:
 
-Risk: Registration uses personal details, an email verification code, and a temporary PowPow session token.
+Risk: A skill armazena temporariamente um token reutilizável de login em um arquivo de nome previsível durante etapas de conta e cobrança.
 
-Mitigation: Share the code only for PowPow registration and run cleanup after the flow to remove local session state.
+Mitigation: Use em uma máquina confiável de usuário único, execute a limpeza ao terminar e prefira o fluxo manual se não quiser criar um token local temporário.
 
-Risk: Subscription activation opens an Alipay or PayPal checkout page.
+Risk: O agente ajuda a criar uma conta, processar a verificação por e-mail e iniciar um pedido de assinatura.
 
-Mitigation: Complete payment directly with the payment provider; do not give the agent payment credentials.
+Mitigation: Autorize essas etapas conscientemente e confirme que o navegador está nas páginas oficiais do PowPow, Alipay ou PayPal antes de pagar.
+
+Risk: A assinatura PayPal pode implicar cobranças recorrentes.
+
+Mitigation: Confirme deliberadamente os termos de renovação antes de autorizar a assinatura no PayPal.
 
 ## Reference(s):
 
-- [PowPow website](https://global.powpow.online)
-- [PowPow registration](https://global.powpow.online/register)
-- [PowPow subscriptions](https://global.powpow.online/subscription)
-- [Agent registration flow](references/agent-flow.md)
-- [Payment and activation guidance](references/payment-and-activation.md)
+- [Página da skill no ClawHub](https://clawhub.ai/durenzidu/skills/powpow-register-pt)
+- [Site oficial do PowPow](https://global.powpow.online)
+- [Fluxo de registro](references/registration-flow.md)
+- [Pagamento e ativação](references/payment-and-activation.md)
+- [Fluxo do agente](references/agent-flow.md)
 
 ## Skill Output:
 
-**Output Type(s):** [Text, Guidance, Shell commands, Links]
+**Output Type(s):** [Text, Markdown, Shell commands, Guidance]
 
-**Output Format:** [Markdown guidance and sign-in or checkout links]
+**Output Format:** [Respostas em texto ou Markdown com instruções, comandos e links de login ou pagamento]
 
 **Output Parameters:** [1D]
 
-**Other Properties Related to Output:** [Automated flow requires Node.js 18 or later; offers guided registration otherwise. Payment is completed by the user at the payment provider.]
+**Other Properties Related to Output:** [O pagamento é concluído pelo usuário no provedor escolhido; a skill não publica diários nem cria humanos digitais.]
 
 ## Skill Version(s):
 
-2.1.0 (source: release metadata and skill frontmatter)
+2.2.0 (source: release metadata and skill frontmatter)
 
 ## Ethical Considerations:
 

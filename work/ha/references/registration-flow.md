@@ -44,19 +44,23 @@ Script ɗin skill ɗin kira **wannan saitin API na jama'a ɗaya** (`/api/auth/re
 `/api/auth/me`), tare da ƙaddamar da fom ɗin shafin rijista na bi tambarin tabbatarwa, iyakancewa da hanyoyin kuskure iri ɗaya — duk
 dokukan wannan fayil ɗin dai-dai ne ga hanyoyin biyu. Tsarin lokaci da kwangilar umarnin script ɗin duba `references/agent-flow.md`.
 
-## Canjin hali bayan rijista ta yi nasara
+## Jawardar yanayi bayan rajista ta samu nasara
 
-1. Mai amfani ana ajiye shi da `accountStatus: 'pending'`, **badge 3 na farko** (register route).
-2. Uwar garwa kuma tana shuka cookie biyu na HttpOnly: JWT (za a iya shiga `/subscription` kai tsaye) da
-   pendingUserToken (takaddun shaida na tsarin membanci).
-3. Shafin rijista ya gano `pending_payment` → yana turawa `/subscription` (yanayin adana `next` don dawowa);
-   a yanayin agent-yana-taimakawa ana amfani da `me?token=…&redirect=/subscription` don samun sakamko ɗaya.
-4. Biya ta cika → `accountStatus` ta zama `active` (**Alipay ta hanyar notify uwar garwa ta kunna ta kai**;
-   PayPal ta hanyar Webhook ta kunna ta kai; siffanta lambar QR ta WeChat tabbatarwa ce ta hannu; Huawei IAP ta hanyar `activate-huawei`).
-   Cikakken bayani duba `payment-and-activation.md`.
+> **Lokacin gwaji kyauta (tun daga 2026-10-18; halayen yanar gizo na gaske ya fi)**: sabon asusu da aka yi rajista **zai iya amfani da dukkan fannoni kai tsaye**
+> (beam, taswira, mutum na dijital, shaidar ziyara da sauransu) babu bukatar biya; ba a ƙara katanga ga asusun da ba su yi rajista ba daga shafukan abun ciki. "Ajiyen pending"
+> da aka bayyana a wannan sashe yanayi na al'ada ne bayan ƙarewar lokacin gwaji — sa'adda lokacin ya zo, halayen yanar gizo na gaske ya fi.
 
-Mai amfani da ba a kunna ba (pending) idan ya kira API na asali (kwararar bayanai, taswira, tattaunawa da mutum na dijital, buga halarta da sauransu) yana samun 403 koyaushe; mahaɗin raba sako keɓance (ya kasance a bude ana iya shiga).
+1. Ana adana mai amfani tare da `accountStatus: 'pending'` da **badge 3 na farko** (hanyar rajista).
+2. Sabar kuma tana dasa kuki biyu na HttpOnly: JWT (zai iya shiga shafuna kai tsaye) da pendingUserToken (takaddar shaida don jawardar biya).
+3. A yanayi na al'ada (lokacin gwaji ya kare / babu lokacin kyauta), shafin rajista yana gano `pending_payment` → mayar da shi zuwa `/subscription`
+   (tare da riƙe parameter din dawowa `next`); a yanayin magidiman, `me?token=…&redirect=/subscription` yana samun sakamaron daya.
+   **A lokacin gwaji kyauta wannan mataki baya kunna** — bayan rajista, je kai tsaye zuwa shafin gida kuma fara amfani.
+4. Biya ta kammala → `accountStatus` ya zama `active` (**Alipay yana kunna shi kai tsaye ta wajen sabar ta notify**;
+   PayPal yana kunna shi ta Webhook; lambar QR ta WeChat ana tabbatar da ita da hannu; Huawei IAP yana wucewa ta `activate-huawei`).
+   Duba `payment-and-activation.md` don cikakkun bayani.
 
+A yanayi na al'ada, masu amfani marasa kunna (pending) suna kiran API din asali (beam, taswira, hiran mutum na dijital, shaidar ziyara da sauransu) suna samun 403;
+hanyoyin hadin rubuta da aka raba suna bambanta (ana riƙe su a buɗe). A lokacin gwaji kyauta an dakatar da wannan ajiye kuma dukkan suna buɗe.
 ## Teburin bincike da gyaran kuskure na kowa
 
 | Alama | Dalili | Me za a yi |
@@ -69,7 +73,8 @@ Mai amfani da ba a kunna ba (pending) idan ya kira API na asali (kwararar bayana
 | 「注册请求过于频繁」/ 429 (bukatar rijista sau da yawa / 429) | Rijista sau 3/minti/IP ta kai sama | Ka jira minti kaɗan sannan ka sake gwadawa |
 | 409「用户名或邮箱已被注册」 (409 sunan mai amfani ko imel an riga an rijista) | A lokacin ƙaddamarwa ya fada da wani (kariya ta daidaito) | Ka canza sunan mai amfani ko imel sannan ka sake gwadawa |
 | 「图片大小不能超过5MB」/「不支持 SVG」 (hoton ba zai wuce 5MB ba / ba a goyi bayan SVG ba) | Avatar ba ta dace ba | Ka canza hoto ko ka tsallake avatar |
-| Rijista ta yi nasara amma shiga 403「请完成订阅以激活账户」 (kammala membanci domin kunna asusu) | Asusu har yanzu pending (halin da ake tsammani kafin biya) | Kafin biya: wannan al'ada ce, ka fara kammala membanci; bayan biya har yanzu 403: yana nuna an yi amfani da JWT da ta gabata, a yanayin script ɗin ka fara `refresh-login` ka musanya halin shiga sabuwa |
+| Mai amfani ya danna hanyar shiga amma ya sauka a shafin biya (maimakon shafin gida) | Lokacin gwaji kyauta ya kare kuma katanga biya na yanar gizo ya dawo | Bi jawardar biyan rajista ta mataki 7 a SKILL.md; bayan rajista, gudanar da `refresh-login` sannan aika hanyar shafin gida |
+| An yi rajista da nasara amma shiga ya dawo da 403 "请完成订阅以激活账户" | Asusu har yanzu pending ne kuma yanar gizo ba shi cikin lokacin gwaji kyauta (yanayin da ake tsammani kafin biya) | Ba zai faru a lokacin gwaji kyauta ba; in ya faru, lokacin gwaji ya kare — kammala rajista da fari; in har yana 403 bayan biya, an yi amfani da JWT na tsohuwa — a yanayin rubutu fara gudanar da `refresh-login` don musanya sabon yanayin shiga |
 | Shiga 423「账户已锁定」 (asusu an kulle) | Kalmar sirri ta gaza a jere sau 5 | Ka jira minti 30 |
 | Shiga 401「还剩 N 次尝试机会」 (sauran ƙoƙari N suka rage) | Kalmar sirri ba daidai ba, kusa da kullewa | Ka yi tunani sosai sannan ka gwada, ko ka kai tsaye ka bi "manta kalmar sirri" |
 | 「该账号未设置密码，请使用其他方式登录」 (wannan asusun ba a saita masa kalmar sirri ba, ka yi amfani da wata hanya don shiga) | Asusu ɓangare na uku (Google/Watcha/Huawei) | Ka yi amfani da maɓallin ɓangare na uku na asali don shiga |

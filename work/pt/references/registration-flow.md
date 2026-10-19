@@ -51,22 +51,24 @@ O script da skill chama **o mesmo conjunto de APIs públicas** (`/api/auth/regis
 formulário da página de registro — todas as regras deste arquivo se aplicam igualmente aos dois modos. A
 sequência do script e o contrato de comandos estão em `references/agent-flow.md`.
 
-## Transição de estados após um registro bem-sucedido
+## Fluxo de estado após o registro bem-sucedido
 
-1. O usuário é gravado com `accountStatus: 'pending'` e **3 badges** iniciais (register route).
-2. O servidor planta ao mesmo tempo dois cookies HttpOnly: o JWT (permite acessar diretamente
-   `/subscription`) e o pendingUserToken (credencial de identidade do fluxo de assinatura).
-3. A página de registro detecta `pending_payment` → redireciona para `/subscription` (preservando o
-   parâmetro de retorno `next`); no modo delegado ao agent, usa-se `me?token=…&redirect=/subscription`
-   para o mesmo efeito.
-4. Pagamento concluído → `accountStatus` passa a `active` (**no Alipay a ativação é automática no servidor
-   via notify**; no PayPal é automática via Webhook; no QR code WeChat é confirmação manual; no Huawei IAP
-   vai por `activate-huawei`). Detalhes em `payment-and-activation.md`.
+> **Período de teste gratuito (a partir de 2026-10-18; vale o comportamento real da plataforma)**: uma conta recém-registrada pode **usar todos os recursos diretamente**
+> (feed, mapa, humanos digitais, check-ins etc.) sem necessidade de pagar; contas sem assinatura não são mais bloqueadas nas páginas de conteúdo. A descrição do
+> «bloqueio pending» desta seção é o estado normal após o fim do período de teste — quando chegar esse momento, vale o comportamento real online.
 
-Usuários não ativados (pending) que chamem as APIs centrais (feed, mapa, conversa com humanos digitais,
-check-in etc.) recebem sempre 403; exceto os links de posts compartilhados (que permanecem de acesso
-público).
+1. O usuário é salvo com `accountStatus: 'pending'` e **3 badges iniciais** (register route).
+2. O servidor também planta dois cookies HttpOnly: o JWT (pode acessar as páginas diretamente) e
+   o pendingUserToken (credencial de identidade para o fluxo de assinatura).
+3. No estado normal (período de teste acabado / sem período gratuito), a página de registro detecta `pending_payment` → redireciona para `/subscription`
+   (mantendo o parâmetro de retorno `next`); no modo assistido por agent, `me?token=…&redirect=/subscription` produz o mesmo efeito.
+   **Durante o período de teste gratuito este passo não dispara** — após o registro, entre direto na página inicial e comece a usar.
+4. Pagamento concluído → `accountStatus` vira `active` (**Alipay ativa automaticamente no servidor via notify**;
+   PayPal ativa via Webhook; código QR do WeChat é confirmado manualmente; Huawei IAP passa por `activate-huawei`).
+   Detalhes em `payment-and-activation.md`.
 
+No estado normal, usuários inativos (pending) que chamam as APIs principais (feed, mapa, chat de humanos digitais, check-ins etc.) recebem 403;
+links de posts compartilhados são a exceção (mantidos acessíveis publicamente). Durante o período de teste gratuito esse bloqueio fica suspenso e tudo fica aberto.
 ## Tabela de diagnóstico de erros comuns
 
 | Sintoma | Causa | O que fazer |
@@ -79,7 +81,8 @@ público).
 | 「注册请求过于频繁」 (solicitação de registro frequente demais) / 429 | Teto de 3 registros/minuto/IP atingido | Esperar alguns minutos e tentar de novo |
 | 409 「用户名或邮箱已被注册」 (nome de usuário ou e-mail já registrado) | Colisão com outra pessoa no instante do envio (rede de segurança contra concorrência) | Trocar nome de usuário ou e-mail e tentar de novo |
 | 「图片大小不能超过5MB」 (a imagem não pode passar de 5MB) / 「不支持 SVG」 (SVG não suportado) | Avatar fora da norma | Trocar de imagem ou pular o avatar |
-| Registro bem-sucedido mas login 403 「请完成订阅以激活账户」 (conclua a assinatura para ativar a conta) | A conta continua pending (estado esperado antes do pagamento) | Antes de pagar: é normal, conclua primeiro a assinatura; 403 depois de pagar: foi usado um JWT antigo; no modo script, rode primeiro `refresh-login` para renovar o estado de sessão |
+| O usuário abre o link de login mas cai na página de assinatura (em vez da página inicial) | O período de teste gratuito acabou e o paywall da plataforma voltou | Siga o fluxo de pagamento por assinatura do Passo 7 do SKILL.md; após assinar, execute `refresh-login` e depois envie o link para a página inicial |
+| Registro bem-sucedido, mas o login retorna 403 «请完成订阅以激活账户» | A conta ainda está pending, e a plataforma não está em período de teste gratuito (estado esperado antes do pagamento) | Não acontece durante o período de teste gratuito; se acontecer, o período de teste acabou — conclua primeiro a assinatura; se ainda der 403 após pagar, um JWT antigo foi usado — no modo script execute `refresh-login` primeiro para trocar por um novo estado de login |
 | Login 423 「账户已锁定」 (conta bloqueada) | 5 erros seguidos de senha | Esperar 30 minutos |
 | Login 401 「还剩 N 次尝试机会」 (restam N tentativas) | Senha errada, perto do bloqueio | Pensar bem antes de tentar, ou ir direto por 「忘记密码」(esqueci a senha) |
 | 「该账号未设置密码，请使用其他方式登录」 (esta conta não tem senha definida, faça login por outro método) | Conta de terceiros (Google/Watcha/Huawei) | Fazer login com o botão de terceiros original |

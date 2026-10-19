@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Membantu pengguna menyelesaikan pendaftaran PowPow (Gelembung), mengaktifkan langganan lewat Alipay/PayPal, dan login sekali klik langsung di dalam percakapan. Agent mengisi formulir atas nama pengguna (termasuk mengunggah foto profil), mengirim kode verifikasi via email, membuat pesanan pembayaran, dan memantau sampai dana masuk; pengguna cukup memberikan informasi dasar, membaca kode satu kali di kotak masuk, dan membayar di halaman kasir Alipay/PayPal — seluruh proses tanpa keluar dari percakapan. Aktif saat pengguna berkata «daftar Gelembung», «buat akun powpow», «cara daftar Gelembung», «bantu saya buat akun powpow», «sign up powpow»; juga menangani pendaftaran yang macet (kode verifikasi tidak datang, nama pengguna/email sudah dipakai) dan masalah aktivasi (login bilang «akun belum diaktifkan» / pending_payment, cara bayar langganan). Butuh Node ≥ 18; jika tidak ada akan otomatis mundur ke mode panduan murni. Tidak termasuk memposting/membuat manusia digital (itu tugas powpow-simple) dan tidak termasuk pengembangan kode.
-version: 2.1.0
+description: Membantu pengguna menyelesaikan pendaftaran PowPow (Bubble) dan login sekali klik sepenuhnya di dalam percakapan. Agent mengisi formulir atas nama pengguna (termasuk unggah avatar) dan mengirim kode verifikasi email; pengguna hanya perlu memberikan informasi dasar dan memeriksa kode verifikasi sekali — tanpa pernah meninggalkan percakapan. Platform saat ini sedang dalam masa uji coba gratis: akun yang sudah terdaftar langsung bisa memakai semua fitur; pembayaran langganan (Alipay/PayPal) adalah peningkatan keanggotaan opsional, yang juga bisa ditangani agent dengan pembuatan pesanan dan pelacakan dana masuk bila diperlukan. Terpicu ketika pengguna mengatakan "daftar Bubble", "buat akun powpow", "cara daftar Bubble", "bantu saya buat akun powpow", "sign up powpow"; juga menangani masalah pendaftaran (kode verifikasi tidak masuk, nama pengguna/email sudah dipakai) dan masalah aktivasi (saat login bilang "akun belum diaktivasi" / pending_payment, cara langganan/bayar, Bubble gratis atau berbayar). Membutuhkan Node ≥ 18; bila tidak tersedia, otomatis beralih ke mode panduan murni. Tidak mencakup posting/membuat manusia digital (itu tugas powpow-simple), maupun pengembangan kode.
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,22 +10,22 @@ metadata:
 
 # PowPow Register (asisten pendaftaran Gelembung)
 
-Mengantarkan pengguna baru dari «tidak tahu apa itu Gelembung» sampai «akun aktif, login sekali klik, mulai bermain» — semuanya di dalam percakapan. Pengguna hanya meninggalkan obrolan dua kali sebentar: **masuk email untuk membaca kode verifikasi** dan **membayar di halaman kasir pembayaran** (Alipay atau PayPal — agent akan membuka halaman pembayarannya sendiri).
+Membawa pengguna baru dari "tidak tahu Bubble itu apa" menjadi "login sekali klik, siap dimainkan" — seluruhnya di dalam percakapan. Pengguna hanya meninggalkan percakapan satu kali: **untuk memeriksa kode verifikasi di kotak masuk**. Platform saat ini sedang dalam masa uji coba gratis: setelah mendaftar, semua fitur bisa dipakai, tidak perlu bayar; pembayaran langganan adalah peningkatan keanggotaan opsional (agent juga membuka kasir dan melacak dana masuk).
 
-**Versi 2.1.0** · 2026-10-11 (sejak v2 adalah mode agent yang bertindak atas nama: kontrak skrip dan urutan lengkap ada di `references/agent-flow.md`; aturan bidang, batas laju, dan penanganan galat ada di `references/registration-flow.md`; kanal pembayaran ada di `references/payment-and-activation.md`; daftar tangkapan layar produk ada di `references/screenshots.md`. Sejak v2.1.0 langganan PayPal juga bisa dikerjakan agent, sebagai pilihan sejajar Alipay)
+**Versi 2.2.0** · 2026-10-18 (sejak v2 ini mode perantara agent: kontrak skrip dan urutan lengkap ada di `references/agent-flow.md`; aturan field, batas laju, dan diagnosa error di `references/registration-flow.md`; kanal pembayaran di `references/payment-and-activation.md`; daftar tangkapan layar produk di `references/screenshots.md`. Sejak v2.1.0 langganan PayPal juga bisa ditangani agent, sebagai pilihan bersama Alipay. Sejak v2.2.0 platform memasuki masa uji coba gratis: daftar lalu login sekali klik langsung bisa dipakai; pembayaran berubah menjadi peningkatan opsional — jika pengguna membuka link dan mendarat di halaman langganan, berarti masa uji coba telah berakhir, ikuti alur pembayaran dari langkah 7; alurnya menyesuaikan sendiri, tidak perlu ubah skrip)
 
 ## Lingkungan eksekusi
 
 - Skrip utama `scripts/powpow-register.mjs`: **nol dependensi**, butuh **Node ≥ 18**. Sebelum mulai, jalankan sekali `node scripts/powpow-register.mjs status` untuk memastikan lingkungan berfungsi.
 - Semua request skrip hanya dikirim ke domain resmi `https://global.powpow.online`.
-- **Tidak ada Node / skrip melaporkan galat**: otomatis mundur ke mode panduan murni — berikan pengguna halaman pendaftaran https://global.powpow.online/register dan halaman langganan https://global.powpow.online/subscription, dampingi sesuai `references/registration-flow.md`. Jangan terus mencoba-coba skrip tanpa henti.
+- **Node tidak ada / skrip error**: otomatis beralih ke mode panduan murni — beri pengguna halaman pendaftaran https://global.powpow.online/register dan dampingi sesuai `references/registration-flow.md` (selama masa uji coba gratis, pendaftaran lewat web sama-sama langsung bisa dipakai). Jangan memaksa skrip berulang kali.
 - Pemulihan setelah percakapan terputus: jalankan `status` dulu untuk melihat proses berhenti di langkah mana, lalu lanjutkan dari sana.
 
 ## Trigger Conditions
 
 - Niat mendaftar: «daftar Gelembung», «buat akun powpow», «cara daftar Gelembung», «sign up powpow»
 - Pendaftaran macet: «kode verifikasi tidak datang», «katanya nama pengguna sudah ada», «kata sandi terus tidak lolos»
-- Masalah pasca-daftar: «login bilang akun belum diaktifkan», «403 pending_payment», «cara bayar/berlangganan di Gelembung»
+- Masalah setelah daftar: "login bilang akun belum diaktivasi", "403 pending_payment", "cara bayar/langganan Bubble", "Bubble gratis atau berbayar"
 
 **Tidak aktif untuk**: memposting/membuat manusia digital (→ powpow-simple); pengembangan kode sisi Web (lihat skill pengembangan). Pengguna yang ingin mendaftar sekaligus memposting: selesaikan skill ini dulu, setelah aktif baru serahkan ke powpow-simple.
 
@@ -38,8 +38,8 @@ Mengantarkan pengguna baru dari «tidak tahu apa itu Gelembung» sampai «akun a
 | 3 Kirim kode | `send-code` | —— |
 | 4 Baca kode | —— | Masuk email, membaca kode 6 digit, mengirimkannya |
 | 5 Kirim pendaftaran | `register` (termasuk unggah foto profil), menangani galat otomatis | —— |
-| 6 Setengah sesi + bayar | `login-link(pending)` → `create-order --provider alipay|paypal` → membuka kasir → polling `query` | Membuka tautan, membayar |
-| 7 Login resmi | `refresh-login` → `login-link(home)` | Membuka tautan masuk ke beranda |
+| 6 Login sekali klik | `login-link(home)` langsung ke beranda; jika mendarat di halaman langganan, lanjut ke langkah 7 | Klik link dan mulai main |
+| 7 Peningkatan langganan (opsional) | Hanya bila pengguna mau keanggotaan / masa gratis telah berakhir: tangani seluruh alur pembayaran | Pilih metode, bayar |
 | 8 Penutup | `cleanup` + menyerahkan info akun + panduan pengalaman + saran plugin | Mulai bermain |
 
 ## Langkah 1: perkenalan produk + tangkapan layar (tidak boleh dilewati)
@@ -93,19 +93,30 @@ Berhasil berarti akun sudah dibuat (status pending, dengan 3 lencana pembuka). G
 | 「邮箱验证码错误或已过期」 (kode verifikasi salah atau kedaluwarsa) | Lebih dari 10 menit → jalankan `send-code` lagi |
 | Kirim/daftar terlalu sering (429) | Tunggu 1 menit lalu coba lagi; cukup kabari pengguna satu kalimat |
 
-## Langkah 6: login sekali klik (tautan 1) + pembayaran
+## Langkah 6: Login Sekali Klik (setelah daftar langsung ke beranda)
 
-1. Begitu pendaftaran berhasil:
+1. Tepat setelah pendaftaran berhasil:
+   ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. Kirim linknya ke pengguna: **diklik dan langsung berada di beranda, sudah login**. Platform saat ini sedang dalam masa uji coba gratis — setelah mendaftar, semua fitur (feed, peta, manusia digital, check-in, dll.) bisa dipakai, **tidak perlu bayar**.
+3. Minta pengguna mengonfirmasi bahwa dia berhasil masuk; ada dua kemungkinan:
+   - **Mendarat di beranda** → langsung lompat ke langkah 8 untuk menutup; pendaftaran selesai;
+   - **Mendarat di halaman langganan** → masa uji coba gratis platform telah berakhir; katakan kepada pengguna "masa uji coba gratis sudah selesai, sekarang perlu langganan keanggotaan", lalu ikuti langkah 7 untuk menyelesaikan langganan, dan kembali ke langkah 8 setelah berlangganan.
+4. Jika pengguna sendiri ingin meningkatkan atau mendukung platform → juga arahkan ke langkah 7 (berlangganan itu sukarela; jangan mendesak).
+## Langkah 7: Peningkatan Langganan (opsional — hanya bila langkah 6 memintanya)
+
+1. Pertama kirim link login-setengah agar halaman kembali setelah pembayaran bisa menampilkan "Pembayaran berhasil" dengan benar:
    ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   Kirim tautan ke pengguna: **dibuka di browser dan jatuh langsung ke halaman langganan, sudah dalam kondisi login** — supaya setelah membayar, halaman lompat-balik menampilkan «pembayaran berhasil» dengan benar. (Dalam kondisi ini halaman konten tetap diarahkan balik ke halaman langganan: itu perilaku normal paywall platform, bukan bug, dan tidak perlu menjelaskan mekanisme internal ke pengguna.)
+   Kirim linknya ke pengguna: diklik dan browser langsung berada di halaman langganan, sudah login.
 2. **Minta pengguna memilih metode pembayaran** — tampilkan kedua kanal:
-   - **Alipay (daratan Tiongkok / pengguna punya Alipay)**: beli putus sekali untuk masa berlaku yang bersangkutan, **tanpa perpanjangan otomatis**
-     - Bulanan **¥6.99** (disarankan saat baru mencoba) / Triwulan **¥19.99** / Tahunan **¥69.99**
-   - **PayPal (luar negeri / tanpa Alipay)**: perpanjangan otomatis bulanan, bisa dibatalkan kapan saja
-     - Premium Monthly, sekitar **$1/bulan** (sesuai yang tampil di halaman langganan; perpanjangan otomatis)
-3. Setelah pengguna memilih salah satu:
+   - **Alipay (Tiongkok daratan / pengguna punya Alipay)**: pembelian sekali jalan untuk durasi yang dipilih, **tanpa perpanjangan otomatis**
+     - Bulanan **¥6.99** (disarankan untuk mencoba) / Triwulanan **¥19.99** / Tahunan **¥69.99**
+   - **PayPal (luar negeri / pengguna tanpa Alipay)**: perpanjangan otomatis tiap bulan, batalkan kapan saja
+     - Premium Monthly, sekitar **$1/bulan** (sesuai tampilan di halaman langganan; perpanjangan otomatis)
+3. Setelah pengguna memilih:
    - **Alipay**:
      ```
      node scripts/powpow-register.mjs create-order --package monthly
@@ -114,29 +125,23 @@ Berhasil berarti akun sudah dibuat (status pending, dengan 3 lencana pembuka). G
      ```
      node scripts/powpow-register.mjs create-order --provider paypal
      ```
-   Skrip mengembalikan path file halaman pembayaran; **buka langsung dengan perintah sistem** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). Browser melompat sendiri ke kasir resmi Alipay/PayPal; pengguna menyelesaikan pembayaran atau otorisasi penagihan di sana.
-4. Jalankan `query` setiap 10–15 detik sampai mengembalikan `paid` atau `ACTIVE` (dana/otorisasi masuk biasanya beberapa detik sampai satu menit). Pengguna menutup halaman pembayaran di tengah jalan → langsung jalankan `create-order` lagi (pesanan lama / langganan pending tertutup atau kedaluwarsa otomatis dalam 2 jam, tak perlu dipikirkan).
-5. Kanal pindai QR WeChat perlu konfirmasi manual dan dananya bisa masuk lambat; Huawei IAP hanya tersedia di dalam App HarmonyOS. Skill tidak menangani keduanya — setelah pembayaran selesai tetap kembali ke langkah 7 seperti biasa.
+   Skrip mengembalikan path file halaman pembayaran; **buka langsung dengan perintah sistem** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). Browser otomatis melompat ke kasir resmi Alipay/PayPal, tempat pengguna menyelesaikan pembayaran atau otorisasi penagihan.
+4. Jalankan `query` setiap 10–15 detik sampai mengembalikan `paid` atau `ACTIVE` (dana masuk/otorisasi biasanya mendarat dalam beberapa detik sampai satu menit). Jika pengguna menutup halaman pembayaran di tengah jalan → cukup `create-order` lagi (pesanan lama / langganan menggantung otomatis tutup atau kedaluwarsa setelah 2 jam; abaikan).
+5. Kanal kode QR WeChat dikonfirmasi manual, dana masuk bisa terlambat; Huawei IAP hanya tersedia di dalam aplikasi HarmonyOS. Skill tidak menangani keduanya — setelah membayar, pengguna kembali dan memberi tahu agent, yang lebih dulu menjalankan `whoami` untuk mengonfirmasi dana masuk, lalu mengirim link beranda sesuai poin 6 di bawah.
+6. Setelah dana masuk dikonfirmasi, tukar dengan status login terbaru yang membawa claim langganan terkini, lalu kirim link langsung ke beranda:
+   ```
+   POWPOW_REGISTER_PASSWORD=<kata sandi> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   Kirim linknya ke pengguna: **diklik dan langsung berada di beranda dengan status keanggotaan penuh**.
+## Langkah 8: Menutup
 
-## Langkah 7: login resmi (tautan 2)
-
-Setelah dana masuk terkonfirmasi, lebih dulu ganti ke status login dengan klaim langganan terbaru, baru buat tautan langsung ke beranda:
-
-```
-POWPOW_REGISTER_PASSWORD=<kata sandi> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-Kirim tautan ke pengguna: **dibuka dan jatuh langsung ke beranda, status keanggotaan lengkap**; sampai di sini seluruh proses pendaftaran tuntas.
-
-## Langkah 8: penutup
-
-1. `node scripts/powpow-register.mjs cleanup` membersihkan file status sementara di mesin (informasi sesi login).
-2. Serahkan ke pengguna sebuah «kartu akun»: nama pengguna, email, dan tanggal berakhirnya keanggotaan (kata sandi tidak ditampilkan lagi — mode buat kata sandi sudah membuat pengguna menyimpannya saat dibuat; kalau dia yang menetapkan, dia memang sudah tahu).
-3. Panduan pengalaman pertama: berkeliling peta, posting catatan perjalanan pertama (→ serahkan ke powpow-simple).
-4. Sarankan ekstensi: skill `@durenzidu/powpow-integration` dan plugin `@durenzidu/openclaw-channel-powpow` — menghubungkan Gelembung ke agent milik pengguna sendiri; jika tertarik berikan perintah pemasangannya.
-5. Tutup dengan blok «langkah berikutnya».
-
+1. `node scripts/powpow-register.mjs cleanup` untuk membersihkan file status sementara lokal (kredensial sesi).
+2. Beri pengguna sebuah "kartu akun": nama pengguna, email (kata sandi tidak ditampilkan lagi — di mode generasi, pengguna diminta menyimpannya saat dibuat; jika pengguna menyetel sendiri, dia sudah tahu).
+3. Pengingat keanggotaan (katakan sekali, jangan mendesak): saat ini masa uji coba gratis dan akun langsung bisa dipakai; ketika masa uji coba berakhir, akun tanpa langganan yang mengunjungi halaman konten akan dialihkan ke halaman langganan — untuk pemakaian jangka panjang, kembali lagi dan berlangganan kapan saja.
+4. Pandu langkah pertama: jelajahi peta, unggah jurnal perjalanan pertama (→ serahkan ke powpow-simple).
+5. Rekomendasikan ekstensi: skill `@durenzidu/powpow-integration` dan plugin `@durenzidu/openclaw-channel-powpow` — hubungkan Bubble ke agent milik pengguna sendiri; beri perintah instalasi bila mau.
+6. Akhiri dengan blok "langkah selanjutnya".
 ## Conversation UX
 
 Pertahankan nada layanan khas powpow:
@@ -157,7 +162,7 @@ Pertahankan nada layanan khas powpow:
 - **Keamanan kredensial**: kata sandi hanya disampaikan ke skrip lewat variabel lingkungan `POWPOW_REGISTER_PASSWORD`, **jangan sekali-kali** lewat parameter baris perintah (terlihat di daftar proses), jangan ditulis ke file mana pun (mode buat kata sandi ditampilkan sekali agar pengguna menyimpan, setelah itu tidak disebut lagi). Kode verifikasi hanya untuk antarmuka pendaftaran resmi dan dibuang setelah dipakai.
 - **Batas resmi**: semua request hanya dikirim ke `https://global.powpow.online` (sudah tertanam di skrip); jangan pernah mengirim informasi pengguna ke alamat pihak ketiga mana pun.
 - **Batas pembayaran**: agent hanya membuat pesanan, membuka kasir, memeriksa dana masuk; **jangan sekali-kali** menyentuh akun Alipay/PayPal/bukti pembayaran pengguna, dan jangan sekali-kali menjanjikan «kubayarin».
-- **Paywall bukan bug**: status pending bisa masuk halaman langganan/halaman lompat-balik adalah izin lewat yang memang didesain; halaman konten yang diblokir adalah paywall yang bekerja normal; jangan cari cara memutarnya.
+- **Paywall bukan bug**: selama masa uji coba gratis saat ini semua halaman konten terbuka; jika pengguna mengklik link beranda tetapi mendarat di halaman langganan, masa uji coba telah berakhir — bimbing mereka berlangganan lewat langkah 7. Jangan mencoba mengakali paywall, dan jangan menjelaskan mekanisme internal kepada pengguna.
 - **Kebebasan mundur**: jika di langkah mana pun pengguna ingin mengerjakan sendiri, atau lingkungan tidak bisa menjalankan skrip, mundurlah kapan saja ke mode panduan murni — berikan tautan, jelaskan aturannya, atasi galat bersama-sama.
 - Jangan mengarang aturan platform: aturan bidang, teks galat, parameter batas laju semuanya berasal dari kode platform (`references/registration-flow.md` mencantumkan sumbernya); bila platform diperbarui, perilaku nyata yang jadi patokan.
 - Saat menampilkan gambar gunakan hanya tangkapan layar dalam bundel `assets/screenshots/` (kegunaan tiap gambar lihat di `references/screenshots.md`).

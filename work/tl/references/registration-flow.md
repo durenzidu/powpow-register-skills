@@ -44,20 +44,23 @@ Ang mga script ng skill ay tumatawag sa **parehong hanay ng mga pampublikong API
 `/api/auth/me`) at dumadaan sa eksaktong parehong validation, rate limit, at error path tulad ng form submission sa registration page — lahat ng
 patakaran sa file na ito ay pantay para sa parehong mode. Para sa sequence at command contract ng script, tingnan ang `references/agent-flow.md`.
 
-## Pagdaloy ng status pagkatapos ng matagumpay na rehistro
+## Daloy ng Estado Pagkatapos ng Matagumpay na Pagpaparehistro
 
-1. Naitatala ang gumagamit na may `accountStatus: 'pending'` at initial na **3 badge** (register route).
-2. Sabay na nagtatanim ang server ng dalawang HttpOnly cookie: JWT (maaaring direktang i-access ang `/subscription`) at
-   pendingUserToken (identity credential para sa subscription flow).
-3. Kapag nadiskubre ng registration page ang `pending_payment` → tumalon sa `/subscription` (pinapanatili ang `next` return parameter);
-   sa agent-assisted mode, ginagamit ang `me?token=…&redirect=/subscription` para makamit ang parehong epekto.
-4. Pagkatapos ng bayad → nagiging `active` ang `accountStatus` (**ang Alipay ay awtomatikong nag-a-activate sa server-side sa pamamagitan ng notify**;
-   ang PayPal ay awtomatiko sa pamamagitan ng Webhook; ang WeChat QR ay manual ang kumpirmasyon; ang Huawei IAP ay sa pamamagitan ng `activate-huawei`).
+> **Libreng panahon ng pagsubok (simula 2026-10-18; ang aktwal na pag-uugali ng platform ang masusunod)**: ang bagong rehistradong account ay maaaring **gamitin ang lahat ng feature diretso**
+> (feed, mapa, digital human, check-in, atbp.) nang hindi kailangang magbayad; ang mga account na walang subscription ay hindi na naka-block sa content page. Ang "pending na pagharang"
+> na inilalarawan sa seksyong ito ay ang regular na estado pagkatapos matapos ang panahon ng pagsubok — pagdating ng panahong iyon, ang aktwal na online na pag-uugali ang masusunod.
+
+1. Ang user ay iniimbak na may `accountStatus: 'pending'` at **3 initial na badge` (rehistro na ruta).
+2. Ang server ay nagtatanim din ng dalawang HttpOnly cookie: ang JWT (makakapasok diretso sa mga page) at ang pendingUserToken (kredensyal ng pagkakakilanlan para sa daloy ng subscription).
+3. Sa regular na estado (tapos na ang panahon ng pagsubok / walang libreng panahon), ang registration page ay nakakakita ng `pending_payment` → ire-redirect sa `/subscription`
+   (pinapanatili ang `next` na return parameter); sa agent-assisted mode, ang `me?token=…&redirect=/subscription` ay nakakamit ng parehong epekto.
+   **Sa libreng panahon ng pagsubok ang hakbang na ito ay hindi nagu-trigger** — pagkatapos magparehistro, diretso sa home page at simulan ang paggamit.
+4. Tapos na ang bayad → ang `accountStatus` ay nagiging `active` (**ang Alipay ay awtomatikong nag-a-activate sa server side sa pamamagitan ng notify**;
+   ang PayPal ay nag-a-activate sa pamamagitan ng Webhook; ang WeChat QR code ay manu-manong kinukumpirma; ang Huawei IAP ay dumadaan sa `activate-huawei`).
    Tingnan ang `payment-and-activation.md` para sa detalye.
 
-Ang mga hindi pa naka-activate (pending) na gumagamit na tumatawag sa mga core API (feed, mapa, usapan sa digital na tao, check-in, at iba pa) ay palaging makakatanggap ng 403;
-maliban sa mga share link ng post (nananatiling publiko at naa-access).
-
+Sa regular na estado, ang mga hindi aktibong (pending) user na tumatawag ng core na API (feed, mapa, digital-human chat, check-in, atbp.) ay nakakakuha ng 403;
+ang mga shared post link ay ang exception (nananatiling pampubliko). Sa libreng panahon ng pagsubok ang pagharang na ito ay suspendido at bukas ang lahat.
 ## Troubleshooting table para sa mga karaniwang error
 
 | Sintomas | Dahilan | Ano ang gagawin |
@@ -70,7 +73,8 @@ maliban sa mga share link ng post (nananatiling publiko at naa-access).
 | 「注册请求过于频繁」 / 429 (sobrang dalas ng registration request / 429) | Nakaabot sa ceiling ang 3 beses/minuto/IP sa rehistro | Maghintay ng ilang minuto bago subukan muli |
 | 409「用户名或邮箱已被注册」 (nakarehistro na ang username o email) | Sabay na pagbangga sa ibang tao sa sandali ng pag-submit (concurrency fallback) | Palitan ang username o email at subukan muli |
 | 「图片大小不能超过5MB」/「不支持 SVG」 (hindi dapat lampas 5MB ang laki ng larawan / hindi suportado ang SVG) | Hindi angkop ang avatar | Palitan ang larawan o laktawan ang avatar |
-| Matagumpay ang rehistro ngunit 403 sa log in 「请完成订阅以激活账户」 (kumpletuhin ang subscription para i-activate ang account) | Pending pa rin ang account (inaasahang status bago magbayad) | Bago magbayad: normal ito, kumpletuhin muna ang subscription; pagkatapos magbayad ay 403 pa rin: ibig sabihin lumang JWT ang ginamit; sa script mode, patakbuhin muna ang `refresh-login` para palitan ang log-in status ng bago |
+| Nag-click ang user sa login link ngunit lumapag sa subscription page (imbes na home page) | Tapos na ang libreng panahon ng pagsubok at bumalik ang paywall ng platform | Sundin ang Hakbang 7 sa SKILL.md para sa daloy ng bayad ng subscription; pagkatapos mag-subscribe, patakbuhin ang `refresh-login` at pagkatapos ipadala ang home page link |
+| Matagumpay na nakaparehistro ngunit ang login ay nagbalik ng 403 "请完成订阅以激活账户" | Ang account ay pending pa, at ang platform ay wala sa libreng panahon ng pagsubok (ang inaasahang estado bago magbayad) | Hindi mangyayari sa libreng panahon ng pagsubok; kung mangyari, tapos na ang panahon ng pagsubok — kumpletuhin muna ang subscription; kung 403 pa rin pagkatapos magbayad, lumang JWT ang ginamit — sa script mode patakbuhin muna ang `refresh-login` para palitan ng bagong login state |
 | Log in 423「账户已锁定」 (naka-lock ang account) | 5 beses na mali ang password | Maghintay ng 30 minuto |
 | Log in 401「还剩 N 次尝试机会」 (may natitira pang N na pagsubok) | Mali ang password, malapit nang ma-lock | Pag-isipang mabuti bago subukan muli, o diretso sa 「忘记密码」 |
 | 「该账号未设置密码，请使用其他方式登录」 (walang nakatakdang password ang account na ito, gumamit ng ibang paraan ng pag-log in) | Third-party (Google/Watcha/Huawei) account | Mag-log in gamit ang orihinal na third-party button |

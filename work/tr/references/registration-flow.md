@@ -49,20 +49,23 @@ Skill scripti **aynı kamuya açık API'leri** çağırır (`/api/auth/register`
 bu dosyadaki tüm kurallar iki mod için de eşittir. Script sıralaması ve komut sözleşmesi
 `references/agent-flow.md` içindedir.
 
-## Kayıt başarısından sonraki durum geçişleri
+## Başarılı Kayıttan Sonraki Durum Akışı
 
-1. Kullanıcı `accountStatus: 'pending'` olarak kaydedilir, başlangıçta **3 rozet** verilir (register route).
-2. Sunucu aynı anda iki HttpOnly cookie yerleştirir: JWT (`/subscription`'a doğrudan erişim sağlar) ve
-   pendingUserToken (abonelik akışında kimlik belgesi).
-3. Kayıt sayfası `pending_payment` algılar → `/subscription`'a yönlendirir (`next` dönüş parametresi korunur);
-   agent vekâlet modunda aynı etki `me?token=…&redirect=/subscription` ile elde edilir.
-4. Ödeme tamamlanır → `accountStatus` `active` olur (**Alipay'de notify ile sunucu tarafında otomatik
-   etkinleşme**; PayPal'de Webhook ile otomatik etkinleşme; WeChat QR'da elle onay; Huawei IAP'de
-   `activate-huawei`). Ayrıntılar `payment-and-activation.md` içinde.
+> **Ücretsiz test dönemi (2026-10-18'den başlayarak; platformun gerçek davranışı esastır)**: yeni kayıtlı hesap ödeme gerektirmeden **tüm özellikleri doğrudan kullanabilir**
+> (akış, harita, dijital insanlar, check-in'ler vb.). Abonesi olmayan hesaplar artık içerik sayfalarından kesilmez. Bu bölümde anlatılan „pending yakalama”,
+> test dönemi bittikten sonraki normal durumdur — o zaman geldiğinde gerçek çevrimiçi davranış esastır.
 
-Etkinleşmemiş (pending) kullanıcılar çekirdek API'leri çağırdığında (akış, harita, dijital insan sohbeti, check-in
-vb.) hep 403 alır; gönderi paylaşım bağlantısı istisnadır (kamuya açık erişilebilir kalır).
+1. Kullanıcı `accountStatus: 'pending'` ve **3 başlangıç rozetiyle** kaydedilir (register rotası).
+2. Sunucu ayrıca iki HttpOnly çerez bırakır: JWT (sayfalara doğrudan erişilebilir) ve pendingUserToken (abonelik akışı için kimlik kanıtı).
+3. Normal durumda (test dönemi bitti / ücretsiz dönem yok) kayıt sayfası `pending_payment` algılar → `/subscription` sayfasına yönlendirir
+   (`next` dönüş parametresini koruyarak); agent vekil modunda `me?token=…&redirect=/subscription` aynı etkiyi sağlar.
+   **Ücretsiz test döneminde bu adım tetiklenmez** — kayıttan sonra doğrudan ana sayfaya git ve kullanmaya başla.
+4. Ödeme tamamlandı → `accountStatus` `active` olur (**Alipay sunucu tarafında notify ile otomatik etkinleştirir**;
+   PayPal Webhook ile etkinleştirir; WeChat QR kodu elle onaylanır; Huawei IAP `activate-huawei` üzerinden geçer).
+   Ayrıntılar `payment-and-activation.md` içinde.
 
+Normal durumda etkin olmayan (pending) hesapların temel API'leri (akış, harita, dijital insan sohbeti, check-in'ler vb.) çağırmaları 403 alır;
+paylaşılan gönderi linkleri istisnadır (herkese açık kalır). Ücretsiz test döneminde bu yakalama askıya alınır ve her şey açıktır.
 ## Sık hataların giderme tablosu
 
 | Belirti | Neden | Ne yapmalı |
@@ -75,7 +78,8 @@ vb.) hep 403 alır; gönderi paylaşım bağlantısı istisnadır (kamuya açık
 | 「注册请求过于频繁」 (kayıt istekleri çok sık) / 429 | Kayıtta 3 kez/dakika/IP tavanına vuruldu | Birkaç dakika bekleyip tekrar denenmeli |
 | 409 「用户名或邮箱已被注册」 (kullanıcı adı veya e-posta zaten kayıtlı) | Gönderim anında başkasıyla çakışma (eşzamanlılık güvencesi) | Kullanıcı adı ya da e-posta değiştirilip tekrar denenmeli |
 | 「图片大小不能超过5MB」 (görsel boyutu 5MB'ı aşamaz) / 「不支持 SVG」 (SVG desteklenmez) | Profil fotoğrafı kurallara uymuyor | Görsel değiştirilmeli ya da atlanmalı |
-| Kayıt başarılı ama girişte 403 「请完成订阅以激活账户」 (hesabı etkinleştirmek için aboneliği tamamlayın) | Hesap hâlâ pending (ödeme öncesi beklenen durum) | Ödemeden önce: normaldir, önce abonelik tamamlanmalı; ödedikten sonra da 403 sürüyorsa: eski JWT kullanılıyor demektir, script modunda önce `refresh-login` ile yeni oturum durumu alınmalı |
+| Kullanıcı giriş linkine tıklıyor ama abonelik sayfasına düşüyor (ana sayfa yerine) | Ücretsiz test dönemi bitti ve platformun ödeme duvarı geri geldi | SKILL.md'deki 7. adımdaki abonelik ödeme akışını izle; abone olduktan sonra `refresh-login` çalıştır, sonra ana sayfa linkini gönder |
+| Kayıt başarılı ama girişte 403 „请完成订阅以激活账户” dönüyor | Hesap hâlâ pending ve platform ücretsiz test döneminde değil (ödemeye kadar beklenen durum) | Ücretsiz test döneminde olmaz; olursa test dönemi bitmiştir — önce aboneliği tamamla; ödeme sonrası hâlâ 403 ise eski JWT kullanılmıştır — betik modunda yeni giriş durumuna takas için önce `refresh-login` çalıştır |
 | Girişte 423 「账户已锁定」 (hesap kilitlendi) | Şifre 5 kez üst üste yanlış | 30 dakika beklenmeli |
 | Girişte 401 「还剩 N 次尝试机会」 (N deneme hakkı kaldı) | Şifre yanlış, kilitlenmeye yakın | İyice düşünülüp denenmeli ya da doğrudan «şifremi unuttum» yoluna gidilmeli |
 | 「该账号未设置密码，请使用其他方式登录」 (bu hesapta şifre tanımlı değil, başka bir yöntemle giriş yapın) | Üçüncü taraf (Google/Watcha/Huawei) hesabı | Orijinal üçüncü taraf düğmesiyle giriş yapılmalı |

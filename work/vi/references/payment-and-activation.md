@@ -1,6 +1,8 @@
 # Kích hoạt gói thành viên và thanh toán — powpow-register
 
 ## Kết luận (trả lời trước)
+> **Giai đoạn dùng thử miễn phí (bắt đầu từ 2026-10-18; hành vi thực tế của nền tảng là chuẩn)**: trong giai đoạn này tài khoản đã đăng ký dùng được mọi tính năng trực tiếp, và **đăng ký gói là nâng cấp tùy chọn chứ không phải yêu cầu** — chỉ theo luồng trong file này khi người dùng chủ động muốn làm hội viên. Khi giai đoạn dùng thử kết thúc, tài khoản chưa đăng ký gói khi vào các trang nội dung sẽ bị chuyển hướng về trang gói hội viên; chỉ cần hoàn tất đăng ký gói theo file này.
+
 
 **Cả gói qua Alipay lẫn gói qua PayPal đều do agent thao tác hộ được — gồm đặt đơn và theo dõi tiền về.**
 Alipay là mua đứt một lần, không tự động gia hạn, hợp với người dùng ở Trung Quốc đại lục và người có Alipay; PayPal tự động gia hạn theo tháng, hủy bất cứ lúc nào,

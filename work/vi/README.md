@@ -5,10 +5,8 @@ Trợ lý đăng ký PowPow Bong Bóng (bản OpenClaw): đưa một người d�
 agent thao tác hộ việc đăng ký (kèm tải ảnh đại diện), đặt đơn gói thành viên qua Alipay hoặc PayPal và theo dõi tiền về,
 đăng nhập một chạm bằng link kép, xử lý lỗi.
 
-**Từ v2.0.0 là chế độ agent thao tác hộ, từ v2.1.0 gồm cả PayPal**: script chính `scripts/powpow-register.mjs` không phụ thuộc
-(Node ≥ 18), người dùng cả quá trình không rời hội thoại, chỉ hai lần tạm biệt: vào email xem mã xác minh,
-thanh toán tại trang thu ngân Alipay hoặc PayPal. Không có Node hoặc người dùng muốn tự tay làm thì tự động lùi về
-chế độ hướng dẫn thuần.
+**Từ v2.0.0 là chế độ agent đại diện, từ v2.2.0 còn thích ứng với giai đoạn dùng thử miễn phí của nền tảng**: script cốt lõi `scripts/powpow-register.mjs` không phụ thuộc thư viện
+(Node ≥ 18); người dùng chỉ rời hội thoại đúng một lần: để kiểm tra mã xác minh trong hộp thư. Trong giai đoạn dùng thử miễn phí hiện tại, tài khoản đã đăng ký dùng được mọi tính năng ngay — thanh toán gói hội viên là tùy chọn; nếu giai đoạn dùng thử kết thúc và người dùng rơi vào trang gói hội viên, luồng tự chuyển sang đường thanh toán. Không có Node, hoặc khi người dùng muốn tự làm, tự động chuyển sang chế độ hướng dẫn thuần túy.
 
 ## Cài đặt
 
@@ -24,9 +22,9 @@ openclaw skills install @durenzidu/powpow-register
 2. **Đăng ký hộ**: agent chủ động gợi ý tên người dùng/biệt danh, mật khẩu chọn 1 trong 2 (người dùng cung cấp
    hoặc agent tạo), gửi và nộp mã xác minh, tải thẳng ảnh đại diện (≤5MB, không phải SVG), tự xử lý lỗi thường
    gặp (bị trùng/hết hạn/giới hạn tần suất).
-3. **Đăng nhập một chạm (link kép)**: đăng ký thành công là đưa link «phiên nửa» rơi thẳng trang gói thành viên;
-   sau khi tiền về, đổi sang trạng thái đăng nhập mới rồi đưa link thành viên đầy đủ rơi thẳng trang chủ (đi qua
-   cầu `me?token=` chính thức của nền tảng, tự gieo cookie HttpOnly).
+3. **Đăng nhập một cú click (hai link)**: ngay sau khi đăng ký thành công, link đăng nhập đưa người dùng vào thẳng trang chủ (trong giai đoạn dùng thử miễn phí, một cú click là dùng được);
+   nếu rơi vào trang gói hội viên (giai đoạn dùng thử kết thúc) hoặc người dùng muốn nâng cấp thì theo luồng đăng ký gói — sau khi tiền về, đổi lấy trạng thái đăng nhập mới và link hội viên đầy đủ đưa vào trang chủ
+   (qua cầu nối chính thức `me?token=` của nền tảng, tự gắn cookie HttpOnly).
 4. **Thanh toán gói**: cả Alipay (tháng ¥6.99 / quý ¥19.99 / năm ¥69.99,
    mua đứt một lần không tự động gia hạn) lẫn PayPal (Premium Monthly, khoảng $1/tháng, tự động gia hạn, hủy bất cứ lúc nào) đều do agent thao tác hộ đặt đơn + luân phiên tra tiền về;
    quét mã WeChat / Huawei IAP thì chỉ dẫn đường.

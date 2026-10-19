@@ -1,6 +1,8 @@
 # Subscription Activation and Payment — powpow-register
 
 ## Conclusion (the answer first)
+> **Free testing period (starting 2026-10-18; actual platform behavior prevails)**: during this period a registered account can use every feature directly, and **subscribing is an optional upgrade rather than a requirement** — only follow this file's flow when the user actively wants membership. When the testing period ends, unsubscribed accounts visiting content pages will be redirected to the subscription page; just complete the subscription per this file.
+
 
 **Both Alipay and PayPal subscriptions can now be handled by the agent — order creation and arrival tracking included.**
 Alipay is a one-time purchase with no auto-renewal, for mainland-China users and users with Alipay; PayPal auto-renews monthly and can be cancelled anytime,

@@ -5,10 +5,8 @@ PowPow Kabarcık kayıt asistanı (OpenClaw sürümü): yeni bir kullanıcıyı 
 görüntüleriyle), agent vekâletiyle kayıt (profil fotoğrafı yükleme dahil), Alipay/PayPal abonelik siparişi ve hesaba
 geçiş takibi, çift bağlantıyla tek tıkla giriş, hata giderme.
 
-**v2.0.0'dan itibaren agent vekâlet modudur, v2.1.0'dan itibaren PayPal dahil**: ana script `scripts/powpow-register.mjs` sıfır bağımlılıktır
-(Node ≥ 18), kullanıcı sürecin tamamında sohbetten ayrılmaz; yalnızca iki kısa ayrılık yaşar: e-postaya gidip
-doğrulama kodunu okumak ve Alipay/PayPal kasasında ödemek. Node yoksa ya da kullanıcı kendi yapmak isterse otomatik
-olarak salt yol gösterme moduna dönülür.
+**v2.0.0'dan bu yana agent vekil modu, v2.2.0'dan bu yana ayrıca platformun ücretsiz test dönemine uyum sağlıyor**: çekirdek betik `scripts/powpow-register.mjs` bağımlılıksızdır
+(Node ≥ 18); kullanıcı sohbetten yalnızca bir kez çıkar: gelen kutudaki doğrulama kodunu kontrol etmek için. Mevcut ücretsiz test döneminde kayıtlı hesap tüm özellikleri hemen kullanabilir — abonelik ödemesi isteğe bağlıdır; test dönemi bitip kullanıcı abonelik sayfasına düşerse akış kendiliğinden ödeme yoluna geçer. Node olmadan veya kullanıcı kendisi yapmayı tercih ettiğinde otomatik olarak saf rehberlik moduna düşer.
 
 ## Kurulum
 
@@ -24,9 +22,9 @@ openclaw skills install @durenzidu/powpow-register
 2. **Vekâleten kayıt**: agent kullanıcı adını/takma adı kendiliğinden önerir, şifre iki seçeneklidir (kullanıcı
    verir ya da agent üretir), doğrulama kodunun gönderilip girilmesi, profil fotoğrafının doğrudan yüklenmesi
    (≤5MB, SVG değil), sık hataların otomatik yönetimi (alınmış/süresi geçmiş/hız sınırı).
-3. **Tek tıkla giriş (çift bağlantı)**: kayıt başarılı olur olmaz «yarı oturum» bağlantısı abonelik sayfasına
-   götürür; ödeme hesaba geçtikten sonra yeni oturum durumu alınır ve tam üye bağlantısı ana sayfaya götürür
-   (platformun resmî `me?token=` köprüsünden geçer, HttpOnly cookie'yi kendiliğinden yerleştirir).
+3. **Tek tıkla giriş (çift link)**: kayıt başarılı olduktan hemen sonra giriş linki kullanıcıyı doğrudan ana sayfaya indirir (ücretsiz test döneminde tek tık ve kullanıma hazır);
+   abonelik sayfasına düşerse (test dönemi bitti) veya kullanıcı yükseltmek isterse abonelik akışını izle — ödeme indikten sonra yeni giriş durumuna takas edilir ve tam üyelik linki ana sayfaya indirir
+   (HttpOnly çerezi otomatik bırakan platformun resmi `me?token=` köprüsü üzerinden).
 4. **Abonelik ödemesi**: hem Alipay (aylık ¥6.99 / üç aylık ¥19.99 / yıllık
    ¥69.99, tek seferlik satın alma, otomatik yenileme yok) hem de PayPal (Premium Monthly, yaklaşık $1/ay, otomatik yenileme, istenince iptal) için siparişi agent vekâleten açar + hesaba geçiş yoklaması;
    WeChat QR/Huawei IAP için yol gösterilir.

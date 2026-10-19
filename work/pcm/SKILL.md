@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Help user finish PowPow (Bubble) registration, Alipay/PayPal subscription activation, and one-click login, all inside di chat. Agent go fill di form (including avatar upload), send di email verification code, create payment order and track am till money land, user only need provide basic info, check one verification code, and pay for Alipay/PayPal cashier, e no need comot from di chat. E trigger when user talk "register Bubble", "register powpow account", "how I go register powpow", "sign up powpow"; e still handle registration wahala (verification code no dey come, username/email don dey take) and activation palava (login talk "account no activate" / pending_payment, how to pay for subscription). E need Node >= 18; if e no dey available, e go fall back to guide-only mode by imsef. E no include make post/create digital human (na powpow-simple work), and e no include code development.
-version: 2.1.0
+description: E dey help user complete PowPow (Bubble) registration and one-click login inside di conversation. Di agent dey fill di form for di user (including avatar upload) and dey send di email verification code; di user only need to give basic info and check di verification code once — without comot for di conversation. Di platform dey now inside free testing period: account wey don register fit use every feature at once; subscription payment (Alipay/PayPal) na optional membership upgrade, wey di agent fit still handle am with order creation and money arrival tracking wen e need. E dey trigger wen user talk say "register for Bubble", "create powpow account", "how I go register for Bubble", "help me create powpow account", "sign up powpow"; e still dey handle registration wahala (verification code no come, username/email don already taken) and activation wahala (login dey talk say "account no activate" / pending_payment, how I go subscribe/pay, Bubble free or e dey cost). E need Node ≥ 18; if e no dey, e dey fall back by imself to pure guidance mode. E no cover posting/creating digital human (na powpow-simple work), e no cover code development.
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,22 +10,22 @@ metadata:
 
 # PowPow Register (Bubble registration helper)
 
-Carry one new user from "im no know wetin Bubble be" go reach "account don activate, one-click login, start to play" — di whole journey happen inside di chat. Di user only go comot from di chat two times for small time: **go email check di verification code**, **pay for di payment cashier** (Alipay or PayPal — agent go open di cashier page by imsef).
+E dey carry new user from "I no know wetin Bubble be" reach "one-click login, ready to play" — all inside di conversation. Di user dey comot from di conversation only once: **to check di verification code inside inbox**. Di platform dey now inside free testing period: after you register, every feature dey available, no need to pay; subscription payment na optional membership upgrade (di agent still dey open di cashier and dey track money arrival).
 
-**Version 2.1.0** · 2026-10-11 (from v2 na agent-do-am mode — script contract and full sequence see `references/agent-flow.md`; field rules, rate limit and error troubleshooting see `references/registration-flow.md`; payment channel see `references/payment-and-activation.md`; product screenshot list see `references/screenshots.md`. From v2.1.0 PayPal subscription fit also dey handle by di agent, as option side by side with Alipay)
+**Version 2.2.0** · 2026-10-18 (since v2 dis one na agent-helper mode: script contract and full sequence dey for `references/agent-flow.md`; field rules, rate limits and error wahala dey for `references/registration-flow.md`; payment channels dey for `references/payment-and-activation.md`; product screenshot list dey for `references/screenshots.md`. Since v2.1.0 di agent fit still handle PayPal subscription, as option alongside Alipay. Since v2.2.0 di platform don enter free testing period: register and one-click login fit use am at once; payment don turn optional upgrade — if user click di link and land for subscription page, di testing period don end, follow di payment flow from step 7; di flow dey adapt imself, no need to change script)
 
 ## Running environment
 
 - Main script `scripts/powpow-register.mjs`: **zero dependency**, e need **Node >= 18**. Before you start, run `node scripts/powpow-register.mjs status` one time to confirm say di environment dey work.
 - All di script requests dey go only to di official domain `https://global.powpow.online`.
-- **When Node no dey / script dey show error**: e go fall back to guide-only mode by imsef — give di user di register page https://global.powpow.online/register and di subscription page https://global.powpow.online/subscription, follow `references/registration-flow.md` to guide am step by step. No dey force try di script again and again.
+- **No Node / script error**: e dey fall back by imself to pure guidance mode — give user di registration page https://global.powpow.online/register and guide am along per `references/registration-flow.md` (during free testing period, web registration dey equally instant). No dey keep hammer di script.
 - To continue after di chat break: first run `status` to see which step di flow don reach, then continue from there.
 
 ## Trigger Conditions
 
 - Registration intent: "register Bubble", "register one powpow account", "how I go register Bubble", "sign up powpow"
 - Registration stuck: "verification code no dey come", "username talk say e don exist already", "password no dey pass di check"
-- Problem after registration: "login talk say account no activate", "403 pending_payment", "how Bubble dey pay/subscribe"
+- Wahala after registration: "login dey talk say account no activate", "403 pending_payment", "how I go pay/subscribe for Bubble", "Bubble free or e dey cost"
 
 **No trigger**: make post/create digital human (→ powpow-simple); Web side code development (see development skill for dat one). When user wan register and still wan post: first finish dis skill, after activation come hand am over to powpow-simple.
 
@@ -38,8 +38,8 @@ Carry one new user from "im no know wetin Bubble be" go reach "account don activ
 | 3 Send verification code | `send-code` | —— |
 | 4 Read verification code back | —— | Go email check di 6-digit code, come back send am |
 | 5 Submit registration | `register` (including avatar direct upload), handle errors automatic | —— |
-| 6 Half-login + payment | `login-link(pending)` → `create-order --provider alipay|paypal` → open cashier → poll `query` | Click link, pay |
-| 7 Proper login | `refresh-login` → `login-link(home)` | Click link enter homepage |
+| 6 One-click login | `login-link(home)` straight into home page; if e land for subscription page, go to step 7 | Click di link and start to play |
+| 7 Subscription upgrade (optional) | Only wen user want membership / free period don end: handle full payment flow | Pick method, pay |
 | 8 Wrap up | `cleanup` + deliver credentials + guide experience + recommend plugin | Start to play |
 
 ## Step 1: Product intro + screenshots (you no fit skip am)
@@ -93,19 +93,30 @@ Success mean say di account don build (pending status, e come with 3 initial bad
 | 邮箱验证码错误或已过期 (email verification code wrong or don expire) | If e pass 10 minutes → run `send-code` again |
 | 发送/注册过于频繁（429） (send/register too many times (429)) | Wait 1 minute then try again, just tell di user |
 
-## Step 6: One-click login (link 1) + payment
+## Step 6: One-Click Login (straight into home page after registration)
 
-1. Sharp sharp after registration success:
+1. Right after registration succeed:
+   ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. Send di link to user: **click am and you land directly for home page, you don already login**. Di platform dey now inside free testing period — after you register, every feature dey usable (feed, map, digital human, check-ins, etc.), **no need to pay**.
+3. Ask user to confirm say e don enter; two cases dey:
+   - **E land for home page** → go straight to step 8 to wrap up; registration don complete;
+   - **E land for subscription page** → di platform free testing period don end; tell di user "di free trial period don end, membership subscription dey needed now", then follow step 7 to complete di subscription, and come back to step 8 after you subscribe.
+4. If user by imself want upgrade or support di platform → still go to step 7 (subscribing na voluntary; no dey push).
+## Step 7: Subscription Upgrade (optional — only wen step 6 talk am)
+
+1. First send di half-login link so say di payment return page fit correctly show "Payment successful":
    ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   Send di link to di user: **after e click am, di browser go land direct on di subscription page, e don already dey login state** — after dat when payment finish, di return page go fit show 支付成功 (payment success) correct correct. (For dis state, content pages still go dey block to di subscription page, na di platform paywall normal work, e no be bug, and you no need explain di inside mechanism to di user.)
-2. **Make di user choose one payment method** — show both channel dem:
-   - **Alipay (mainland China / users wey get Alipay)**: buy once for di corresponding time, **e no dey auto-renew**
-     - Monthly **¥6.99** (recommend make e try am first) / Quarterly **¥19.99** / Yearly **¥69.99**
-   - **PayPal (overseas / users wey no get Alipay)**: e dey auto-renew every month, cancel any time
-     - Premium Monthly, about **$1/month** (as e dey show for di subscription page; e dey auto-renew)
-3. After di user don choose one:
+   Send di link to user: click am and browser land directly for subscription page, already login.
+2. **Tell user make e choose payment method** — show both channels:
+   - **Alipay (mainland China / users wey get Alipay)**: one-time purchase of di duration, **no auto-renewal**
+     - Monthly **¥6.99** (recommended for trying) / Quarterly **¥19.99** / Yearly **¥69.99**
+   - **PayPal (overseas / users wey no get Alipay)**: e dey renew every month, fit cancel anytime
+     - Premium Monthly, about **$1/month** (as dem show am for subscription page; e dey renew by imself)
+3. Once user pick one:
    - **Alipay**:
      ```
      node scripts/powpow-register.mjs create-order --package monthly
@@ -114,29 +125,23 @@ Success mean say di account don build (pending status, e come with 3 initial bad
      ```
      node scripts/powpow-register.mjs create-order --provider paypal
      ```
-   Di script go return di payment page file path; **open am direct with system command** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). Di browser go jump to di official Alipay/PayPal cashier by imsef, where di user go complete di payment or di billing authorization.
-4. Run `query` every 10–15 seconds until e return `paid` or `ACTIVE` (payment/authorization dey land normally from few seconds to one minute). If di user close di payment page for middle → just run `create-order` again (old order / pending subscription go close or expire by imsef after 2 hours; no mind dem).
-5. Di WeChat scan-code channel na manual confirm, money fit land late; Huawei IAP dey available only inside di HarmonyOS App. Di skill no dey handle dis two — after payment, dem go come back to Step 7 same way.
+   Di script go return di payment page file path; **open am directly with system command** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). Di browser go jump by imself to di official Alipay/PayPal cashier, where di user go complete di payment or di billing authorization.
+4. Run `query` every 10–15 seconds until e return `paid` or `ACTIVE` (payment/authorization usually dey land within some seconds to one minute). If user close di payment page for middle → just `create-order` again (old orders / pending subscriptions go close or expire after 2 hours; no mind dem).
+5. Di WeChat QR-code channel dey confirm manually and money fit arrive late; Huawei IAP dey only available inside di HarmonyOS App. Di skill no handle those two — after payment, di user dey come back and tell di agent, wey first run `whoami` to confirm arrival, then send di home page link per point 6 below.
+6. After arrival don confirm, exchange for login state with di latest subscription claim, then send di link straight to home page:
+   ```
+   POWPOW_REGISTER_PASSWORD=<password> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   Send di link to user: **click am and you land directly for home page with full membership status**.
+## Step 8: Wrap-Up
 
-## Step 7: Proper login (link 2)
-
-After money landing confirm, first exchange di login state wey carry di latest subscription claim, then generate di link wey go land di user on homepage direct:
-
-```
-POWPOW_REGISTER_PASSWORD=<password> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-Send di link to di user: **after e click am e land direct on homepage, full member state**, na so di whole registration flow don finish.
-
-## Step 8: Wrap up
-
-1. `node scripts/powpow-register.mjs cleanup` clean di temporary state file of dis machine (session credentials).
-2. Give di user one "account card": username, email, member expiry time (password no dey show again — for generate mode, dem don already make user save am when dem generate am; di one wey user set by imsef, e know am).
-3. Guide di experience: waka round di map, post di first travel story (→ hand over to powpow-simple).
-4. Recommend extension: `@durenzidu/powpow-integration` skill and `@durenzidu/openclaw-channel-powpow` plugin — connect Bubble into di user own agent; if e wan add am, give am di install command.
-5. End am with "next step" block.
-
+1. `node scripts/powpow-register.mjs cleanup` to clean up local temporary state files (session credentials).
+2. Give di user "account card": username, email (di password no dey show again — for generated mode di user bin talk say make e save am when dem generate am; if di user set am by imself, e know am).
+3. Membership reminder (talk am once, no dey push): dis one na free testing period and di account dey usable at once; wen di testing period end, accounts wey no subscribe and visit content pages go dey redirect to di subscription page — for long-term use, come back and find di agent to subscribe anytime.
+4. Guide di first steps: browse di map, post di first travel journal (→ hand am over to powpow-simple).
+5. Recommend extensions: di `@durenzidu/powpow-integration` skill and di `@durenzidu/openclaw-channel-powpow` plugin — connect Bubble into di user own agent; give di install command if e want.
+6. End with "next step" block.
 ## Conversation UX
 
 Continue di powpow service-style tone:
@@ -157,7 +162,7 @@ Continue di powpow service-style tone:
 - **Credential security**: password only pass to di script through di environment variable `POWPOW_REGISTER_PASSWORD`, **never** write am inside command line argument (process list fit see am), no write am into any file (generate mode show am one time so di user go save am, after dat e no dey repeat). Verification code only dey use for di official registration endpoint, e dey throway once dem use am finish.
 - **Official boundary**: all requests dey go only to `https://global.powpow.online` (di script don already carry am inside), never send user info to any third-party address.
 - **Payment boundary**: agent only create order, open cashier, check money landing; **never** touch user Alipay/PayPal account/payment credential, and never promise say "I go pay for am".
-- **Paywall no be bug**: for pending state, to enter subscription page/return page na allowed by design; content page dey blocked na di platform paywall dey work normal, no try bypass am.
+- **Di paywall no be bug**: during di current free testing period all content pages dey open; if user click di home page link but land for subscription page, di testing period don end — guide am to subscribe via step 7. No dey try to bypass di paywall, and no dey explain internal mechanism to di user.
 - **Freedom to fall back**: any step wey di user wan do am by imsef, or environment no support di script, anytime e fit fall back to guide-only mode — give links, explain rules, follow am troubleshoot.
 - No make up platform rules: field rules, error text, rate limit parameters all come from platform code (`references/registration-flow.md` get di source code location), when di platform update, follow di actual behavior.
 - For showing pictures, use only di screenshots inside di package `assets/screenshots/` (wetin each picture dey for, see `references/screenshots.md`).

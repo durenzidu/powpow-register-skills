@@ -1,116 +1,118 @@
-# 订阅激活与支付 — powpow-register
+# Subscription Activation and Payment — powpow-register
 
-## 结论（先说答案）
+## Conclusion (the answer first)
+> **Free testing period (starting 2026-10-18; actual platform behavior prevails)**: during this period a registered account can use every feature directly, and **subscribing is an optional upgrade rather than a requirement** — only follow this file's flow when the user actively wants membership. When the testing period ends, unsubscribed accounts visiting content pages will be redirected to the subscription page; just complete the subscription per this file.
 
-**支付宝与 PayPal 订阅均可由 agent 代办下单与到账跟踪。**
-支付宝一次性买断、不自动续费，适合大陆/有支付宝用户；PayPal 按月自动续费、可随时取消，
-适合海外/无支付宝用户。微信扫码（人工确认）与华为 IAP 仍在，但不由 skill 代办。
 
-支付环节的职责边界：agent 可以**创建订单、打开收银台、查询到账**；**绝不**接触用户的
-支付宝/PayPal 账号/支付凭证，绝不承诺"代付"。付款动作永远由用户本人在官方收银台完成。
+**Both Alipay and PayPal subscriptions can now be handled by the agent — order creation and arrival tracking included.**
+Alipay is a one-time purchase with no auto-renewal, for mainland-China users and users with Alipay; PayPal auto-renews monthly and can be cancelled anytime,
+for overseas users and users without Alipay. WeChat QR code (manual confirmation) and Huawei IAP remain available, but the skill doesn't handle them.
 
-## 支付宝通道（vibepay，主推）
+Responsibility boundary for the payment step: the agent may **create orders, open the cashier, and query arrival**; it **never** touches the user's Alipay/PayPal
+account/payment credentials and never promises to "pay on their behalf". The payment action is always completed by the user in person at the official cashier.
 
-一次性买断制：付一次开通对应时长，**不自动续费**。套餐写死在
-`src/lib/alipay-vibepay.ts`（`ALIPAY_PACKAGES`）：
+## Alipay Channel (vibepay, primary)
 
-| key | planId | 名称 | 价格 | 时长 |
+One-time purchase model: pay once to unlock the corresponding duration, **no auto-renewal**. Plans are hard-coded in
+`src/lib/alipay-vibepay.ts` (`ALIPAY_PACKAGES`):
+
+| key | planId | Name | Price | Duration |
 |---|---|---|---|---|
-| `monthly` | alipay-monthly | 月度会员 | ¥6.99 | 30 天 |
-| `quarterly` | alipay-quarterly | 季度会员 | ¥19.99 | 90 天 |
-| `yearly` | alipay-yearly | 年度会员 | ¥69.99 | 365 天 |
+| `monthly` | alipay-monthly | Monthly membership | ¥6.99 | 30 days |
+| `quarterly` | alipay-quarterly | Quarterly membership | ¥19.99 | 90 days |
+| `yearly` | alipay-yearly | Yearly membership | ¥69.99 | 365 days |
 
-### 接口契约（skill 脚本已封装，agent 不直接拼请求）
+### API Contract (already wrapped by the skill script; the agent never assembles requests directly)
 
-| 接口 | 方法 | 说明 |
+| Endpoint | Method | Notes |
 |---|---|---|
-| `/api/payment/alipay/create-order` | POST | 需 `Authorization: Bearer <JWT>`（pending 用户即可）。body `{package}` → 返回 `{paymentHtml, outTradeNo, amount, planName}`；`paymentHtml` 是自动提交到支付宝网关的表单页 |
-| `/api/payment/alipay/query` | GET `?outTradeNo=` | 同样 Bearer 鉴权。返回 `paid` / `pending` / `closed` / `unknown` |
-| `/api/payment/alipay/notify` | POST（支付宝服务器回调） | 验签五要素（签名、app_id、金额一致、TRADE_SUCCESS/TRADE_FINISHED、商户唯一性）→ **幂等**更新订单 + 建订阅 + 激活账号。skill 永远不碰这个接口 |
-| `/payment/alipay/return` | 浏览器回跳页 | 公开路径，支付后显示「支付成功」确认，页内轮询后端真实状态 |
+| `/api/payment/alipay/create-order` | POST | Requires `Authorization: Bearer <JWT>` (pending users are fine). Body `{package}` → returns `{paymentHtml, outTradeNo, amount, planName}`; `paymentHtml` is a form page that auto-submits to the Alipay gateway |
+| `/api/payment/alipay/query` | GET `?outTradeNo=` | Same Bearer auth. Returns `paid` / `pending` / `closed` / `unknown` |
+| `/api/payment/alipay/notify` | POST (Alipay server callback) | Verifies five elements (signature, app_id, amount match, TRADE_SUCCESS/TRADE_FINISHED, merchant uniqueness) → **idempotently** updates the order + creates the subscription + activates the account. The skill never touches this endpoint |
+| `/payment/alipay/return` | Browser return page | Public path; shows the "Payment successful" confirmation after paying, polls the backend for the real status |
 
-- 未支付订单 **2 小时自动关闭**；用户中途放弃 → 直接重新 `create-order`，旧单不用管。
-- 脚本把 `paymentHtml` 写进临时 HTML 文件，agent 用系统命令打开即可进入支付宝收银台
-  （扫码或在支付宝里登录付款）。
+- Unpaid orders **auto-close after 2 hours**; if the user abandons midway → just `create-order` again, the old order can be ignored.
+- The script writes `paymentHtml` into a temporary HTML file; the agent opens it with a system command to reach the Alipay cashier
+  (pay by scanning the QR code or logging into Alipay).
 
-### 激活链路（自动，无需人工）
+### Activation Chain (automatic, no human step)
 
-notify 验签通过 → `paymentOrders` 标记已支付 → `user_subscriptions` 建立/顺延
-（`planId`、`currentPeriodEnd` 按 durationDays 计算，续费在原到期日上顺延）→
-`users.accountStatus: active` + `subscriptionStatus: ACTIVE` → 回跳页轮询到 paid 显示成功。
+notify passes verification → `paymentOrders` marked paid → `user_subscriptions` created/extended
+(`planId`, `currentPeriodEnd` computed from durationDays; renewals extend from the original expiry date) →
+`users.accountStatus: active` + `subscriptionStatus: ACTIVE` → the return page polls until paid and shows success.
 
-### 付款后必须换新登录态（重要）
+### A Fresh Login State Is Required After Payment (important)
 
-JWT 里带着订阅声明（pending 账号是 `NONE`）。**支付到账只更新数据库，不会改已签发的
-JWT**——旧 token 的声明仍是 NONE，直接用它生成登录链接会表现成"没会员"。
-所以 skill 在确认 `paid` / PayPal `ACTIVE` 后先跑 `refresh-login`（重新登录换新 JWT，声明变 ACTIVE），
-再生成链接 2。这是设计行为，不是漏洞修复。
+The JWT carries the subscription claim (`NONE` for a pending account). **Payment arrival only updates the database — it does not modify an
+already-issued JWT** — the old token's claim is still NONE, and generating a login link with it looks like "no membership".
+So after confirming `paid` / PayPal `ACTIVE`, the skill first runs `refresh-login` (logs in again for a new JWT with the ACTIVE claim),
+then generates Link 2. This is by design, not a bug fix.
 
-## PayPal 订阅通道（skill 代办，网页端非鸿蒙）
+## PayPal Subscription Channel (handled by the agent; web, non-HarmonyOS)
 
-仅有一个 Premium Monthly 计划（约 $1/月，以 `/api/subscription/plans` 返回为准），**按月自动续费**，
-用户可随时在 PayPal 后台取消。
+There is only one plan, Premium Monthly (about $1/month, as returned by `/api/subscription/plans`); it **auto-renews monthly**
+and the user can cancel anytime in their PayPal account.
 
-### 接口契约（skill 脚本已封装，agent 不直接拼请求）
+### API Contract (already wrapped by the skill script; the agent never assembles requests directly)
 
-| 接口 | 方法 | 说明 |
+| Endpoint | Method | Notes |
 |---|---|---|
-| `/api/subscription/plans` | GET | Bearer 鉴权，返回可用计划列表（当前仅 1 个） |
-| `/api/subscription/create` | POST | body `{planId}` → 返回 `{subscriptionId, approveUrl, status}`；status 通常为 `APPROVAL_PENDING` |
-| `/api/subscription/create` | GET | Bearer 鉴权，返回 `{activeSubscription, allSubscriptions}`；agent 轮询 `activeSubscription.subscription.status === 'ACTIVE'` |
-| `/api/subscription/verify` | POST | 成功页自动调用（带 cookie），webhook 未到时主动调 PayPal API 激活 |
-| `/subscription/success` | 浏览器回跳页 | PayPal 授权后落地，自动轮询 verify；激活后跳回首页/原页面 |
-| `/subscription/cancel` | 浏览器页 | 用户取消或失败时落地，可重新发起 |
+| `/api/subscription/plans` | GET | Bearer auth; returns the list of available plans (currently only 1) |
+| `/api/subscription/create` | POST | Body `{planId}` → returns `{subscriptionId, approveUrl, status}`; `status` is usually `APPROVAL_PENDING` |
+| `/api/subscription/create` | GET | Bearer auth; returns `{activeSubscription, allSubscriptions}`; the agent polls `activeSubscription.subscription.status === 'ACTIVE'` |
+| `/api/subscription/verify` | POST | Called automatically by the success page (with the cookie); activates through the PayPal API directly when the webhook hasn't arrived |
+| `/subscription/success` | Browser return page | Landing page after PayPal authorization; polls verify automatically, then returns to the home page / original page |
+| `/subscription/cancel` | Browser page | Landing page when the user cancels or it fails; a new attempt can be started |
 
-### 代办流程
+### Agent Flow
 
 ```
-create-order --provider paypal  # → 返回 approveUrl 写入本地 HTML 文件
-打开 HTML 文件                  # → 浏览器跳转到 PayPal 授权页
-query（每 10–15s）               # → 轮询到 ACTIVE
-refresh-login                   # → 换新 JWT（订阅声明 ACTIVE）
-login-link --target home        # → 生成正式登录链接
+create-order --provider paypal   # → returns approveUrl, written into a local HTML file
+open the HTML file               # → the browser jumps to the PayPal authorization page
+query (every 10–15s)             # → poll until ACTIVE
+refresh-login                    # → exchange for a new JWT (subscription claim ACTIVE)
+login-link --target home         # → generate the formal login link
 ```
 
-- 1 小时内未完成的 PENDING 订阅会被后端自动清理，可重新发起。
-- 若用户重复 `create-order`，后端会复用仍有效的 `APPROVAL_PENDING` 订阅，避免 409。
-- 与支付宝相同：支付到账只更新 DB，旧 JWT 不会自动刷新，**必须**先 `refresh-login` 再发首页链接。
+- PENDING subscriptions that aren't finished within 1 hour are cleaned up automatically by the backend; just start over.
+- If the user runs `create-order` again, the backend reuses the still-valid `APPROVAL_PENDING` subscription, avoiding a 409.
+- Same as Alipay: arrival only updates the DB — an old JWT is not refreshed automatically, so you **must** run `refresh-login` before sending the home-page link.
 
-## 订阅页四条通道
+## The Four Channels on the Subscription Page
 
-订阅页 `src/app/(public)/subscription/page.tsx` 按运行环境展示：
+The subscription page `src/app/(public)/subscription/page.tsx` shows channels based on the runtime environment:
 
-| 通道 | 环境 | 机制 | 激活方式 |
+| Channel | Environment | Mechanism | Activation |
 |---|---|---|---|
-| **支付宝（主推）** | 网页端 | `AlipayPaymentSection` 走 vibepay 接口（上表） | notify 服务端自动激活，秒级 |
-| PayPal 订阅 | 网页端（非鸿蒙） | `/api/subscription/create` → 跳 PayPal 授权；按月自动续费可随时取消（`/api/subscription/manage`） | PayPal Webhook（`BILLING.SUBSCRIPTION.*`）自动置 active |
-| 微信扫码订阅 | 网页端（非鸿蒙） | 页面底部「微信扫码订阅」：扫码转账 | **人工确认**，到账可能延迟；付完别急着判定失败 |
-| 华为应用内购买 | 鸿蒙 App 内 | 原生 `NativeBridge.purchaseSubscription()` | `/api/subscription/activate-huawei` 验证华为订单后激活 |
+| **Alipay (primary)** | Web | `AlipayPaymentSection` goes through the vibepay endpoints (table above) | notify activates automatically server-side, within seconds |
+| PayPal subscription | Web (non-HarmonyOS) | `/api/subscription/create` → redirect to PayPal for authorization; auto-renews monthly, cancel anytime (`/api/subscription/manage`) | PayPal Webhook (`BILLING.SUBSCRIPTION.*`) automatically sets active |
+| WeChat QR-code subscription | Web (non-HarmonyOS) | "Scan WeChat to subscribe" section at the bottom of the page: scan to transfer money | **Manual confirmation**; the funds may arrive with a delay — don't rush to call it a failure right after the user pays |
+| Huawei in-app purchase | Inside the HarmonyOS App | Native `NativeBridge.purchaseSubscription()` | `/api/subscription/activate-huawei` verifies the Huawei order and then activates |
 
-PayPal 计划与价格从 `/api/subscription/plans` 动态读取；页面固定文案：Auto-renews. Cancel anytime.
+PayPal plans and prices are read dynamically from `/api/subscription/plans`; the page's fixed copy reads: Auto-renews. Cancel anytime.
 
-## 状态与跳转
+## Status and Redirects
 
-- 支付宝付完 → 回跳页显示成功；PayPal 成功 → `/subscription/success` → 账号 active →
-  自动跳回 `next` 参数指定的原始页面（无则首页）。
-- 已订阅用户再访问订阅页 → 显示 "You're All Set!"，3 秒后自动回首页。
-- 支付失败/取消（PayPal）→ `/subscription/cancel`，可重新发起。
+- Alipay payment complete → the return page shows success; PayPal success → `/subscription/success` → account active →
+  auto-return to the original page specified by the `next` parameter (home page if none).
+- An already-subscribed user visiting the subscription page → shows "You're All Set!", auto-returns to home after 3 seconds.
+- Payment failure/cancellation (PayPal) → `/subscription/cancel`, a new attempt can be started.
 
-## 排查
+## Troubleshooting
 
-| 现象 | 处理 |
+| Symptom | Handling |
 |---|---|
-| 支付宝付完 `query` 还是 pending | notify 极少延迟；等 30 秒再查一次。仍不行让用户回浏览器看回跳页状态，再不行联系平台支持（dongtao@outlook.com），报 `outTradeNo` |
-| 支付宝付完、链接 2 进去还是被挡 | 少跑了 `refresh-login`（旧 JWT 声明未更新）——先 `refresh-login` 再 `login-link` |
-| PayPal `query` 一直 PENDING | 用户尚未在 PayPal 完成授权；确认浏览器已打开授权链接。若已授权仍 PENDING，可能是 webhook 延迟，让用户在成功页多等几秒或刷新 |
-| PayPal `query` 报 409 | 已有未完成的 PENDING 订阅；等 1 小时自动过期，或在浏览器里完成旧链接授权 |
-| PayPal 付完、链接 2 进去还是被挡 | 同支付宝：先 `refresh-login` 再 `login-link` |
-| 付完还是 403（PayPal） | Webhook 偶有延迟，重新登录刷新状态 |
-| 微信付了没开通 | 人工确认是异步的，几小时内未开通再联系平台支持 |
-| 订阅页提示 "No subscription plans available" | `/api/subscription/plans` 无可用 PayPal 计划，平台侧配置问题；国内用户改走支付宝即可 |
+| Alipay paid but `query` still pending | notify is rarely delayed; wait 30 seconds and query again. If it still fails, have the user check the return page status in the browser; if that fails too, contact platform support (dongtao@outlook.com) with the `outTradeNo` |
+| Alipay paid, but Link 2 still gets walled | `refresh-login` was skipped (the old JWT claim wasn't updated) — run `refresh-login` first, then `login-link` |
+| PayPal `query` stays PENDING | The user hasn't finished authorization in PayPal; confirm the authorization link was opened in the browser. If it's still PENDING after authorizing, the webhook may be delayed — have the user wait a few more seconds on the success page or refresh |
+| PayPal `query` returns 409 | There is already an unfinished PENDING subscription; wait 1 hour for it to expire, or complete the authorization of the old link in the browser |
+| PayPal paid, but Link 2 still gets walled | Same as Alipay: run `refresh-login` first, then `login-link` |
+| Still 403 after paying (PayPal) | The Webhook is occasionally delayed; log in again to refresh the status |
+| Paid via WeChat but not activated | Manual confirmation is asynchronous; if it hasn't been activated within a few hours, contact platform support |
+| Subscription page shows "No subscription plans available" | No usable PayPal plans on `/api/subscription/plans` — a platform-side configuration issue; mainland-China users can use Alipay instead |
 
-## 历史备注
+## Historical Note
 
-代码里另有一套**旧的**支付宝网页支付（`src/lib/alipay.ts`、`/api/payment/create-order`，
-¥9.90/¥99 一次性买断，沙箱未配钥时降级模拟支付），始终未接入订阅页 UI，与 vibepay
-无关。skill 一律不碰它；`alipay-vibepay.ts` 才是现行通道。
+The codebase also contains an **older** Alipay web payment (`src/lib/alipay.ts`, `/api/payment/create-order`,
+¥9.90/¥99 one-time purchase, auto-degrades to mock payment when the sandbox key is unset) that was never wired into the
+subscription page UI and is unrelated to vibepay. The skill never touches it; `alipay-vibepay.ts` is the live channel.

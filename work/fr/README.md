@@ -5,10 +5,8 @@ sais pas ce qu'est Bulle » jusqu'à « compte activé, connecté en un clic, on
 (captures d'écran comprises), inscription déléguée à l'agent (upload de l'avatar compris), commande
 d'abonnement Alipay/PayPal et suivi de l'encaissement, connexion en un clic à double lien, diagnostic des erreurs.
 
-**Depuis la v2.0.0, mode prise en charge déléguée par l'agent, et depuis la v2.1.0 PayPal aussi** : le script principal `scripts/powpow-register.mjs` est
-zéro dépendance (Node ≥ 18), l'utilisateur ne quitte jamais la conversation, à part deux courtes sorties :
-aller chercher le code dans sa boîte mail, et payer à la caisse Alipay/PayPal. Sans Node, ou si l'utilisateur
-préfère faire lui-même, repli automatique en mode guide pure.
+**Depuis la v2.0.0, mode assisté par agent, et depuis la v2.2.0, adaptation à la période d'essai gratuit de la plateforme** : le script cœur `scripts/powpow-register.mjs` est à zéro dépendance
+(Node ≥ 18) ; l'utilisateur ne quitte la conversation qu'une seule fois : pour consulter le code de vérification dans sa boîte mail. Pendant la période d'essai gratuit actuelle, un compte inscrit peut utiliser toutes les fonctions immédiatement — le paiement de l'abonnement est une amélioration facultative ; si la période d'essai se termine et que l'utilisateur atterrit sur la page d'abonnement, le flux bascule automatiquement sur le chemin de paiement. Sans Node, ou quand l'utilisateur préfère faire lui-même, repli automatique en mode guidage pur.
 
 ## Installation
 
@@ -24,10 +22,9 @@ openclaw skills install @durenzidu/powpow-register
 2. **Inscription déléguée** : l'agent propose proactivement nom d'utilisateur/pseudo, mot de passe au choix
    (fourni par l'utilisateur ou généré par l'agent), envoi et soumission du code de vérification, upload
    direct de l'avatar (≤5 Mo, pas de SVG), gestion automatique des erreurs courantes (déjà pris / expiré / limite de fréquence).
-3. **Connexion en un clic (double lien)** : dès l'inscription réussie, un lien de « semi-session » mène
-   directement à la page d'abonnement ; après encaissement du paiement, on échange contre un nouvel état de
-   connexion puis un lien de membership complet mène directement à l'accueil (via le pont officiel
-   `me?token=` de la plateforme, qui pose automatiquement le cookie HttpOnly).
+3. **Connexion en un clic (double lien)** : juste après l'inscription réussie, un lien de connexion fait atterrir l'utilisateur directement sur la page d'accueil (pendant la période d'essai gratuit, un clic et c'est utilisable) ;
+   si ça atterrit sur la page d'abonnement (période d'essai terminée) ou que l'utilisateur veut améliorer, suis le flux d'abonnement — après l'encaissement, échange contre un nouvel état de session et le lien d'adhésion complète le ramène à la page d'accueil
+   (via le pont officiel `me?token=` de la plateforme, qui plante le cookie HttpOnly automatiquement).
 4. **Paiement de l'abonnement** : Alipay (mensuel ¥6.99 / trimestriel
    ¥19.99 / annuel ¥69.99, achat unique sans renouvellement automatique) comme PayPal (Premium Monthly, environ $1/mois, renouvellement automatique, annulable à tout moment) sont gérés par l'agent : commande + interrogation en boucle jusqu'à
    l'encaissement ; QR code WeChat / Huawei IAP : on montre le chemin.

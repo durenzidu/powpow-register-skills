@@ -21,7 +21,7 @@ Cikakkun bayanai na aiwatar da matakai a SKILL.md. Duk umarni suke `node scripts
 | `prepare-suggest` | `--username --nickname --email` | Ka rubuta bayanan da aka tabbatar a cikin fayil ɗin hali (daga baya register ba buƙatar maimaita wucewa) |
 | `send-code` | `--email` | Ka haddasa dandalin ya aika lambar lambobi 6 (mai inganci a cikin minti 10, lokacin jira daƙiƙa 60) |
 | `register` | `--code` (wajibi); `--username --nickname --avatar --phone` (na zaɓi, idan fayil ɗin hali yana da su ba buƙatar wucewa) | Ka gina asusun pending; kalmar sirri ta `POWPOW_REGISTER_PASSWORD`; bayan nasara JWT ana adanawa cikin fayil ɗin hali ta kai |
-| `login-link` | `--target pending` ko `--target home` | Ka ƙirƙiri mahaɗin shiga da danna sau ɗaya (zane mahadi biyu, duba ƙasa) |
+| `login-link` | `--target pending` ko `--target home` | Yana kirkirar hanyar shiga da danna daya (tsarin hanyoyi biyu, duba a kasa) |
 | `create-order` | `--package monthly\|quarterly\|yearly` (tsoho na Alipay)<br>`--provider alipay\|paypal` | Ƙirƙiri oda biya; Alipay yana dawo da hanyar fayil ɗin shafin biya + outTradeNo; PayPal yana dawo da hanyar fayil ɗin shafin izini + subscriptionId (ana adanawa cikin fayil ɗin hali ta kai) |
 | `query` | —— | Duba halin oda/membanci. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; sake duba kowace daƙiƙa 10–15 |
 | `refresh-login` | Kalmar sirri ta canjin muhalli | Ka sake shiga ka musanya **JWT sabuwa** (da'awar membanci na canzawa daga NONE zuwa ACTIVE), dole ne a gudanar da ita bayan kuɗin ya shiga |
@@ -39,39 +39,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<kalmar sirri>'; node scripts/powpow-register.m
 set POWPOW_REGISTER_PASSWORD=<kalmar sirri> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## Tsarin mahadi biyu (zane na asali)
+## Tsarin hanyoyi biyu (tsarin asali)
 
-Halin shiga na dandalin cookie ce ta HttpOnly, agent ba za ta iya shuka wa burauza cookie kai tsaye ba; gada ita ce tashar hukuma
-`/api/auth/me?token=<JWT>&redirect=<hanyar-ciki>`: tabbatarwa da saitti → mai amfani na pending ana gina masa
-session ta kai → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / kwana 7) → tabbatar da
-redirect (yana farawa da sanda guda kawai, an hana `//` da backslash, bayan fassara dole ne ya zama asali guda) → turawa ta ɗan lokaci 307 zuwa shafin da aka nufa.
+Yanayin shiga na yanar gizo kuki ne na HttpOnly, wanda magidiman ba zai iya dasa shi kai tsaye a burauza; gada shi ne iyakar
+`/api/auth/me?token=<JWT>&redirect=<hanya a cikin gidan yanar gizo>`: tabbatar da sa hannu → kirkira kai tsaye
+zama → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / kwanaki 7) → tabbatar da
+maye gurbin (dole ya fara da salo daya, `//` da salo masu baya an hana, dole ya zama same-origin bayan warware) → 307 maye gurbin na wancan lokaci zuwa shafin manufa.
 
-- **Mahaɗi na 1 (ana ba da shi nan da nan bayan rijista ta yi nasara)**: `--target pending` → yana sauka a `/subscription`.
-  Burauzar mai amfani tana shiga halin "rabin shiga": shafin membanci, shafin dawowa na Alipay ana gani ana iya amfani da su; shafukan abun ciki har yanzu ana tosuwa zuwa shafin membanci (tsaro uku: duba ƙofar da'awar JWT → sake duba DB → duba API na asali, halin al'ada ne).
-- **Mahaɗi na 2 (ana ba da shi bayan an tabbatar paid)**: da farko `refresh-login` ka musanya JWT sabuwa (biya na canza DB kawai, ba ta canza da'awar JWT da aka riga aka bayar ba, idan ba ka canza za ta bayyana 'ya biya amba ba memba ba'), sannan `--target home` → yana sauka a shafin gida,
-  cikakken halin membanci.
+Akwai manufofi biyu na hanyoyi, **fara kirkirar home, sannan ka yanke shawarar wucewa pending bisa inda mai amfani ya sauka**:
 
-## Cikakken tsarin lokaci (hanya ta al'ada)
+- **hanyar home (ana aika ta by default, `--target home` → sauka a `/`)**: ana kirkirar ta kuma aika wa mai amfani nan take bayan rajista ta samu nasara.
+  A lokacin gwaji kyauta mai amfani yana zuwa shafin gida kai tsaye, cikakken amfani; **in ya danna hanyar amma ya sauka a shafin biya — lokacin gwaji kyauta ya kare** — sauya zuwa jawardar biya (duba a kasa); babu bukatar canza rubutu ko sake yin rajista.
+- **hanyar pending (ana amfani da ita a jawardar biya, `--target pending` → sauka a `/subscription`)**:
+  burauza mai amfani yana shiga yanayin "rabin shiga": shafin biya da shafin dawowa bayan biya suna bayyana kuma suna aiki. Bayan saukar kudi,
+  gudanar da `refresh-login` don musanya sabon JWT tare da kimar ACTIVE, sannan aika hanyar home sake daya don cikakken matsayin mamba.
+
+## Cikakken jeri
+
+### Hanya mai sauri (a lokacin gwaji kyauta — yawancin lokuta)
 
 ```
-1.  status                          # tabbatar da yanayin aiki
-2.  (Mataki na 2 tattaunawa tabbatar da bayanai, kalmar sirri zaɓi ɗaya; yanayin ƙirƙira: gen-password → ka tambayi mai amfani ya adana nan take)
+1.  status                          # tabbatar da yanayin kansa
+2.  (mataki 2 tattaunawa don tabbatar da bayani, kalmar sirri ko kaza; yanayin kirkira: gen-password → ce wa mai amfani ya ajiye nan take)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → mai amfani ya je imel ya duba lambar (kadai matakin barin tattaunawa ①)
+4.  send-code --email E             # → mai amfani yana duba lambar a akwatin sakonni (lokacin barin tattaunawa)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → mahaɗi na 1 ga mai amfani
-7.  (Mai amfani ya zaɓi hanyar biya)
+6.  login-link --target home        # → aika hanyar ga mai amfani; danna daya kuma a shafin gida
+7.  (mai amfani ya tabbatar da shigarsa) → kammala nan take: cleanup + katin asusu + nuna matakan farko
+```
+
+### Hanyar biya (sa'adda mai amfani ya so mamba, ko lokacin gwaji kyauta ya kare)
+
+```
+1–5. Kamar hanya mai sauri (yanayi yana da token bayan rajista ta samu nasara)
+6.  login-link --target pending     # → hanyar rabin shiga, tana rike shafin dawowa bayan biya yana aiki
+7.  (mai amfani ya zabi hanyar biya)
     # Alipay: create-order --package monthly|quarterly|yearly
     # PayPal: create-order --provider paypal
-8.  start <fayil ɗin shafin biya>              # Windows; macOS tana amfani da open, Linux tana amfani da xdg-open
-    # → mai amfani ya kammala biya/izini a cashier na Alipay/PayPal (matakin barin tattaunawa na ②)
-9.  query (kowace daƙiƙa 10–15) har sai paid / ACTIVE
-10. refresh-login                   # musanya JWT sabuwa mai da'awar ACTIVE
-11. login-link --target home        # → mahaɗi na 2 ga mai amfani
-12. whoami                          # tabbatar da subscriptionStatus: ACTIVE (na zaɓi)
-13. cleanup                         # share fayil ɗin hali
+8.  start <fayil din shafin biya>       # Windows; macOS yana amfani da open, Linux yana amfani da xdg-open
+    # → mai amfani yana kammala biya/izini a karfat kudin Alipay/PayPal (yana barin tattaunawa)
+9.  query (kowane 10–15s) har paid / ACTIVE
+10. refresh-login                   # musanya sabon JWT tare da kimar ACTIVE
+11. login-link --target home        # → aika hanyar cikakken mamba ga mai amfani
+12. whoami                          # tabbatar da subscriptionStatus: ACTIVE (na zabi)
+13. cleanup                         # share fayil din yanayi
 ```
-
 ## Taswirar umarni → API na dandalin
 
 | Umarnin script | Tashar dandalin |
@@ -98,7 +110,8 @@ Inda dokuka suka samo: dokokin filaye da iyakancewa na rijista duba `registratio
 | Bayan `create-order` mai amfani ya rufe shafin biya | Ka sake `create-order` kai tsaye (tsohon oda yana rufewa da kai bayan sa'o'i 2; membancin PayPal PENDING yana ƙarewa bayan sa'a 1) |
 | `create-order --provider paypal` ya dawo da 409 | Akwai membancin PayPal da ba a kammala ba; ka jira sa'a 1 ya ƙare, ko ka kammala tsohon izini a burauza |
 | `query` na ci gaba da pending / PENDING | Mai amfani mai yiwuwa ba ya biya; ka tambaya. Hakika ya biya → ka bi teburin bincike na payment-and-activation.md |
-| `refresh-login` 403 `pending_payment` | Kuɗin/izinin ba shiga tukuna ba, ka koma mataki na 9 ka ci gaba da sake dubawa |
+| Mai amfani ya danna hanyar gida amma ya sauka a shafin biya | Lokacin gwaji kyauta ya kare → sauya zuwa jawardar biya: `login-link --target pending` → zabi hanyar biya → `create-order` |
+| `refresh-login` 403 `pending_payment` | Lokacin gwaji kyauta ya kare kuma biya bata sauka ba; koma zuwa mataki 9 don ci gaba da nema, ko tabbatar da cewa mai amfani ya kammala biya |
 | Fayil ɗin hali ya ɓace (an share shi ba zato ba tsammani / an canza na'ura) | `whoami`/`refresh-login` ba za a iya amfani da su ba; ka tambayi mai amfani a cikin burauzar da ta taɓa buɗe mahaɗi na 1 ya sabunta shafin membanci ya tabbatar da hali, ko ya sake shiga (yanayin yanar gizo) |
 
 ## Yanayin dawowa (jagora kawai)
@@ -109,6 +122,6 @@ A kowane ɗayan waɗannan hali, ka koma nan take ga yanayin jagora kawai na salo
 - Mai amfani ya faɗi a bayyane 'na da kansa zai yi aiki a yanar gizo';
 - Manufofin kamfani/na'ura sun hana script ɗin haɗawa da intanet.
 
-Bayan dawowa: ka ba shafin rijista https://global.powpow.online/register da shafin membanci
+Bayan koma: ba shafin rajista https://global.powpow.online/register (a lokacin gwaji kyauta, rajistar yanar gizo ita ce nan take; sa'adda ana bukatar rajista, ba shafin biya kuma https://global.powpow.online/subscription ), warware matsala tare bisa ka'idodin `registration-flow.md`, riƙe kalar magana daya, kuma kammala kowane juyi da sashin "mataki na gaba".
 https://global.powpow.online/subscription , ka bi dokokin `registration-flow.md` ka taimaka gyara kuskure, salo
 ba ya canzawa, kowane zagaye har yanzu yana rufewa da sashin 'mataki na gaba'.

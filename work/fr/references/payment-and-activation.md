@@ -1,6 +1,8 @@
 # Activation de l'abonnement et paiement — powpow-register
 
 ## Conclusion (la réponse d'abord)
+> **Période d'essai gratuit (à partir du 2026-10-18 ; le comportement réel de la plateforme prévaut)** : pendant cette période, un compte inscrit peut utiliser toutes les fonctions directement, et **s'abonner est une amélioration facultative plutôt qu'une exigence** — suis le flux de ce fichier seulement quand l'utilisateur veut activement l'adhésion. Quand la période d'essai se terminera, les comptes non abonnés visitant les pages de contenu seront redirigés vers la page d'abonnement ; il suffit de finaliser l'abonnement selon ce fichier.
+
 
 **Les abonnements par Alipay comme par PayPal peuvent désormais être pris en charge par l'agent — création de la commande et suivi de l'encaissement compris.**
 Alipay est un achat unique sans renouvellement automatique, pour les utilisateurs en Chine continentale et ceux qui ont Alipay ; PayPal se renouvelle automatiquement chaque mois et s'annule à tout moment,

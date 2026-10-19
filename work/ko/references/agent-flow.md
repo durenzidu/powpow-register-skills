@@ -22,7 +22,7 @@ SKILL.md 각 단계의 실행 세부사항. 모든 커맨드는 `node scripts/po
 | `prepare-suggest` | `--username --nickname --email` | 확인된 정보를 상태 파일에 기록(이후 register에서 재입력 불필요) |
 | `send-code` | `--email` | 플랫폼에 6자리 인증번호 발송 트리거(10분 유효, 60초 쿨다운) |
 | `register` | `--code`(필수); `--username --nickname --avatar --phone`(선택, 상태 파일에 있으면 생략 가능) | pending 계정 생성. 비밀번호는 `POWPOW_REGISTER_PASSWORD` 환경변수로 전달. 성공 후 JWT는 자동으로 상태 파일에 저장 |
-| `login-link` | `--target pending` 또는 `--target home` | 원클릭 로그인 링크 생성(더블 링크 설계, 아래 참조) |
+| `login-link` | `--target pending` 또는 `--target home` | 원클릭 로그인 링크를 생성합니다(듀얼 링크 설계, 아래 참조) |
 | `create-order` | `--package monthly\|quarterly\|yearly`(Alipay 기본값)<br>`--provider alipay\|paypal` | 결제 주문 생성. Alipay는 결제 페이지 파일 경로 + outTradeNo, PayPal은 승인 페이지 파일 경로 + subscriptionId 반환(자동으로 상태 파일에 기록) |
 | `query` | —— | 주문/구독 상태 조회. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`. 10~15초 간격 폴링 |
 | `refresh-login` | 비밀번호는 환경변수로 | 재로그인으로 **새 JWT**로 교환(구독 클레임이 NONE → ACTIVE). 결제 입금 후 반드시 실행 |
@@ -40,36 +40,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<비밀번호>'; node scripts/powpow-register.m
 set POWPOW_REGISTER_PASSWORD=<비밀번호> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## 더블 링크 메커니즘(핵심 설계)
+## 듀얼 링크 메커니즘(핵심 설계)
 
-플랫폼 로그인 상태는 HttpOnly cookie라서, agent가 브라우저에 직접 cookie를 심을 수 없습니다. 브리지는 공식
-`/api/auth/me?token=<JWT>&redirect=<사이트 내 경로>` 엔드포인트: 서명 검증 → pending 사용자에게 자동으로 session 보완 생성 → `Set-Cookie: powpow_token`(HttpOnly / SameSite=Lax / 7일) → redirect 검증(단일 슬래시 시작만 허용, `//`와 백슬래시 금지, 파싱 후 동일 출처여야 함) → 307 임시 리다이렉트로 대상 페이지로.
+플랫폼의 로그인 상태는 HttpOnly 쿠키라 agent가 브라우저에 직접 심을 수 없습니다. 다리는 공식
+`/api/auth/me?token=<JWT>&redirect=<사이트 내 경로>` 엔드포인트입니다: 서명 검증 → 세션 자동 생성
+→ `Set-Cookie: powpow_token`(HttpOnly / SameSite=Lax / 7일) → 리디렉션 검증
+(단일 슬래시로 시작해야 하고, `//`와 백슬래시는 금지, 파싱 후 same-origin이어야 함) → 대상 페이지로의 307 임시 리디렉션.
 
-- **링크 1(가입 성공 직후 줌)**: `--target pending` → `/subscription` 도착.
-  사용자 브라우저는 '하프 로그인' 상태가 됩니다: 구독 페이지, Alipay 회귀 페이지는 보고 조작 가능. 콘텐츠 페이지는 여전히 페이월에 막혀 구독 페이지로 튕깁니다(3층 방어: JWT claims 게이트웨이 검사 → DB 재검사 → 코어 API 검사. 정상 동작입니다).
-- **링크 2(paid 확인 후 줌)**: 먼저 `refresh-login`으로 새 JWT 교체(결제는 DB만 업데이트하고 이미 발급된 JWT의 claims는 바꾸지 않습니다. 교체하지 않으면 '결제했는데 멤버십이 없음'처럼 보입니다). 그다음 `--target home` → 홈 도착, 완전한 멤버십 상태.
+링크 대상은 두 가지이고, **먼저 home을 생성한 뒤 사용자가 어디에 도착했는지를 보고 pending을 거칠지 결정합니다**:
 
-## 전체 시퀀스(정상 경로)
+- **home 링크(기본으로 발송, `--target home` → `/`에 도착)**: 가입 성공 직후에 생성해 사용자에게 보냅니다.
+  무료 테스트 기간 중에는 사용자가 홈으로 바로 가서 모든 것을 사용할 수 있습니다. **링크를 열었는데 구독 페이지에 도착하면 무료 테스트 기간이 끝난 것입니다** — 결제 플로우로 전환하세요(아래 참조). 스크립트를 고치거나 재가입할 필요가 없습니다.
+- **pending 링크(결제 플로우에서 사용, `--target pending` → `/subscription`에 도착)**:
+  사용자의 브라우저가 "하프 로그인" 상태로 들어갑니다: 구독 페이지와 결제 후 돌아올 페이지가 보이고 조작할 수 있습니다. 입금 후,
+  ACTIVE 클레임을 담은 새 JWT로 교환하려 `refresh-login`를 실행하고, 완전한 멤버십 상태를 위해 home 링크를 한 번 더 보냅니다.
+
+## 전체 시퀀스
+
+### 고속 경로(무료 테스트 기간 중 — 대부분의 경우)
 
 ```
-1.  status                          # 환경 자가진단
-2.  (2단계에서 대화로 정보 확인, 비밀번호 둘 중 택1. 생성 모드: gen-password → 사용자에게 즉시 저장시킴)
+1.  status                          # 환경 자체 점검
+2.  (2단계: 정보 확인 대화, 비밀번호는 취향대로; 생성 모드: gen-password → 사용자에게 바로 저장하라고 함)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → 사용자가 메일함에서 코드 확인(유일한 대화 이탈 ①)
+4.  send-code --email E             # → 사용자가 받은 편지함에서 코드 확인(대화를 떠나는 유일한 순간)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → 링크 1을 사용자에게 전송
+6.  login-link --target home        # → 링크를 사용자에게 발송; 한 번 클릭하면 홈에 도착
+7.  (사용자가 들어왔다고 확인) → 바로 마무리: cleanup + 계정 카드 + 첫 걸음 안내
+```
+
+### 결제 경로(사용자가 멤버십을 원하거나 무료 테스트 기간이 끝난 경우)
+
+```
+1–5. 고속 경로와 동일(register 성공 후 상태에 토큰이 이미 있음)
+6.  login-link --target pending     # → 하프 로그인 링크, 결제 후 돌아올 페이지는 계속 동작
 7.  (사용자가 결제 수단 선택)
     # Alipay: create-order --package monthly|quarterly|yearly
     # PayPal: create-order --provider paypal
-8.  start <결제 페이지 파일>          # Windows. macOS는 open, Linux는 xdg-open
-    # → 사용자가 Alipay/PayPal 계산대에서 결제/승인 완료(대화 이탈 ②)
-9.  query(10~15초마다) paid / ACTIVE가 될 때까지
-10. refresh-login                   # ACTIVE 클레임의 새 JWT로 교체
-11. login-link --target home        # → 링크 2를 사용자에게 전송
+8.  start <결제 페이지 파일>         # Windows; macOS는 open, Linux는 xdg-open
+    # → 사용자가 Alipay/PayPal 계산대에서 결제/승인 완료(대화를 떠남)
+9.  query(10~15초마다) paid / ACTIVE까지
+10. refresh-login                   # ACTIVE 클레임을 담은 새 JWT로 교환
+11. login-link --target home        # → 사용자에게 완전 멤버십 링크 발송
 12. whoami                          # subscriptionStatus: ACTIVE 확인(선택)
 13. cleanup                         # 상태 파일 정리
 ```
-
 ## 커맨드 → 플랫폼 API 매핑
 
 | 스크립트 커맨드 | 플랫폼 API |
@@ -96,7 +111,8 @@ set POWPOW_REGISTER_PASSWORD=<비밀번호> && node scripts/powpow-register.mjs 
 | `create-order` 후 사용자가 결제 페이지를 닫음 | 그냥 `create-order` 다시 실행(이전 주문은 2시간 후 자동 종료. PayPal PENDING 구독은 1시간 후 만료) |
 | `create-order --provider paypal`이 409 반환 | 미완료 PayPal 구독이 이미 있습니다. 1시간 기다려 만료시키거나 브라우저에서 이전 승인을 완료 |
 | `query`가 계속 pending / PENDING | 사용자가 결제하지 않았을 가능성. 한마디 물어보세요. 실제로 결제했다면 → payment-and-activation.md 해결 표대로 |
-| `refresh-login` 403 `pending_payment` | 결제/승인이 아직 입금되지 않음. 9단계로 돌아가 폴링 계속 |
+| 사용자가 home 링크를 클릭하지만 구독 페이지에 도착 | 무료 테스트 기간이 끝남 → 결제 플로우로 전환: `login-link --target pending` → 결제 수단 선택 → `create-order` |
+| `refresh-login` 403 `pending_payment` | 무료 테스트 기간이 끝났고 결제가 아직 입금되지 않았습니다. 9단계로 돌아가 계속 폴링하거나, 사용자가 결제를 완료했는지 확인하세요 |
 | 상태 파일 유실(실수로 삭제 / 컴퓨터 교체) | `whoami`/`refresh-login` 사용 불가. 링크 1을 열어 본 적 있는 브라우저에서 구독 페이지를 바로 새로고침해 상태를 확인하게 하거나, 다시 로그인(웹 모드) |
 
 ## 폴백 모드(순수 안내)
@@ -107,6 +123,6 @@ set POWPOW_REGISTER_PASSWORD=<비밀번호> && node scripts/powpow-register.mjs 
 - 사용자가 '내가 직접 웹에서 할게요'라고 명시한 경우;
 - 회사/기기 정책이 스크립트의 네트워크 연결을 제한하는 경우.
 
-폴백 후: 가입 페이지 https://global.powpow.online/register 와 구독 페이지
+폴백 후: 가입 페이지 https://global.powpow.online/register를 줍니다(무료 테스트 기간 중에는 웹 가입도 마찬가지로 즉시 사용 가능하고, 구독이 필요하면 구독 페이지 https://global.powpow.online/subscription도 줍니다). `registration-flow.md`의 규칙에 따라 곁에서 문제를 해결하고, 같은 어조를 유지하며, 매 턴을 계속 "다음 단계" 블록으로 끝냅니다.
 https://global.powpow.online/subscription 을 주고, `registration-flow.md`의 규칙에 따라 동반하며 문제를 잡습니다.
 어조는 그대로, 매 턴 「다음 단계」블록으로 마무리합니다.

@@ -1,6 +1,6 @@
 ## Description:
 
-Helps users register a PowPow account, activate a subscription through Alipay or PayPal, and obtain a sign-in link.
+Guides users through PowPow signup, email verification, Alipay or PayPal subscription activation, and one-click login in a conversation.
 
 This skill is ready for commercial/non-commercial use.
 
@@ -14,7 +14,7 @@ MIT-0
 
 ## Use Case:
 
-People signing up for PowPow can use this skill to complete email-verified registration, choose an Alipay or PayPal subscription, check activation, and receive a sign-in link. If automated registration is unavailable, it offers guided steps instead.
+PowPow users can register an account, complete email verification, activate an Alipay or PayPal subscription, and open a one-click login link with agent assistance. The skill also offers guided steps when the automation is unavailable.
 
 ### Deployment Geography for Use:
 
@@ -22,35 +22,35 @@ Global
 
 ## Known Risks and Mitigations:
 
-Risk: Registration uses personal details, an email verification code, and a temporary PowPow session token.
+Risk: A live login token is stored in a predictable temporary file and could expose the account on a shared machine.
 
-Mitigation: Share the code only for PowPow registration and run cleanup after the flow to remove local session state.
+Mitigation: Review before installing on shared or managed machines, use private per-run storage or a credential store where possible, and run cleanup when finished.
 
-Risk: Subscription activation opens an Alipay or PayPal checkout page.
+Risk: Passwords, email codes, and one-click login links can grant access if disclosed or reused.
 
-Mitigation: Complete payment directly with the payment provider; do not give the agent payment credentials.
+Mitigation: Handle credentials privately, complete payment only at the provider checkout, and do not reuse generated login links.
 
 ## Reference(s):
 
+- [PowPow skill release](https://clawhub.ai/durenzidu/skills/powpow-register-kn)
 - [PowPow website](https://global.powpow.online)
-- [PowPow registration](https://global.powpow.online/register)
-- [PowPow subscriptions](https://global.powpow.online/subscription)
-- [Agent registration flow](references/agent-flow.md)
-- [Payment and activation guidance](references/payment-and-activation.md)
+- [Agent flow](references/agent-flow.md)
+- [Registration flow](references/registration-flow.md)
+- [Payment and activation](references/payment-and-activation.md)
 
 ## Skill Output:
 
-**Output Type(s):** [Text, Guidance, Shell commands, Links]
+**Output Type(s):** [Guidance, Shell commands, Links]
 
-**Output Format:** [Markdown guidance and sign-in or checkout links]
+**Output Format:** [Conversational text and Markdown with commands and login or checkout links]
 
 **Output Parameters:** [1D]
 
-**Other Properties Related to Output:** [Automated flow requires Node.js 18 or later; offers guided registration otherwise. Payment is completed by the user at the payment provider.]
+**Other Properties Related to Output:** [Includes registration progress and payment-activation status; does not make payments for the user.]
 
 ## Skill Version(s):
 
-2.1.0 (source: release metadata and skill frontmatter)
+2.2.0 (source: ClawHub release and skill frontmatter)
 
 ## Ethical Considerations:
 

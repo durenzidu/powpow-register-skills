@@ -1,84 +1,85 @@
-# 注册流程详解 — powpow-register
+# Registration Flow in Detail — powpow-register
 
-供排查问题时查阅。所有规则均来自平台源码（Next.js 前后端一致性校验），标注了出处。
-平台更新时以线上实际行为为准。
+Reference for troubleshooting. All rules come from the platform source code (consistent Next.js frontend/backend validation), with sources cited.
+When the platform updates, the live behavior is authoritative.
 
-## 入口
+## Entry Points
 
-- 注册页：https://global.powpow.online/register
-- 登录页：https://global.powpow.online/login
-- 订阅页：https://global.powpow.online/subscription
-- 若从分享链接等带 `?next=...` 进入，注册+支付完成后会自动跳回原页面。
+- Registration page: https://global.powpow.online/register
+- Login page: https://global.powpow.online/login
+- Subscription page: https://global.powpow.online/subscription
+- If the user arrives via a shared link carrying `?next=...`, they will be automatically returned to the original page after registration + payment.
 
-## 表单字段与规则
+## Form Fields and Rules
 
-| 字段 | 必填 | 规则 | 源码出处 |
+| Field | Required | Rule | Source |
 |---|---|---|---|
-| 头像 | 可选 | 图片 ≤5MB，不支持 SVG；服务端自动压缩（>100KB 时压到 400×400 / 质量 90） | `src/app/api/auth/register/route.ts` |
-| 用户名 | 必填 | 2~50 字符，trim 后转**小写**存储（Tom 与 tom 视为同一用户名，注册端与登录端均大小写不敏感） | 同上（zod schema） |
-| 密码 | 必填 | 8~100 位，必须同时包含大写字母、小写字母、数字 | 同上 |
-| 确认密码 | 必填 | 与密码一致（仅前端校验） | `src/app/(public)/register/page.tsx` |
-| 昵称 | 可选 | ≤100 字符；不填默认取用户名 | register route |
-| 邮箱 | **必填** | 合法邮箱格式，≤255 字符；一个邮箱只能注册一个账号 | register route |
-| 邮箱验证码 | **必填** | 6 位数字；**10 分钟有效**；验证成功即作废；重发会把旧码标记为已使用 | `src/lib/email-verification.ts` |
-| 手机号 | 可选 | 大陆手机号 `1[3-9]` 开头共 11 位；一个手机号只能绑一个账号 | register route |
+| Avatar | Optional | Image ≤5MB, SVG not supported; server compresses automatically (>100KB compressed to 400×400 / quality 90) | `src/app/api/auth/register/route.ts` |
+| Username | Required | 2–50 characters, trimmed and stored in **lowercase** (Tom and tom are treated as the same username; both registration and login are case-insensitive) | same as above (zod schema) |
+| Password | Required | 8–100 characters, must contain uppercase letters, lowercase letters and digits | same as above |
+| Confirm password | Required | Must match the password (frontend-only validation) | `src/app/(public)/register/page.tsx` |
+| Nickname | Optional | ≤100 characters; defaults to the username if left blank | register route |
+| Email | **Required** | Valid email format, ≤255 characters; one email can only register one account | register route |
+| Email verification code | **Required** | 6 digits; **valid for 10 minutes**; burned once verified; resending marks the old code as used | `src/lib/email-verification.ts` |
+| Phone number | Optional | Mainland-China phone number starting with `1[3-9]`, 11 digits total; one phone number can only be bound to one account | register route |
 
-页面另提供三个第三方登录按钮：**Google、Watcha、华为账号**（`GoogleSignInButton` /
-`WatchaLoginButton` / `HuaweiLoginButton`）。第三方账号没有本地密码，之后用密码登录会
-得到「该账号未设置密码，请使用其他方式登录」。
+The page also offers three third-party login buttons: **Google, Watcha, Huawei account** (`GoogleSignInButton` / `WatchaLoginButton` / `HuaweiLoginButton`). Third-party accounts have no local password; trying to log in with a password later returns "该账号未设置密码，请使用其他方式登录" (This account has no password set, please use another login method).
 
-## 限流与防爆破参数
+## Rate Limits and Anti-Brute-Force Parameters
 
-| 行为 | 限制 | 出处 |
+| Behavior | Limit | Source |
 |---|---|---|
-| 注册提交 | **3 次/分钟/IP**，超限 429 | `src/lib/rate-limit.ts` `REGISTER_RATE_LIMIT` |
-| 发送验证码 | 同 IP 1 次/分钟 **且** 同邮箱 1 次/分钟，超限 429；前端按钮 60 秒倒计时 | `src/app/api/auth/register/send-code/route.ts` |
-| 验证码校验 | 每邮箱 10 分钟内最多尝试 **5 次**，达到上限即使码对也拒绝，需重新发码 | `src/lib/email-verification.ts` |
-| 忘记密码发码 | 1 次/分钟/IP | `src/app/api/auth/forgot-password/route.ts` |
-| 登录 | 5 次/分钟/IP；同一账号连续失败 **5 次锁定 30 分钟**（423），期间剩余次数递减提示 | `src/app/api/auth/login/route.ts`、`rate-limit.ts` |
+| Registration submit | **3 times/min/IP**, 429 when exceeded | `src/lib/rate-limit.ts` `REGISTER_RATE_LIMIT` |
+| Send verification code | Same IP 1/min **and** same email 1/min, 429 when exceeded; frontend button has a 60-second countdown | `src/app/api/auth/register/send-code/route.ts` |
+| Code verification | Max **5 attempts** per email within 10 minutes; once the cap is reached the code is rejected even if correct — a new code must be requested | `src/lib/email-verification.ts` |
+| Forgot-password code | 1/min/IP | `src/app/api/auth/forgot-password/route.ts` |
+| Login | 5/min/IP; **5 consecutive failures lock the account for 30 minutes** (423), with a decreasing remaining-attempts hint during the window | `src/app/api/auth/login/route.ts`, `rate-limit.ts` |
 
-**隐私保护行为**：发验证码 / 忘记密码时，若邮箱已被注册或不存在，接口都统一返回
-成功文案，不泄露邮箱是否已注册。
+**Privacy protection behavior**: when sending a verification code / forgot-password code, the API returns the same success message whether the email is registered or not, so it never leaks whether an email exists.
 
-## agent 代办模式与网页注册的等价性
+## Equivalence of Agent-Assisted Mode and Web Registration
 
-skill 脚本调用的是**同一批公开 API**（`/api/auth/register`、`send-code`、`login`、
-`/api/auth/me`），与注册页表单提交走完全相同的校验、限流与报错路径——本文件的所
-有规则对两种模式一视同仁。脚本时序与命令契约见 `references/agent-flow.md`。
+The skill script calls **the same set of public APIs** (`/api/auth/register`, `send-code`, `login`,
+`/api/auth/me`) as the registration page form — identical validation, rate limits and error paths — so every rule in
+this file applies equally to both modes. Script sequence and command contract: `references/agent-flow.md`.
 
-## 注册成功后的状态流转
+## Status Flow After Successful Registration
 
-1. 用户以 `accountStatus: 'pending'` 落库，初始 **3 个徽章**（register route）。
-2. 服务端同时种下两个 HttpOnly cookie：JWT（可直接访问 `/subscription`）与
-   pendingUserToken（订阅流程身份凭证）。
-3. 注册页检测到 `pending_payment` → 跳转 `/subscription`（保留 `next` 回跳参数）；
-   agent 代办模式下用 `me?token=…&redirect=/subscription` 达到同样效果。
-4. 支付完成 → `accountStatus` 变为 `active`（**支付宝走 notify 服务端自动激活**；
-   PayPal 走 Webhook 自动激活；微信扫码人工确认；华为 IAP 走 `activate-huawei`）。
-   详见 `payment-and-activation.md`。
+> **Free testing period (starting 2026-10-18; actual platform behavior prevails)**: a newly registered account can **use every feature directly**
+> (feed, map, digital humans, check-ins, etc.) with no payment required; unsubscribed accounts are no longer walled off from content pages. The "pending interception"
+> described in this section is the regular state after the testing period ends — when that time comes, actual online behavior prevails.
 
-未激活（pending）用户调用核心 API（信息流、地图、数字人对话、打卡等）一律 403；
-分享帖子链接除外（保持公开可访问）。
+1. The user is stored with `accountStatus: 'pending'` and **3 initial badges** (register route).
+2. The server also plants two HttpOnly cookies: the JWT (can access pages directly) and the pendingUserToken (identity credential for the subscription flow).
+3. In the regular state (testing period over / no free period), the registration page detects `pending_payment` → redirects to `/subscription`
+   (keeping the `next` return parameter); in agent-assisted mode, `me?token=…&redirect=/subscription` achieves the same effect.
+   **During the free testing period this step doesn't trigger** — after registering, go straight to the home page and start using.
+4. Payment complete → `accountStatus` becomes `active` (**Alipay activates automatically server-side via notify**;
+   PayPal activates via Webhook; WeChat QR code is manually confirmed; Huawei IAP goes through `activate-huawei`).
+   See `payment-and-activation.md` for details.
 
-## 常见报错排查表
+In the regular state, inactive (pending) users calling core APIs (feed, map, digital-human chat, check-ins, etc.) get 403;
+shared post links are the exception (kept publicly accessible). During the free testing period this interception is suspended and everything is open.
+## Common Error Lookup Table
 
-| 现象 | 原因 | 怎么办 |
+| Message | Cause | What to do |
 |---|---|---|
-| 「用户名已存在」 | 用户名被占用（不分大小写） | 换一个用户名 |
-| 「邮箱已被使用」 | 邮箱已注册过 | 换邮箱；或改走登录 +「忘记密码」找回旧账号 |
-| 「邮箱验证码错误或已过期」 | 码输错 / 超 10 分钟 / 试错超 5 次被拒 | 点「重新发送」，用**最新一封**邮件的验证码 |
-| 收不到验证码 | 60 秒限流；或进了垃圾箱/广告邮件 | 等倒计时结束再发；翻垃圾邮件文件夹 |
-| 「手机号已被使用」 | 手机号已绑其他账号 | 删掉手机号（选填）或换号 |
-| 「注册请求过于频繁」/ 429 | 注册 3 次/分钟/IP 触顶 | 等几分钟再试 |
-| 409「用户名或邮箱已被注册」 | 提交瞬间与他人撞名（并发兜底） | 更换用户名或邮箱后重试 |
-| 「图片大小不能超过5MB」/「不支持 SVG」 | 头像不合规 | 换图或跳过头像 |
-| 注册成功但登录 403「请完成订阅以激活账户」 | 账号仍是 pending（未付款前的预期状态） | 付款前：这正常，先完成订阅；付款后仍 403：说明用了旧 JWT，脚本模式下先 `refresh-login` 换新登录态 |
-| 登录 423「账户已锁定」 | 密码连错 5 次 | 等 30 分钟 |
-| 登录 401「还剩 N 次尝试机会」 | 密码错误，接近锁定 | 想清楚再试，或直接走「忘记密码」 |
-| 「该账号未设置密码，请使用其他方式登录」 | 第三方（Google/Watcha/华为）账号 | 用原来的第三方按钮登录 |
-| 「该账号已注销」 | 账号已 deactivate | 需要重新注册 |
+| 「用户名已存在」(Username already exists) | Username is taken (case-insensitive) | Choose a different username |
+| 「邮箱已被使用」(Email already in use) | Email is already registered | Use a different email; or log in and use "Forgot password" to recover the old account |
+| 「邮箱验证码错误或已过期」(Email verification code is incorrect or expired) | Code mistyped / over 10 minutes / rejected after more than 5 attempts | Click "Resend" and use the code from the **latest** email |
+| Verification code not received | 60-second rate limit; or it landed in spam/junk | Wait for the countdown to finish before resending; check the spam folder |
+| 「手机号已被使用」(Phone number already in use) | Phone number is bound to another account | Remove the phone number (optional field) or use a different one |
+| 「注册请求过于频繁」/ 429 (Registration requests too frequent) | Hit the 3 registrations/min/IP cap | Wait a few minutes and try again |
+| 409「用户名或邮箱已被注册」(Username or email already registered) | Collided with another user at submit time (concurrency fallback) | Change the username or email and retry |
+| 「图片大小不能超过5MB」/「不支持 SVG」(Image size cannot exceed 5MB / SVG not supported) | Avatar doesn't comply | Use a different image or skip the avatar |
+| User clicks the login link but lands on the subscription page (instead of the home page) | The free testing period has ended and the platform paywall is back | Follow Step 7 in SKILL.md for the subscription payment flow; after subscribing, run `refresh-login` and then send the home-page link |
+| Registered successfully but login returns 403 "请完成订阅以激活账户" | The account is still pending, and the platform is not in a free testing period (the expected state before payment) | Won't happen during the free testing period; if it does, the testing period has ended — complete the subscription first; if still 403 after payment, an old JWT was used — in script mode run `refresh-login` first to exchange for a new login state |
+| Login 423「账户已锁定」(Account locked) | Password entered incorrectly 5 times | Wait 30 minutes |
+| Login 401「还剩 N 次尝试机会」(N attempts remaining) | Wrong password, close to being locked | Think carefully before trying again, or go straight to "Forgot password" |
+| 「该账号未设置密码，请使用其他方式登录」(This account has no password set, please use another login method) | Third-party (Google/Watcha/Huawei) account | Log in with the original third-party button |
+| 「该账号已注销」(This account has been deactivated) | Account is deactivated | A new registration is required |
 
-## 登录小知识（顺带排查用）
+## Login Tips (handy for troubleshooting too)
 
-登录支持**用户名 / 邮箱 / 手机号**三合一输入（三者任一均可作为账号名）。
-忘记密码：登录页 →「忘记密码」→ 输入注册邮箱收 6 位验证码 → 重置。
+Login accepts one combined field of **username / email / phone number** (any of the three works as the account name).
+Forgot password: login page → "Forgot password" → enter the registered email, receive a 6-digit code → reset.

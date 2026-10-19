@@ -22,7 +22,7 @@ skrip **nol dependensi**, butuh **Node ≥ 18**, semua request hanya dikirim ke 
 | `prepare-suggest` | `--username --nickname --email` | Mencatat info yang sudah dikonfirmasi ke file status (setelah itu register tak perlu mengirim ulang) |
 | `send-code` | `--email` | Memicu platform mengirim kode verifikasi 6 digit (berlaku 10 menit, jeda 60 dtk) |
 | `register` | `--code` (wajib); `--username --nickname --avatar --phone` (opsional, jika ada di file status tak perlu dikirim) | Membuat akun pending; kata sandi lewat variabel lingkungan `POWPOW_REGISTER_PASSWORD`; setelah berhasil JWT otomatis tersimpan di file status |
-| `login-link` | `--target pending` atau `--target home` | Menghasilkan tautan login sekali klik (desain tautan ganda, lihat bawah) |
+| `login-link` | `--target pending` atau `--target home` | Membuat link login sekali klik (desain dua link, lihat di bawah) |
 | `create-order` | `--package monthly\|quarterly\|yearly` (bawaan Alipay)<br>`--provider alipay\|paypal` | Membuat pesanan pembayaran; Alipay mengembalikan path file halaman pembayaran + outTradeNo; PayPal mengembalikan path file halaman otorisasi + subscriptionId (otomatis dicatat ke file status) |
 | `query` | —— | Memeriksa status pesanan/langganan. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; polling tiap 10–15 dtk |
 | `refresh-login` | kata sandi lewat variabel lingkungan | Login ulang untuk **JWT baru** (klaim langganan berubah dari NONE ke ACTIVE), wajib dijalankan setelah dana masuk |
@@ -40,43 +40,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<kata sandi>'; node scripts/powpow-register.mjs
 set POWPOW_REGISTER_PASSWORD=<kata sandi> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## Mekanisme tautan ganda (desain inti)
+## Mekanisme Dua Link (desain inti)
 
-Status login platform adalah cookie HttpOnly, agent tidak bisa langsung menanam cookie untuk browser orang lain;
-jembatannya adalah endpoint resmi `/api/auth/me?token=<JWT>&redirect=<jalur dalam situs>`: verifikasi tanda
-tangan → pengguna pending otomatis dibuatkan sesi → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax /
-7 hari) → validasi redirect (hanya boleh diawali satu garis miring, dilarang `//` dan backslash, setelah resolusi
-harus same-origin) → 307 pengalihan sementara ke halaman tujuan.
+Status login platform adalah cookie HttpOnly, yang tidak bisa ditanam agent langsung ke browser; jembatannya adalah endpoint resmi
+`/api/auth/me?token=<JWT>&redirect=<path dalam situs>`: verifikasi tanda tangan → otomatis membuat
+sesi → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 hari) → validasi
+redirect (harus dimulai dengan satu garis miring, `//` dan garis miring terbalik dilarang, setelah diparse harus same-origin) → 307 redirect sementara ke halaman target.
 
-- **Tautan 1 (diberikan begitu daftar berhasil)**: `--target pending` → mendarat di `/subscription`.
-  Browser pengguna memasuki kondisi «setengah sesi»: halaman langganan dan halaman lompat-balik Alipay terlihat
-  dan bisa dioperasikan; halaman konten tetap ditahan paywall kembali ke halaman langganan (tiga lapis
-  pengamanan: pemeriksaan klaim JWT di gateway → pemeriksaan ulang DB → pemeriksaan API inti; perilaku normal).
-- **Tautan 2 (diberikan setelah paid terkonfirmasi)**: lebih dulu `refresh-login` untuk JWT baru (pembayaran hanya
-  memperbarui DB, tidak mengubah klaim JWT yang sudah terbit; tanpa penggantian akan tampak seperti «sudah bayar
-  tapi bukan anggota»), lalu `--target home` → mendarat di beranda, status keanggotaan lengkap.
+Ada dua target link, **utamakan membuat home lebih dulu, lalu putuskan apakah lewat pending berdasarkan di mana pengguna mendarat**:
 
-## Urutan lengkap (jalur normal)
+- **link home (dikirim secara default, `--target home` → mendarat di `/`)**: dibuat dan dikirim ke pengguna tepat setelah pendaftaran berhasil.
+  Selama masa uji coba gratis pengguna langsung menuju beranda dan semuanya bisa dipakai; **jika ia mengkliknya tetapi mendarat di halaman langganan, masa uji coba gratis telah berakhir** — beralih ke alur pembayaran (lihat di bawah); tanpa ubah skrip dan tanpa daftar ulang.
+- **link pending (dipakai di alur pembayaran, `--target pending` → mendarat di `/subscription`)**:
+  browser pengguna masuk ke status "login setengah": halaman langganan dan halaman kembali setelah pembayaran terlihat dan bisa dioperasikan. Setelah dana masuk,
+  jalankan `refresh-login` untuk menukar JWT baru dengan claim ACTIVE, lalu kirim link home sekali lagi untuk status keanggotaan penuh.
+
+## Urutan Lengkap
+
+### Jalur Cepat (selama masa uji coba gratis — mayoritas kasus)
 
 ```
-1.  status                          # Cek mandiri lingkungan
-2.  (Langkah 2: konfirmasi info lewat percakapan, kata sandi pilih 1 dari 2; mode buat: gen-password → suruh pengguna langsung menyimpan)
+1.  status                          # self-check lingkungan
+2.  (langkah 2: percakapan konfirmasi info, kata sandi terserah; mode generasi: gen-password → minta pengguna segera menyimpan)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → pengguna masuk email membaca kode (satu-satunya keluar dari percakapan ①)
+4.  send-code --email E             # → pengguna periksa kode di kotak masuk (satu-satunya keluar dari percakapan)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → tautan 1 dikirim ke pengguna
+6.  login-link --target home        # → kirim link ke pengguna; sekali klik langsung di beranda
+7.  (pengguna konfirmasi sudah masuk) → langsung tutup: cleanup + kartu akun + panduan langkah pertama
+```
+
+### Jalur Pembayaran (bila pengguna ingin keanggotaan, atau masa uji coba gratis telah berakhir)
+
+```
+1–5. Sama dengan Jalur Cepat (status sudah punya token setelah register berhasil)
+6.  login-link --target pending     # → link login setengah, halaman kembali setelah pembayaran tetap bekerja
 7.  (pengguna memilih metode pembayaran)
     # Alipay: create-order --package monthly|quarterly|yearly
     # PayPal: create-order --provider paypal
-8.  start <file halaman pembayaran>  # Windows; macOS pakai open, Linux pakai xdg-open
-    # → pengguna menyelesaikan pembayaran/otorisasi di kasir Alipay/PayPal (keluar dari percakapan ②)
-9.  query (tiap 10–15 dtk) sampai paid / ACTIVE
-10. refresh-login                   # Dapatkan JWT baru berklaim ACTIVE
-11. login-link --target home        # → tautan 2 dikirim ke pengguna
-12. whoami                          # Pastikan subscriptionStatus: ACTIVE (opsional)
-13. cleanup                         # Bersihkan file status
+8.  start <file halaman pembayaran> # Windows; macOS pakai open, Linux pakai xdg-open
+    # → pengguna menyelesaikan pembayaran/otorisasi di kasir Alipay/PayPal (keluar dari percakapan)
+9.  query (setiap 10–15 s) sampai paid / ACTIVE
+10. refresh-login                   # tukar ke JWT baru dengan claim ACTIVE
+11. login-link --target home        # → kirim link keanggotaan penuh ke pengguna
+12. whoami                          # konfirmasi subscriptionStatus: ACTIVE (opsional)
+13. cleanup                         # bersihkan file status
 ```
-
 ## Pemetaan perintah → API platform
 
 | Perintah skrip | Antarmuka platform |
@@ -103,7 +111,8 @@ Sumber aturan: bidang pendaftaran dan batas laju lihat `registration-flow.md`; p
 | Setelah `create-order` pengguna menutup halaman pembayaran | Langsung `create-order` ulang (pesanan lama tertutup otomatis 2 jam; langganan PENDING PayPal kedaluwarsa setelah 1 jam) |
 | `create-order --provider paypal` mengembalikan 409 | Sudah ada langganan PayPal yang belum selesai; tunggu 1 jam sampai kedaluwarsa, atau selesaikan otorisasi lama di browser |
 | `query` terus pending / PENDING | Pengguna mungkin belum membayar; tanyakan sekali. Kalau sudah bayar → ikuti tabel penelusuran di payment-and-activation.md |
-| `refresh-login` 403 `pending_payment` | Dana/otorisasi belum masuk, kembali ke langkah 9 lanjut polling |
+| Pengguna mengklik link home tetapi mendarat di halaman langganan | Masa uji coba gratis telah berakhir → beralih ke alur pembayaran: `login-link --target pending` → pilih metode pembayaran → `create-order` |
+| `refresh-login` 403 `pending_payment` | Masa uji coba gratis telah berakhir dan pembayaran belum masuk; kembali ke langkah 9 untuk terus polling, atau konfirmasi apakah pengguna sudah menyelesaikan pembayaran |
 | File status hilang (tak sengaja terhapus / ganti mesin) | `whoami`/`refresh-login` tak bisa dipakai; suruh pengguna membuka ulang halaman langganan di browser yang pernah membuka tautan 1 untuk memastikan status, atau login ulang (mode web) |
 
 ## Mode mundur (panduan murni)
@@ -114,6 +123,6 @@ Bila salah satu kondisi berikut terjadi, segera mundur ke panduan murni gaya v1 
 - Pengguna secara eksplisit bilang «aku kerjakan sendiri di web»;
 - Kebijakan perusahaan/perangkat membatasi skrip mengakses jaringan.
 
-Setelah mundur: berikan halaman pendaftaran https://global.powpow.online/register dan halaman langganan
+Setelah beralih: beri halaman pendaftaran https://global.powpow.online/register (selama masa uji coba gratis, pendaftaran lewat web sama-sama langsung bisa dipakai; bila langganan diperlukan, beri juga halaman langganan https://global.powpow.online/subscription ), tangani masalah sambil mendampingi sesuai aturan di `registration-flow.md`, jaga nada yang sama, dan tetap akhiri setiap giliran dengan blok "langkah selanjutnya".
 https://global.powpow.online/subscription , dampingi penelusuran galat sesuai aturan `registration-flow.md`,
 nada tidak berubah, tiap giliran tetap ditutup blok «langkah berikutnya».

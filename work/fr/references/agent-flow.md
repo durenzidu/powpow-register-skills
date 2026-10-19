@@ -40,46 +40,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<mot de passe>'; node scripts/powpow-register.m
 set POWPOW_REGISTER_PASSWORD=<mot de passe> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## Mécanisme du double lien (conception centrale)
+## Mécanisme à double lien (conception centrale)
 
-L'état de connexion de la plateforme est un cookie HttpOnly, l'agent ne peut pas planter directement un cookie dans le navigateur ; le pont est l'endpoint officiel
-`/api/auth/me?token=<JWT>&redirect=<chemin interne du site>` : vérification de signature → session
-automatiquement créée pour l'utilisateur pending → `Set-Cookie: powpow_token`
-(HttpOnly / SameSite=Lax / 7 jours) → validation du redirect (uniquement chemin commençant par une
-seule barre oblique, `//` et barre oblique inverse interdits, et après résolution, même origine
-obligatoire) → 307 redirection temporaire vers la page cible.
+L'état de session de la plateforme est un cookie HttpOnly, que l'agent ne peut pas planter directement dans le navigateur ; le pont est l'endpoint officiel
+`/api/auth/me?token=<JWT>&redirect=<chemin interne>` : vérifier la signature → créer la session automatiquement
+→ `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 jours) → valider
+la redirection (doit commencer par une seule barre, `//` et barres obliques inverses interdits, même origine après analyse) → 307 redirection temporaire vers la page cible.
 
-- **Lien 1 (donné immédiatement après l'inscription réussie)** : `--target pending` → arrive sur `/subscription`.
-  Le navigateur de l'utilisateur entre en état de « semi-session » : la page d'abonnement et la page de
-  retour Alipay sont visibles et opérables ; les pages de contenu continuent d'être renvoyées vers la page
-  d'abonnement par le paywall (triple protection : contrôle au gateway des claims du JWT → re-vérification
-  en base → contrôle dans les API centrales ; c'est un comportement normal).
-- **Lien 2 (donné après confirmation du paid)** : d'abord `refresh-login` pour un JWT neuf (le paiement ne
-  met à jour que la base, il ne modifie pas les claims d'un JWT déjà émis ; sans échange, cela se manifeste
-  en « j'ai payé mais pas de membership »), puis `--target home` → arrive sur l'accueil,
-  avec le statut de membre complet.
+Il y a deux cibles de lien, **génère d'abord home, puis décide s'il faut passer par pending selon où atterrit l'utilisateur** :
 
-## Séquence complète (chemin normal)
+- **lien home (envoyé par défaut en premier, `--target home` → atterrit sur `/`)** : généré et envoyé à l'utilisateur immédiatement après l'inscription réussie.
+  Pendant la période d'essai gratuit, l'utilisateur entre directement sur la page d'accueil, tout est utilisable ; **si l'utilisateur l'ouvre mais atterrit sur la page d'abonnement, la période d'essai gratuit est terminée** — bascule alors sur le chemin de paiement (voir plus bas) ; aucun changement de script ni réinscription nécessaire.
+- **lien pending (utilisé dans le chemin de paiement, `--target pending` → atterrit sur `/subscription`)** :
+  le navigateur de l'utilisateur entre en état de « demi-connexion » : la page d'abonnement et la page de retour du paiement sont visibles et utilisables. Après l'encaissement,
+  lance `refresh-login` pour échanger contre un nouveau JWT portant la déclaration ACTIVE, puis renvoie le lien home une fois de plus pour l'adhésion complète.
+
+## Séquence complète
+
+### Chemin rapide (pendant la période d'essai gratuit — la grande majorité des cas)
 
 ```
 1.  status                          # auto-vérification de l'environnement
-2.  (étape 2 : confirmation des infos dans la conversation, mot de passe au choix entre deux options ; mode génération : gen-password → l'utilisateur sauvegarde immédiatement)
+2.  (étape 2 conversation pour confirmer les infos, mot de passe au choix ; mode généré : gen-password → faire sauvegarder immédiatement par l'utilisateur)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → l'utilisateur va lire le code dans sa boîte mail (seule sortie de la conversation, moment ①)
+4.  send-code --email E             # → l'utilisateur consulte le code dans sa boîte mail (seule sortie de la conversation)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → lien 1 envoyé à l'utilisateur
-7.  (l'utilisateur choisit son moyen de paiement)
-    # Alipay : create-order --package monthly|quarterly|yearly
-    # PayPal : create-order --provider paypal
-8.  start <fichier de la page de paiement>   # Windows ; sur macOS utiliser open, sur Linux xdg-open
-     # → l'utilisateur finalise le paiement/l'autorisation à la caisse Alipay/PayPal (sortie de la conversation, moment ②)
-9.  query (toutes les 10–15s) jusqu'à paid / ACTIVE
-10. refresh-login                   # échange contre le JWT neuf avec déclaration ACTIVE
-11. login-link --target home        # → lien 2 envoyé à l'utilisateur
-12. whoami                          # confirmer subscriptionStatus: ACTIVE (facultatif)
-13. cleanup                         # nettoyer le fichier d'état
+6.  login-link --target home        # → envoie le lien à l'utilisateur ; un clic et il est sur la page d'accueil
+7.  (l'utilisateur confirme qu'il est entré) → conclus directement : cleanup + fiche de compte + guide des premiers pas
 ```
 
+### Chemin de paiement (quand l'utilisateur veut l'adhésion, ou que la période d'essai gratuit est terminée)
+
+```
+1–5. Identique au chemin rapide (le state contient déjà le token après un register réussi)
+6.  login-link --target pending     # → lien de demi-connexion, garde la page de retour du paiement fonctionnelle
+7.  (l'utilisateur choisit le moyen de paiement)
+    # Alipay : create-order --package monthly|quarterly|yearly
+    # PayPal : create-order --provider paypal
+8.  start <fichier de page de paiement>   # Windows ; macOS utilise open, Linux utilise xdg-open
+    # → l'utilisateur finalise le paiement/l'autorisation à la caisse Alipay/PayPal (sort de la conversation)
+9.  query (toutes les 10–15 s) jusqu'à paid / ACTIVE
+10. refresh-login                   # échange contre un nouveau JWT portant la déclaration ACTIVE
+11. login-link --target home        # → envoie le lien d'adhésion complète à l'utilisateur
+12. whoami                          # confirme subscriptionStatus: ACTIVE (facultatif)
+13. cleanup                         # nettoie le fichier d'état
+```
 ## Correspondance commande → API de la plateforme
 
 | Commande du script | Interface de la plateforme |
@@ -107,7 +112,8 @@ plateforme).
 | L'utilisateur a fermé la page de paiement après `create-order` | Relance directement `create-order` (l'ancienne commande se ferme seule au bout de 2h ; les abonnements PENDING PayPal expirent au bout de 1h) |
 | `create-order --provider paypal` renvoie 409 | Il existe déjà un abonnement PayPal non finalisé ; attends 1h qu'il expire, ou finalise l'ancienne autorisation dans le navigateur |
 | `query` reste en pending / PENDING | L'utilisateur n'a peut-être pas payé ; pose la question. S'il a vraiment payé → suis le tableau de diagnostic de payment-and-activation.md |
-| `refresh-login` renvoie 403 `pending_payment` | Le paiement/l'autorisation n'est pas encore encaissé ; retourne à l'étape 9 et continue d'interroger |
+| L'utilisateur ouvre le lien home mais atterrit sur la page d'abonnement | La période d'essai gratuit est terminée → bascule sur le chemin de paiement : `login-link --target pending` → choisis un moyen de paiement → `create-order` |
+| `refresh-login` 403 `pending_payment` | La période d'essai gratuit est terminée et le paiement n'est pas encore arrivé ; retourne à l'étape 9 pour continuer à sonder, ou confirme si l'utilisateur a finalisé le paiement |
 | Fichier d'état perdu (supprimé par erreur / changement de machine) | `whoami`/`refresh-login` inutilisables ; l'utilisateur actualise directement la page d'abonnement dans le navigateur où il a ouvert le lien 1 pour vérifier l'état, ou se reconnecte (mode Web) |
 
 ## Mode de repli (guide pure)
@@ -118,6 +124,6 @@ Dans l'un quelconque de ces cas, repasse immédiatement au guide pure façon v1,
 - L'utilisateur dit clairement « je le fais moi-même sur le Web » ;
 - Les politiques de l'entreprise / de l'appareil restreignent les scripts réseau.
 
-Après le repli : donne la page d'inscription https://global.powpow.online/register et la page d'abonnement
+Après repli : donne la page d'inscription https://global.powpow.online/register (pendant la période d'essai gratuit, l'inscription web est tout aussi immédiate ; quand un abonnement est nécessaire, donne aussi la page d'abonnement https://global.powpow.online/subscription ), accompagne le dépannage selon les règles de `registration-flow.md`, garde le même ton et termine chaque tour par un bloc « prochaine étape ».
 https://global.powpow.online/subscription, accompagne le dépannage selon les règles de
 `registration-flow.md`, garde le même ton, et termine chaque tour par le bloc « prochaine étape ».

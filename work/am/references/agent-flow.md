@@ -21,7 +21,7 @@
 | `prepare-suggest` | `--username --nickname --email` | የተረጋገጠውን መረጃ ወደ ሁኔታ ፋይል ያስገባል (ከዚያ በኋላ register ዳግም መላክ አያስፈልገውም) |
 | `send-code` | `--email` | መድረኩ 6-አሃያ የማረጋጋጫ ኮድ እንዲልክ ያነቃቃል (10 ደቂቃ ይጸናል፣ 60s ቀዝቃዛ ጊዜ) |
 | `register` | `--code` (ግዴታ)፤ `--username --nickname --avatar --phone` (አማራጭ፤ በሁኔታ ፋይል ላይ ካሉ መላክ አያስፈልግም) | pending መለያ ይፈጥራል፤ የመግቢያ ቃል በ `POWPOW_REGISTER_PASSWORD` የአካባቢ ተለዋዋጭ በኩል፤ ሲሳክ JWT በራስ-ሰር ወደ ሁኔታ ፋይል ይቀመጣል |
-| `login-link` | `--target pending` ወይም `--target home` | የአንድ ጠቅታ መግቢያ አገናኝ ይፈጥራል (የጥንድ አገናኝ ንድፍ፣ ከታች ይመልከቱ) |
+| `login-link` | `--target pending` ወይም `--target home` | በአንድ ጠቅታ የመግቢያ ማለግጠፊያ ይፈጥራል (የሁለት ማለግጠፊያ ንድፍ፣ ከታች ተመልከት) |
 | `create-order` | `--package monthly\|quarterly\|yearly` (የአሊፓይ ነባሪ)<br>`--provider alipay\|paypal` | የክፍያ ትዕዛዝ ይፈጥራል፤ አሊፓይ የክፍያ ገጽ ፋይል መንገድ + outTradeNo ይመልሳል፤ PayPal የፍቃድ ገጽ ፋይል መንገድ + subscriptionId ይመልሳል (በራስ-ሰር ወደ ሁኔታ ፋይል ይገባል) |
 | `query` | —— | የትዕዛዝ/ደንበኝነት ሁኔታ ያረጋግጣል። አሊፓይ፦ `paid / pending / closed / unknown`፤ PayPal፦ `ACTIVE / PENDING`፤ በየ 10–15s ይጠይቁ |
 | `refresh-login` | የመግቢያ ቃል በአካባቢ ተለዋዋጭ በኩል | ዳግም መግባት **አዲስ JWT** ለመቀየር (የደንበኝነት አባልነት ከ NONE ወደ ACTIVE ይቀየራል)፤ ገንዘብ ከገባ በኋላ መሮጥ አለበት |
@@ -39,38 +39,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<የመግቢያ ቃል>'; node scripts/powpow-
 set POWPOW_REGISTER_PASSWORD=<የመግቢያ ቃል> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## የጥንድ አገናኝ ሜካኒዝም (ዋና ንድፍ)
+## የሁለት ማለግጠፊያ ሥርዓተ ነገሮች (ዋና ንድፍ)
 
-የመድረኩ የመግቢያ ሁኔታ HttpOnly cookie ነው፤ ወኪል ለአሳሽ cookie በቀጥታ መትከል አይችልም፤ ድልድዩ ደግሞ ይፋዊ
-`/api/auth/me?token=<JWT>&redirect=<የውስጥ ገጽ መንገድ>` በር ነው፦ የፊርማ ማረጋገጫ → ለ pending ተጠቃሚ በራስ-ሰር ክፍለ-ጊዜ (session) መሙላት → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 ቀናት) → redirect ማረጋገጥ (በአንድ ስላሽ ብቻ መጀመር፣ `//` እና backslash እንደማይፈቀዱ፣ ከተተካ ተመሳሳይ ምንጭ መሆን አለበት) → 307 ጊዜያዊ መመለሻ ወደ ዒላማው ገጽ።
+የመድረኩ የመግቢያ ሁኔታ HttpOnly ኩኪ ነው፣ ወኪሉ በቀጥታ ለአሳሹ ማስገባት አይችልም፤ ድልድዩ ብቁ
+`/api/auth/me?token=<JWT>&redirect=<በሣይት ውስጥ መንገድ>` የመጨረሻ ነጥብ ነው፦ ፊርማ አረጋግጥ → ራስ-ሰር ፍጠር
+ክፍለ ጊዜ → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 ቀናት) → ተመላላሽ
+አረጋግጥ (በአንድ ብቸኛ ሰላይ መጀመር አለበት፣ `//` እና የኋሊት ሰላዮች የተከለከሉ ናቸው፣ ከተተነተነ በኋላ same-origin መሆን አለበት) → ወደ ግቡ ገጽ 307 ጊዜያዊ ተመላላሽ።
 
-- **አገናኝ 1 (ምዝገባ ሲሳክ ወዲያውኑ ይሰጣል)**፦ `--target pending` → ወደ `/subscription` ይወርዳል።
-  የተጠቃሚው አሳሽ «ግማሽ መግቢያ» ሁኔታ ይገባል፦ የደንበኝነት ገጽና የአሊፓይ መመለሻ ገጽ ይታያሉና ሊሠሩ ይቻላሉ፤ የይዘት ገጾች ግን አሁንም በየክፍያ ግድግዳ
-  ወደ የደንበኝነት ገጽ ይመለሳሉ (ሦስት ደረጃ ጥበቃ፦ የ JWT claims በበር ውስጥ ፍተሻ → የመረጃ ቋት ዳግም ፍተሻ → የመሠረታዊ API ፍተሻ፤ ተራ ባህርይ ነው)።
-- **አገናኝ 2 (paid ከተረጋገጠ በኋላ ይሰጣል)**፦ መጀመሪያ `refresh-login` በማሂድ አዲስ JWT ይቀያይሩ (ክፍያ የመረጃ ቋቱን ብቻ ያዘምናል፣ አስቀድሞ ለተሰጠው JWT claims አይነካም፤ ካልተቀየረ «ከፍለሀል ግን አባል አይደለም» ይመስላል)፣ ከዚያ `--target home` → ወደ መነሻ ገጽ ይወርዳል፣
-  ሙሉ የአባልነት ሁኔታ።
+የማለግጠፊያ ሁለት ግቦች አሉ፣ **በመጀመሪያ home ፍጠር፣ ከዚያ ተጠቃሚው ወዴት እንደወረደ በመመስረት pending ላይ መሄድ ወስን**፦
 
-## ሙሉ ቅደም ተከተል (መደበኛ መንገድ)
+- **home ማለግጠፊያ (በነባሪ ይላካል፣ `--target home` → `/` ላይ ይወርዳል)**፦ ምዝገባው ከተሳካ ወዲያውኑ ይፈጠራል እና ለተጠቃሚው ይላካል።
+  በነጻ የሙከራ ወቅት ተጠቃሚው ቀጥታ ወደ መነሻ ገጽ ይሄዳል፣ ሙሉ ተጠቃሚ፤ **ማለግጠፊያውን ጫኖ ወደ ደንበኝነት ገጽ ከወረደ — ነጻ የሙከራ ወቅቱ አልቋል** — ወደ የክፍያ ፍሰት ቀይር (ከታች ተመልከት)፤ ስክሪፕት መቀየር እና እንደገና መመዝገብ አያስፈልግም።
+- **pending ማለግጠፊያ (በየክፍያ ፍሰት ይያዛል፣ `--target pending` → `/subscription` ላይ ይወርዳል)**፦
+  የተጠቃሚው አሳሽ "ግማሽ-ገብቷል" ሁኔታ ይገባል፦ የደንበኝነት ገጽ እና የክፍያ ተመላላሽ ገጽ ይታያሉ እና ሊሠሩ ይችላሉ። ክፍያ ከደረሰ በኋላ፣
+  ACTIVE መግለጫ ጋር አዲስ JWT ለመቀየር `refresh-login` አሂድ፣ ከዚያ ሙሉ የአባልነት ሁኔታ ለመፍጠር home ማለግጠፊያ እንደገና ላክ።
+
+## ሙሉ ቅደም ተከተል
+
+### ፈጣን መንገድ (በነጻ የሙከራ ወቅት — አብዛኞቹ ጉዳዮች)
 
 ```
-1.  status                          # የአካባቢ በራስ-ፍተሻ
-2.  (ደረጃ 2፦ በውይይት መረጃ ማረጋገጥ፣ የመግቢያ ቃል ከሁለት አንዱን መምረጥ፤ የመፍጠሪያ ሁነታ፦ gen-password → ተጠቃሚው ወዲያውኑ እንዲያስቀምጥ)
+1.  status                          # የአካባቢ ራስ-መረጋገጥ
+2.  (ደረጃ 2 ውይይት መረጃውን ለማረጋገጥ፤ የይለፍ ቃል ማንኛውም፤ በመፍጠር ሁኔታ፦ gen-password → ተጠቃሚው ወዲያውኑ እንዲያስቀምጥ ጠይቅ)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → ተጠቃሚው ወደ ኢሜይል ገብቶ ኮዱን ማየት (ከውይይቱ ውጭ መውጣት ①)
+4.  send-code --email E             # → ተጠቃሚው ኮዱን በኢንቦክስ ይመልከት (ውይይቱን የሚለቅበት ብቸኛው ጊዜ)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → አገናኝ 1 ለተጠቃሚው ተልኳል
-7.  (ተጠቃሚው የክፍያ መንገድ ይመርጣል)
-    # አሊፓይ: create-order --package monthly|quarterly|yearly
-    # PayPal: create-order --provider paypal
-8.  start <የክፍያ ገጽ ፋይል>          # Windows፤ macOS ላይ open፣ Linux ላይ xdg-open
-    # → ተጠቃሚው በአሊፓይ/PayPal የክፍያ ገጽ ላይ ክፍያውን/ፍቃዱን ያጠናቅቃል (ከውይይቱ ውጭ መውጣት ②)
-9.  query (በየ 10–15s) paid / ACTIVE እስኪሆን ድረስ
-10. refresh-login                   # ACTIVE አባልነት ያለው አዲስ JWT
-11. login-link --target home        # → አገናኝ 2 ለተጠቃሚው ተልኳል
-12. whoami                          # subscriptionStatus: ACTIVE ማረጋገጥ (አማራጭ)
-13. cleanup                         # የሁኔታ ፋይል ማጽዳት
+6.  login-link --target home        # → ማለግጠፊያውን ለተጠቃሚው ላክ፤ አንድ ጠቅታ ወደ መነሻ ገጽ
+7.  (ተጠቃሚው ገብቷል ብሎ ያረጋግጣል) → ቀጥታ ጨርስ፦ cleanup + የመለያ ካርድ + የመጀመሪያ ደረጃዎችን አሳይ
 ```
 
+### የክፍያ መንገድ (ተጠቃሚው አባልነት ሲፈልግ፣ ወይም ነጻ የሙከራ ወቅቱ ሲያልቅ)
+
+```
+1–5. እንደ ፈጣን መንገድ (register ከተሳካ በኋላ ሁኔታው አስቀድሞ ተከታታዩን ይይዛል)
+6.  login-link --target pending     # → ግማሽ-መግቢያ ማለግጠፊያ፣ የክፍያ ተመላላሽ ገጽ እንዲሠራ ያደርጋል
+7.  (ተጠቃሚው የክፍያ ዘዴ ይመርጣል)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
+8.  start <የክፍያ ገጽ ፋይል>       # Windows፤ macOS open ይጠቀም፣ Linux xdg-open
+    # → ተጠቃሚው በ Alipay/PayPal የክፍያ ገጽ ክፍያ/ፈቃድ ይጨርሳል (ውይይቱን ይለቃል)
+9.  query (በየ 10–15s) እስከ paid / ACTIVE
+10. refresh-login                   # ACTIVE መግለጫ ጋር አዲስ JWT ቀይር
+11. login-link --target home        # → ሙሉ-አባልነት ማለግጠፊያ ለተጠቃሚው ላክ
+12. whoami                          # አረጋግጥ subscriptionStatus: ACTIVE (አማራጽ)
+13. cleanup                         # የሁኔታ ፋይል አጽዳ
+```
 ## ትዕዛዝ → የመድረክ API ካርታ
 
 | የስክሪፕት ትዕዛዝ | የመድረክ በር |
@@ -96,7 +109,8 @@ set POWPOW_REGISTER_PASSWORD=<የመግቢያ ቃል> && node scripts/powpow-reg
 | ከ `create-order` በኋላ ተጠቃሚው የክፍያ ገጹን ዘግቷል | በቀጥታ ዳግም `create-order` (አሮጌው ትዕዛዝ በ 2h በራስ ይዘጋል፤ የ PayPal PENDING ደንበኝነቶች በ 1h ያልፋሉ) |
 | `create-order --provider paypal` 409 መለሰ | ያልተጠናቀቀ የ PayPal ደንበኝነት አለ፤ 1h ይጠብቁ እስኪያልቅ ድረስ፣ ወይም የአሮጌውን ፍቃድ በአሳሹ ያጠናቅቁ |
 | `query` በተከታታይ pending / PENDING | ተጠቃሚው ሳይከፍል ይችላል፤ አንዴ ጠይቁት። በእውነት ከፈለክ በኋላ → በ payment-and-activation.md ያለውን የአፈታት ሠንጠረዥ ይከተሉ |
-| `refresh-login` 403 `pending_payment` | ክፍያው/ፍቃዱ ገና አልገባም፤ ወደ ደረጃ 9 ተመልሰው መጠየቁን ይቀጥሉ |
+| ተጠቃሚው የመነሻ ማለግጠፊያ ጫኖ ወደ ደንበኝነት ገጽ ወረደ | ነጻ የሙከራ ወቅቱ አልቋል → ወደ የክፍያ ፍሰት ቀይር፦ `login-link --target pending` → የክፍያ ዘዴ ምረጥ → `create-order` |
+| `refresh-login` 403 `pending_payment` | ነጻ የሙከራ ወቅቱ አልቋል እና ክፍያ አልደረሰም፤ ወደ ደረጃ 9 ተመለስ መጠየቅ ቀጥል፣ ወይም ተጠቃሚው ክፍያ ከፈጸመ አረጋግጥ |
 | የሁኔታ ፋይል መጥፋት (በአጣቃቂ ሲሰረዝ / ማሽን ሲቀየር) | `whoami`/`refresh-login` መጠቀም አይቻልም፤ ተጠቃሚው አገናኝ 1ን የከፈተበት አሳሽ ውስጥ የደንበኝነት ገጹን በቀጥታ በማደስ ሁኔታውን እንዲያረጋግጥ ይንገሩት፣ ወይም ዳግም ይግባ (የዌብ ሁነታ) |
 
 ## የመመለሻ ሁነታ (ንጹህ መመሪያ)
@@ -107,5 +121,5 @@ set POWPOW_REGISTER_PASSWORD=<የመግቢያ ቃል> && node scripts/powpow-reg
 - ተጠቃሚው በግልጽ «በዌብ ላይ ራሴ እሠራለሁ» ካለ፤
 - የኩባንያ/የመሣሪያ ፖሊሲ ስክሪፕቱ አውታረ መረብ እንዳይጠቀም ከገደበ።
 
-ከተመለሱ በኋላ፦ የምዝገባ ገጹን https://global.powpow.online/register እና የደንበኝነት ገጹን https://global.powpow.online/subscription ይስጡ፣ በ `registration-flow.md` ሕጎች መሠረት አብረውት ስህተቶችን ይፍቱ፣ ቃለ-ጥምርታው አይቀየርም፣ እያንዳንዱ ዙር አሁንም በ«ቀጣዩ እርምጃ» ብሎክ ይዝጋል።
+ከተመለስክ በኋላ፦ የምዝገባ ገጽ https://global.powpow.online/register ስጥ (በነጻ የሙከራ ወቅት የድር ምዝገባም አንደው ነው ወዲያውኑ የሚጠናቀቀው፤ ደንበኝነት ሲያስፈልግ የደንበኝነት ገጽም ስጥ https://global.powpow.online/subscription )፣ በ `registration-flow.md` ደንቦች መሠረት አብሮ ችግሩን ፈታ፣ ተመሳሳይ ጠባይ ጠብቅ፣ እና ሁሌም "ቀጣይ ደረጃ" ብሎክ ጨርስ።
 

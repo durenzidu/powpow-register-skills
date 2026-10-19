@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Kosalisa mosaleli asala inscription ya PowPow (Bule), activation ya abonnement na Alipay/PayPal, mpe koneksione ya kubeta mbala moko, nyonso na kati ya lisolola. Agent ezali kosala fome (na upload ya lilinzo ya profil), kotinda kodi ya ndingisa ya imele, kosala commande ya kofuta mpe kolandela mbongo ekota; mosaleli apesaka kaka bayebisi ya mokuse, azwa kodi ya ndingisa mbala moko, mpe afuti na caisse ya Alipay/PayPal, abima na lisolola te. Ezali kosala tango mosaleli alobi «sala inscription ya Bule», «sala kompte ya powpow», «ndenge ya kosala inscription powpow», «sign up powpow»; ezali mpe kosunga makambo ya inscription ekangi (kodi ya ndingisa ekomi te, kombo ya mosaleli/imele deja ezali) na makambo ya activation (koneksione elobi «kompte ezali active te» / pending_payment, ndenge ya kosala abonnement). Esengi Node >= 18; soki ezali te, ezonga automatiquement na mode ya directives kaka. Ezali na kotinda post/kosala moto numerique te (yango ezali mosala ya powpow-simple), mpe kosala code te.
-version: 2.1.0
+description: Esungisaka motaleli mpé kosilisa enregistrement na PowPow (Bubble) pe kokota na clic moko na kati ya masolo. Agent akopisaka formula na esika ya motaleli (na kotya avatar) pe atindaka email ya code de vérification; motaleli abongisi sé kopesa ba informations de base pe komona code de vérification mbala moko — koleka te na masolo. Plateforme lelo ezali na période d'essai gratuit: compte enregistré akoki kosalisa ba fonctionnalités nionso mbala moko; paiement ya abonnement (Alipay/PayPal) ezali amélioration ya membre ya option, oyo agent akoki kosala na création de commande pe suivi ya argent naino soki esengeli. Etambuli tango motaleli alobi "enregistrer na Bubble", "sala compte powpow", "ndenge nini kosala enregistrement na Bubble", "salisa ngai na kosala compte powpow", "sign up powpow"; pe esalisi na ba problèmes ya enregistrement (code de vérification eyaki te, nom ya motaleli/email ezuami déjà) pe ba problèmes ya activation (kokota elobi "compte eactivé te" / pending_payment, ndenge nini kosala abonnement/paiement, Bubble est gratuit to ezali paiement). Esengeli Node ≥ 18; soki ezali te, ezali koleka na mode ya guide pur. Ezali te kobimisa/créer ba humains numériques (mosala ya powpow-simple), ezali te développement ya code.
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,22 +10,22 @@ metadata:
 
 # PowPow Register (mosalisi ya inscription ya Bule)
 
-Koyekemela mosaleli ya sika uta «ayebi te Bule ezali nini» kino «kompte ezali active, koneksione ya kubeta mbala moko, ebandi kolala» — mosala mobimba esalaka na kati ya lisolola. Mosaleli azali kobima na lisolola mbala mibale kaka: **kokende na imele komona kodi ya ndingisa**, **kofuta na caisse ya kofuta** (Alipay to PayPal — agent efungolaka lokasa ya caisse automatiquement).
+Ememaka motaleli ya sika uta "nayebi te Bubble nini" tii "nakoti na clic moko, pronto kosala" — nionso na kati ya masolo. Motaleli atikaka masolo mbala moko sé: **mpo na komona code de vérification na boîte de réception**. Plateforme lelo ezali na période d'essai gratuit: nsima ya enregistrement, ba fonctionnalités nionso ezali, bosenga ya paiement te; paiement ya abonnement ezali amélioration ya membre ya option (agent afungukaka caisse pe alandaka argent naino).
 
-**Version 2.1.0** · 2026-10-11 (uta v2 ezali mode ya agent-esalaka: contract ya script na molongo mobimba tala `references/agent-flow.md`; mangonga ya champs, limites na kotunga mbeba tala `references/registration-flow.md`; nzela ya kofuta tala `references/payment-and-activation.md`; liste ya lilinzo ya produit tala `references/screenshots.md`. Uta v2.1.0 abonnement ya PayPal ekoki pe kosalema na agent, lokola choix pembeni ya Alipay)
+**Version 2.2.0** · 2026-10-18 (kobanda na v2 oyo ezali mode ya aide ya agent: contrat ya script pe ordre mobimba ezali na `references/agent-flow.md`; ba règles ya champ, ba limites ya débit pe diagnostic d'erreur na `references/registration-flow.md`; ba canaux ya paiement na `references/payment-and-activation.md`; liste ya captures d'écran ya produit na `references/screenshots.md`. Kobanda na v2.1.0 abonnement PayPal akoki kosalama na agent, lokola option na côté ya Alipay. Kobanda na v2.2.0 plateforme ekoti na période d'essai gratuit: enregistrer pe kokota na clic moko mpo na kosala mbala moko; paiement ekomi amélioration ya option — soki motaleli abendi lien pe akwei na page d'abonnement, période d'essai esili, landa flux ya paiement uta na étape 7; flux esengeli komibongisa yango moko, bosenga te ya kobongola script)
 
 ## Environnement ya kosala
 
 - Script monene `scripts/powpow-register.mjs`: **ezali na dependance te**, esengi **Node >= 18**. Liboso ya kobanda sala mbala moko `node scripts/powpow-register.mjs status` mpo oloka environnement ezali malamu.
 - Ba requetes nionso ya script etindaka kaka na domaine officiel `https://global.powpow.online`.
-- **Soki Node ezali te / script ebeba**: ezonga automatiquement na mode ya directives kaka — pesa mosaleli lokasa ya inscription https://global.powpow.online/register na lokasa ya abonnement https://global.powpow.online/subscription, landa ye na kofata `references/registration-flow.md`. Meka script mbala na mbala na makasi te.
+- **Node te / ba erreurs ya script**: koleka automatique na mode ya guide pur — pesa motaleli page d'enregistrement https://global.powpow.online/register pe lakisa ye na côté selon `references/registration-flow.md` (na période d'essai gratuit, enregistrement na web ezali mbala moko rapide). Kobundela script mbala na mbala te.
 - Nsima ya lisolola ekatama: libanda `status` yeba mosala ekomami mbala nini, nsima landa.
 
 ## Trigger Conditions
 
 - Makano ya inscription: «sala inscription ya Bule», «sala kompte ya powpow», «ndenge ya kosala inscription powpow», «sign up powpow»
 - Inscription ekangi: «kodi ya ndingisa ekomi te», «kombo ya mosaleli elobi ezali deja», «password ekosengela te mbala na mbala»
-- Makambo nsima ya inscription: «koneksione elobi kompte ezali active te», «403 pending_payment», «Bule efutaka nini/abonnement ndenge nini»
+- Ba problèmes nsima ya enregistrement: "kokota elobi compte eactivé te", "403 pending_payment", "ndenge nini kosala paiement/abonnement na Bubble", "Bubble est gratuit to ezali paiement"
 
 **Ezali ko-trigger te**: kotinda post/kosala moto numerique (→ powpow-simple); kosala code ya Web (tala skills ya kosala code). Mosaleli alingi kosala inscription mpe kotinda post: sila liboso mosala ya skill oyo, nsima ya activation pesa powpow-simple.
 
@@ -38,8 +38,8 @@ Koyekemela mosaleli ya sika uta «ayebi te Bule ezali nini» kino «kompte ezali
 | 3 Tinda kodi ya ndingisa | `send-code` | —— |
 | 4 Zwa kodi ya ndingisa | —— | Kende na imele komona kodi ya nombo 6, zonga tinda |
 | 5 Tinda inscription | `register` (na upload direct ya lilinzo ya profil), kosunga mbeba automatiquement | —— |
-| 6 Nusu-koneksione + kofuta | `login-link(pending)` → `create-order --provider alipay|paypal` → fungola caisse → tuna `query` | Beta lien, futa |
-| 7 Koneksione ya solo | `refresh-login` → `login-link(home)` | Beta lien kokota na lokasa ya libanda |
+| 6 Kokota na clic moko | `login-link(home)` directement na page d'accueil; soki akwei na page d'abonnement, kende na étape 7 | Benda lien pe banda kosala |
+| 7 Amélioration d'abonnement (option) | Sé tango motaleli alingi membre / période gratuite esili: flux ya paiement mobimba | Pona méthode, futa |
 | 8 Kosila | `cleanup` + pesa carte ya kompte + landa experience + proposer plugins | Ebandi kolala |
 
 ## Etape 1: Presentation ya produit + lilinzo (ezali kobwakama te)
@@ -93,19 +93,30 @@ Succes esali kompte (etat pending, na badges 3 ya ebandeli). Mbeba ya mbala ming
 | 邮箱验证码错误或已过期 (kodi ya ndingisa ya imele mbeba to ekufi) | Eleki miniti 10 → tinda lisusu `send-code` |
 | 发送/注册过于频繁（429） (kotinda/inscription mingi mingi (429)) | Zela minute 1 nsima meka lisusu, loba kaka na mosaleli |
 
-## Etape 6: Koneksione ya kubeta mbala moko (lien 1) + kofuta
+## Étape 6: Kokota na clic moko (nsima ya enregistrement directement na page d'accueil)
 
-1. Nsima ya inscription succes mbala moko:
+1. Mbala moko nsima ya enregistrement elongi:
+   ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. Tinda lien na motaleli: **benda pe okozala directement na page d'accueil, okoti déjà**. Plateforme lelo ezali na période d'essai gratuit — nsima ya enregistrement ba fonctionnalités nionso ezali (feed, carte, humains numériques, check-ins, etc.), **bosenga ya paiement te**.
+3. Lakesa motaleli andimisa akoti; ba cas mibale ezali:
+   - **Akwei na page d'accueil** → kokende directement na étape 8 mpo na kosilisa; enregistrement esili;
+   - **Akwei na page d'abonnement** → période d'essai gratuit ya plateforme esili; láta na motaleli "période d'essai gratuit esili, soki membre abonnement esengeli sikoyo", nsima landa étape 7 mpo na kosilisa abonnement, pe nsima ya abonnement zonga na étape 8.
+4. Soki motaleli moko alingi amélioration to soutenir plateforme → kokende na étape 7 (abonnement volontaire; kobenda nguya te).
+## Étape 7: Amélioration d'abonnement (option — sé tango étape 6 elobi)
+
+1. Liboso tinda lien ya demi-kokota mpo na page ya retour nsima ya paiement emonisa "Paiement elongi" lolenge:
    ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   Tinda lien na mosaleli: **nsima ya kobeta, navigateur ekota directement na lokasa ya abonnement, ezali deja na etat ya koneksione** — nsima yango ntango kofuta esilama, lokasa ya retour ekoki koloba malamu «kofuta esilama». (Na etat oyo lokasa ya contenu ezali kobombama kino lokasa ya abonnement, yango ezali mosala normal ya paywall ya plateforme, ezali bug te, mpe kosolola na mosaleli mecanisme interne te.)
-2. **Tika mosaleli apona nzela ya kofuta** — lakisa nzela nyonso mibale:
-   - **Alipay (na kati ya Chine / ba mosaleli bazali na Alipay)**: achat mbala moko ya duree ekokani, **e-renouveler automatiquement te**
-     - Mois **¥6.99** (proposer ya meka liboso) / Trimestre **¥19.99** / Annee **¥69.99**
-   - **PayPal (mboka mosusu / ba mosaleli bazali na Alipay te)**: e-renouveler automatiquement chaque mois, ko-annuler ntango nionso
-     - Premium Monthly, soki **$1/mois** (ndenge lokasa ya abonnement elakisi; e-renouveler automatiquement)
-3. Mosaleli aponi moko:
+   Tinda lien na motaleli: benda pe navigateur directement na page d'abonnement, okoti déjà.
+2. **Lakesa motaleli apona méthode ya paiement** — monisa ba canaux mibale:
+   - **Alipay (Chine continentale / ba utilisateurs na Alipay)**: achat moko ya durée, **auto-renouvellement te**
+     - Sanza **¥6.99** (pona essai) / Misato **¥19.99** / Mobu **¥69.99**
+   - **PayPal (internasyonal / ba utilisateurs sans Alipay)**: auto-renouvellement sanza na sanza, annuler na ntiná nionso
+     - Premium Monthly, penza **$1/sanza** (lokola emonisi na page d'abonnement; na auto-renouvellement)
+3. Soki motaleli apona moko:
    - **Alipay**:
      ```
      node scripts/powpow-register.mjs create-order --package monthly
@@ -114,29 +125,23 @@ Succes esali kompte (etat pending, na badges 3 ya ebandeli). Mbeba ya mbala ming
      ```
      node scripts/powpow-register.mjs create-order --provider paypal
      ```
-   Script ezongisa chemin ya fichier ya lokasa ya kofuta, **fungola directement na commande ya systeme** (Windows: `start <fichier>`; macOS: `open <fichier>`; Linux: `xdg-open <fichier>`). Navigateur eko zwa nzela directement na caisse officielle ya Alipay/PayPal, mosaleli asilisa kofuta to ndingisa ya facturation.
-4. Mbala na secondes 10–15 sala `query` kino ezongisa `paid` to `ACTIVE` (mbongo/ndingisa mingi ekota na secondes moke kino minute moko). Mosaleli afunga lokasa ya kofuta na katikati → directement sala lisusu `create-order` (ba commandes ya kala / ba abonnements PENDING efungwama to esila nsima heures 2, tika yango).
-5. Nzela ya scan WeChat ezali confirmation ya moto, mbongo ekoki kochelewa; Huawei IAP ezali kaka na kati ya app HarmonyOS. Skill esala yango mibale te — nsima ya kofuta zonga na Etape 7 ndenge moko.
+   Script azongisi chemin ya fichier ya page ya paiement; **fungula ye directement na commande système** (Windows: `start <fichier>`; macOS: `open <fichier>`; Linux: `xdg-open <fichier>`). Navigateur akende automatique na caisse officiel Alipay/PayPal, epai motaleli asilisaka paiement to autorisation ya facturation.
+4. Salisa `query` na 10–15 secondes tii azongisi `paid` to `ACTIVE` (paiement/autorisation ekweaka na ba secondes tii na minute moko). Soki motaleli afongwaki page ya paiement na katikati → sé `create-order` lisusu (ba commandes anciens / abonnements en attente bakofungama to bakosila nsima ya ba heures 2; koyeba te).
+5. Canal ya code QR WeChat endimisaka na loboko pe argent akoki koyoka; Huawei IAP ezali sé na kati ya application HarmonyOS. Skill esalaka yango mibale te — nsima ya paiement, motaleli azongi pe alobaka na agent, oyo liboso asalaka `whoami` mpo na koyeba soki argent ekwei, nsima atindaka lien ya page d'accueil selon point 6 oyo ezali awa na se.
+6. Nsima ya koyeba soki argent ekwei, bongola état ya kokota na affirmation ya abonnement ya sika, nsima tinda lien directement na page d'accueil:
+   ```
+   POWPOW_REGISTER_PASSWORD=<mot de passe> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   Tinda lien na motaleli: **benda pe okozala directement na page d'accueil na état ya membre mobimba**.
+## Étape 8: Kosilisa
 
-## Etape 7: Koneksione ya solo (lien 2)
-
-Mbongo etanaki confirmé, liboso echangala etat ya koneksione oyo ezali na declaration ya abonnement ya sika, nsima sala lien ya direct na lokasa ya libanda:
-
-```
-POWPOW_REGISTER_PASSWORD=<password> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-Tinda lien na mosaleli: **beta ekota directement na lokasa ya libanda, etat ya membre mobimba**, sikoyo inscription mobimba esila.
-
-## Etape 8: Kosila
-
-1. `node scripts/powpow-register.mjs cleanup` efacer fichier etat temporaire ya machine oyo (identite ya session).
-2. Pesa mosaleli «carte ya kompte»: kombo ya mosaleli, imele, ntango ya membre ekufa (password elakisama lisusu te — mode generation esakisa mosaleli abomba na ntango ya kosala; mosaleli oyo apesa yango azali na yango).
-3. Landa experience: zuka mapa, tinda post ya voyage ya liboso (→ pesa powpow-simple).
-4. Proposer extension: skill `@durenzidu/powpow-integration` na plugin `@durenzidu/openclaw-channel-powpow` — kokangisa Bule na agent ya mosaleli moko moko; alingi pesa commande ya installation.
-5. Kosila na bloc «etape oyo elandi».
-
+1. `node scripts/powpow-register.mjs cleanup` mpo na kopetola ba fichiers temporaires locaux (identifiants ya session).
+2. Pesa motaleli "carte de compte": nom d'utilisateur, email (mot de passe emonanisaka lisusu te — na mode généré motaleli alobelaki kobomba tango egenerami; soki motaleli atieki yango moko, ayebi yango).
+3. Lembisi ya membre (loba mbala moko, kobenda nguya te): lelo ezali période d'essai gratuit pe compte esalaka mbala moko; tango période d'essai esili, ba comptes sans abonnement tango bakokota na ba pages ya contenu bakozwa redirection na page d'abonnement — mpo na utilisation ya temps molai, zonga pe sala abonnement na ntiná nionso.
+4. Lakisa ba étapes ya liboso: tala carte, publike journal ya voyage ya liboso (→ kopesa na powpow-simple).
+5. Recommander ba extensions: skill `@durenzidu/powpow-integration` pe plugin `@durenzidu/openclaw-channel-powpow` — connecter Bubble na agent ya motaleli moko; pesa commande d'installation soki alingi.
+6. Silisa na bloc "étape oyo elandi".
 ## Conversation UX
 
 Salela ndenge moko voix ya service ya PowPow esalaka mbala nionso:
@@ -157,7 +162,7 @@ Salela ndenge moko voix ya service ya PowPow esalaka mbala nionso:
 - **Securite ya identite**: password etindama na script na variable d'environnement `POWPOW_REGISTER_PASSWORD` kaka, **jamais** ekoma na parametre ya commande (liste ya processus emonana), ekoma na fichier te (mode generation elakisa mbala moko mpo mosaleli abomba, nsima elobi lisusu te). Kodi ya ndingisa esalelaka kaka API officielle ya inscription, esila esalema ebwakama.
 - **Ndelo officiel**: ba requetes nionso etindaka kaka `https://global.powpow.online` (script ezali na yango deja), kopesa info ya mosaleli na adresse ya bato ya misato jamais te.
 - **Ndelo ya kofuta**: agent esala kaka commande, efungola caisse, etuna mbongo; **jamais** ekanga compte ya Alipay/PayPal ya mosaleli / identite ya kofuta, mpe jamais epromettre «kofuta na esika ya mosaleli».
-- **Paywall ezali bug te**: etat pending ekoki kokota lokasa ya abonnement/lokasa ya retour ezali autorisation ya design; lokasa ya contenu ebombama ezali paywall ya plateforme esalaka normal, meka kocontourner te.
+- **Paywall ezali bug te**: na période d'essai gratuit lelo ba pages ya contenu nionso bazali ouvert; soki motaleli abendi lien ya page d'accueil pe akwei na page d'abonnement — période d'essai esili, lakisa ye asala abonnement na étape 7. Komeka kopikola paywall te, pe koyebisa ba mécanismes internes na motaleli te.
 - **Liberte ya retour**: mosaleli na etape nionso alingi kosala moko moko, to environnement esupporte script te, mbala nionso ezonga na mode ya directives kaka — pesa liens, solola mangonga, fata ensemble kotunga mbeba.
 - Kosala mangonga ya plateforme te: mangonga ya champs, textes ya mbeba, parametres ya limites nionso ewuti na code ya plateforme (`references/registration-flow.md` ezali na source ya code), mise a jour ya plateforme elandi comportement reel ya ligne.
 - Lilinzo ya presentation salela kaka oyo ezali na `assets/screenshots/` ya pack (esalela ya chaque lilinzo tala `references/screenshots.md`).

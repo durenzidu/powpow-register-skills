@@ -2,7 +2,8 @@
 
 Msaidizi wa usajili wa PowPow Povu (toleo la OpenClaw): kuleta mtumiaji mpya kutoka "hajui Povu ni nini" hadi "akaunti imewezeshwa, ingia kwa kubofya mara moja, anze kucheza" — utangulizi wa bidhaa (pamoja na picha za kiolesura), usajili unaosaidiwa na agent (pamoja na upakiaji wa picha ya wasifu moja kwa moja), agizo la usajili wa Alipay/PayPal na ufuatiliaji wa malipo, ingia kwa kubofya mara moja kupitia viungo viwili, utatuzi wa makosa.
 
-**Tangu v2.0.0 ni mtindo wa agent-kusaidia, na tangu v2.1.0 PayPal pia inaweza kushughulikiwa**: hati kuu `scripts/powpow-register.mjs` haina tegemezi (Node >= 18), mtumiaji haondoki mazungumzoni, ana mara mbili tu za kutoka kwa muda: kwenda barua pepe kuona nambari ya uthibitisho, kwenye cashier ya Alipay/PayPal kulipa. Usipokuwa na Node au mtumiaji anapotaka kufanya mwenyewe, inarudi kiotomatiki kwenye mtindo wa mwongozo mtupu.
+**Tangu v2.0.0 hii ni hali ya wakala-msaidizi, na tangu v2.2.0 inajirekebisha kwa kipindi cha majaribio bila malipo cha jukwaa**: hati kuu `scripts/powpow-register.mjs` ni zero-dependency
+(Node ≥ 18); mtumiaji anaacha mazungumzo mara moja tu: kukagua msimbo wa uthibitishaji kwenye kikasha chake. Katika kipindi cha sasa cha majaribio bila malipo, akaunti iliyosajiliwa inaweza kutumia kila kipengele mara moja — malipo ya sasiri ni uboreshaji wa hiari; kama kipindi cha majaribio kinaisha na mtumiaji anatua kwenye ukurasa wa sasiri, mtiririko unabadilika kwenye njia ya malipo kiotomatiki. Bila Node, au wakati mtumiaji anaenda kufanya mwenyewe, hurejea kiotomatiki kwenye hali ya mwongozo safi.
 
 ## Usakinishaji
 
@@ -14,7 +15,9 @@ openclaw skills install @durenzidu/powpow-register
 
 1. **Utangulizi wa bidhaa**: utangulizi wa maneno ~120 + picha za kiolesura zilizofungwa pamoja na skill (`assets/screenshots/` chini yake picha 6: ukurasa wa ramani, ukurasa wa maelezo ya chapisho, n.k., chagua tuma 1–3 kulingana na hali; hahitaji hifadhi ya picha ya nje, inafaa nje ya mtandao).
 2. **Usajili unaosaidiwa**: agent inapendekeza jina la mtumiaji/jina la kirafiki, nenosiri uchague moja (mtumiaji atoe au agent itengeneze), kutuma na kuwasilisha nambari ya uthibitisho, upakiaji wa picha ya wasifu moja kwa moja (<=5MB sio SVG), kushughulikia makosa ya kawaida kiotomatiki (kuchukuliwa/kuisha/mzigo wa kizuizi).
-3. **Ingia kwa kubofya mara moja (viungo viwili)**: baada ya usajili kufanikiwa mara moja inapewa kiungo cha "nusu-login" cha moja kwa moja kwenye ukurasa wa usajili wa malipo; malipo yakifika baada ya kubadilisha hali ya ingia mpya inapewa kiungo kamili cha mwanachama cha moja kwa moja kwenye ukurasa wa nyumbani (hupitia daraja rasmi la jukwaa `me?token=`, hupanda cookie ya HttpOnly kiotomatiki).
+3. **Kuingia kwa bonyezo moja (viungo viwili)**: mara baada ya usajili kufanikiwa, kiungo cha kuingia kinamweka mtumiaji moja kwa moja kwenye ukurasa wa nyumbani (katika kipindi cha majaribio bila malipo, bonyezo moja na kinapatikana);
+   kama kinatua kwenye ukurasa wa sasiri (kipindi cha majaribio kimeisha) au mtumiaji anataka kuboresha, fuata mtiririko wa sasiri — baada ya malipo kufika, hali mpya ya kuingia inabadilishwa na kiungo cha uanachama kamili kinamweka kwenye ukurasa wa nyumbani
+   (kupitia daraja rasmi la `me?token=` la jukwaa, linalozalisha kuki ya HttpOnly kiotomatiki).
 4. **Usajili wa malipo**: njia zote mbili za Alipay (mwezi ¥6.99 / robo mwaka ¥19.99 / mwaka ¥69.99, ununuzi wa mara moja hauna ushamiri otomatiki) na PayPal (Premium Monthly, takriban $1/mwezi, inashamiri otomatiki, batilisha wakati wowote) zinashughulikiwa na agent kwa kuunda agizo + ufuatiliaji wa malipo; mtumiaji wa nje anarudi PayPal; mwongozo wa usome msimbo wa WeChat / Huawei IAP.
 5. **Utatuzi wa makosa**: kutopokea nambari ya uthibitisho, jina la mtumiaji/barua pepe imechukuliwa, 403 haijawa hiyari, akaunti imefungwa, n.k. masuala ya kawaida, yote yanatoka kwenye msimbo wa jukwaa na yana chanzo kilichotajwa.
 

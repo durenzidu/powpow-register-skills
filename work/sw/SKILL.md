@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Kusaidia mtumiaji kukamilisha usajili wa PowPow (Povu), uwezeshaji wa usajili kupitia Alipay/PayPal, na ingia kwa kubofya mara moja ndani ya mazungumzo. Agent hujaza fomu (pamoja na picha ya wasifu), hutuma nambari ya uthibitisho ya barua pepe, huunda agizo la malipo na kufuatilia malipo, mtumiaji hutoa tu maelezo ya msingi, kupokea nambari ya uthibitisho mara moja, na kulipa kwenye cashier ya Alipay/PayPal, bila kuondoka mazungumzoni. Inafanya kazi wakati mtumiaji anaposema 'sajili Povu', 'sajili akaunti ya powpow', 'jinsi ya kusajili powpow', 'sign up powpow'. Pia inashughulikia matatizo ya usajili (kutopokea nambari ya uthibitisho, jina la mtumiaji/barua pepe imeshachukuliwa) na masuala ya uwezeshaji (ingia inashow 'akaunti haijawa hiyari' / pending_payment, jinsi ya kusajili kulipa). Inahitaji Node >= 18; ikipatikana haipatikani inarudi kiotomatiki kwenye mtindo wa mwongozo mtupu. Haijumuishi kutuma chapisho/kutengeneza mtu wa kidijitali (hicho ni kazi ya powpow-simple), wala haijumuishi maendeleo ya msimbo.
-version: 2.1.0
+description: Husaidia watumiaji kukamilisha usajili wa PowPow (Bubble) na kuingia kwa bonyezo moja ndani ya mazungumzo yote. Wakala hujaza fomu kwa niaba yao (ikiwa ni pamoja na kupakia picha ya wasifu) na hutuma msimbo wa uthibitishaji wa barua pepe; mtumiaji hutoa tu taarifa za msingi na kukagua msimbo wa uthibitishaji mara moja — haachi mazungumzo kabisa. Katika kipindi cha sasa cha majaribio bila malipo cha jukwaa, akaunti iliyosajiliwa inaweza kutumia kila kipengele mara moja; malipo ya sasiri (Alipay/PayPal) ni uboreshaji wa hiari wa uanachama, ambao wakala anaweza pia kuyashughulikia kwa kuunda oda na kufuatilia mapato inapohitajika. Huchochea wakati mtumiaji anasema "jiandikishe kwa Bubble", "fungua akaunti ya powpow", "nawezaje kujiandikisha kwa Bubble", "nisaidie kufungua akaunti ya powpow", "jiandikishe powpow"; pia hushughulikia matatizo ya usajili (msimbo wa uthibitishaji haujapokelewa, jina la mtumiaji/barua pepe tayari yamechukuliwa) na matatizo ya uamshaji (kuingia kunasema "akaunti haijawashwa" / pending_payment, nawezaje kusajili/kulipa, Bubble ni bila malipo au inagharimu). Inahitaji Node ≥ 18; hurejea kiotomatiki kwenye hali ya mwongozo safi inapopatikana. Haifanyi kazi za kuchapisha/kuunda binadamu wa digitali (ni kazi ya powpow-simple), wala maendeleo ya msimbo.
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,22 +10,22 @@ metadata:
 
 # PowPow Register (msaidizi wa usajili wa Povu)
 
-Kuleta mtumiaji mpya kutoka "hajui Povu ni nini" hadi "akaunti imewezeshwa, ingia kwa kubofya mara moja, anze kucheza" — mchakato mzima unafanyika ndani ya mazungumzo. Mtumiaji ana mara mbili tu za kutoka mazungumzoni kwa muda: **kwenda kwenye barua pepe kuona nambari ya uthibitisho**, **kulipa kwenye cashier ya malipo** (Alipay au PayPal — agent itafungua ukurasa wa cashier kiotomatiki).
+Inachukua mtumiaji mpya kutoka "sijui Bubble ni nini" hadi "nimeingia kwa bonyezo moja, niko tayari kucheza" — yote ndani ya mazungumzo. Mtumiaji anaacha mazungumzo mara moja tu: **kukagua msimbo wa uthibitishaji kwenye kikasha chake**. Jukwaa kwa sasa liko katika kipindi cha majaribio bila malipo: mara baada ya kujiandikisha, kila kipengele kinapatikana, hakuna malipo yanayohitajika; malipo ya sasiri ni uboreshaji wa hiari wa uanachama (wakala pia hushughulikia kufungua kasha na kufuatilia mapato).
 
-**Toleo 2.1.0** · 2026-10-11 (tangu v2 ni mtindo wa agent-kusaidia: mkataba wa hati na mlolongo kamili angalia `references/agent-flow.md`; sheria za sehemu, vizuizi, na utatuzi wa makosa angalia `references/registration-flow.md`; njia za malipo angalia `references/payment-and-activation.md`; orodha ya picha za bidhaa angalia `references/screenshots.md`. Tangu v2.1.0 usajili wa PayPal pia unaweza kushughulikiwa na agent, kama chaguo kando ya Alipay)
+**Toleo 2.2.0** · 2026-10-18 (tangu v2 hii ni hali ya wakala-msaidizi: mkataba wa hati na mpangilio kamili kwenye `references/agent-flow.md`; kanuni za uwanja, vikomo za kiwango na utatuzi wa makosa kwenye `references/registration-flow.md`; njia za malipo kwenye `references/payment-and-activation.md`; orodha ya picha za bidhaa kwenye `references/screenshots.md`. Tangu v2.1.0 sasiri za PayPal pia zinaweza kushughulikiwa na wakala, kama chaguo pamoja na Alipay. Tangu v2.2.0 jukwaa limeingia katika kipindi cha majaribio bila malipo: jiandikishe na kuingia kwa bonyezo moja ili kuanza kutumia; malipo yamekuwa uboreshaji wa hiari — ikiwa mtumiaji anabonyeza kiungo na kutua kwenye ukurasa wa sasiri, kipindi cha majaribio kimekamilika, fuata mtiririko wa malipo wa Hatua 7; mtiririko unajirekebisha yenyewe, hakuna mabadiliko ya hati yanayohitajika)
 
 ## Mazingira ya kukimbia
 
 - Hati kuu `scripts/powpow-register.mjs`: **haina tegemezi**, inahitaji **Node >= 18**. Kabla ya kuanza endesha mara moja `node scripts/powpow-register.mjs status` kuwa na uhakika mazingira yanafaa.
 - Maombi yote ya hati yanaenda tu kwenye kikoa rasmi `https://global.powpow.online`.
-- **Usipokuwa na Node / hati inapoleta hitilafu**: inarudi kiotomatiki kwenye mtindo wa mwongozo mtupu — upe ukurasa wa usajili https://global.powpow.online/register na ukurasa wa usajili wa malipo https://global.powpow.online/subscription kwa mtumiaji, uongoze kwa kufuata `references/registration-flow.md`. Usijaribu hati mara kwa mara kwa nguvu.
+- **Hakuna Node / makosa ya hati**: hurejea kiotomatiki kwenye hali ya mwongozo safi — mpe mtumiaji ukurasa wa usajili https://global.powpow.online/register na umwongoze kando kulingana na `references/registration-flow.md` (katika kipindi cha majaribio bila malipo, usajili wa wavuti ni wa haraka sawa). Usizidi kubisha hati.
 - Baada ya mazungumzo kukatika na kurudisha: kwanza `status` kuona mchakato umefika hatua gani, kisha endelea.
 
 ## Trigger Conditions
 
 - Nia ya usajili: "sajili Povu", "sajili akaunti ya powpow", "jinsi ya kusajili powpow", "sign up powpow"
 - Usajili umekwama: "hauskii nambari ya uthibitisho", "jina la mtumiaji limesemwa kuwa limeshakuwepo", "nenosiri haifai kila wakati"
-- Matatizo baada ya usajili: "ingia inashow akaunti haijawa hiyari", "403 pending_payment", "jinsi ya kulipa/kusajili PowPow"
+- Matatizo baada ya usajili: "kuingia kunasema akaunti haijawashwa", "403 pending_payment", "nawezaje kulipa/kusajili kwa Bubble", "Bubble ni bila malipo au inagharimu"
 
 **Haifanyi trigger**: kutuma chapisho/kuunda mtu wa kidijitali (→ powpow-simple); maendeleo ya msimbo wa wavuti (tazama skill ya maendeleo). Mtumiaji anapotaka kusajili na pia kutuma chapisho: kwanza maliza skill hii, baada ya uwezeshaji peleka kwa powpow-simple.
 
@@ -38,8 +38,8 @@ Kuleta mtumiaji mpya kutoka "hajui Povu ni nini" hadi "akaunti imewezeshwa, ingi
 | 3 Tuma nambari ya uthibitisho | `send-code` | —— |
 | 4 Soma nambari ya uthibitisho | —— | Nenda barua pepe tazama nambari ya tarakimu 6, rudi uitume |
 | 5 Wasilisha usajili | `register` (pamoja na picha ya wasifu moja kwa moja), shughulikia makosa kiotomatiki | —— |
-| 6 Nusu-login + malipo | `login-link(pending)` → `create-order --provider alipay|paypal` → fungua cashier → hoji `query` | Bofya kiungo, lipa |
-| 7 Ingia rasmi | `refresh-login` → `login-link(home)` | Bofya kiungo uingie ukurasa wa nyumbani |
+| 6 Kuingia kwa bonyezo moja | `login-link(home)` moja kwa moja kwenye ukurasa wa nyumbani; ikiwa kinatua kwenye ukurasa wa sasiri, nenda Hatua 7 | Bonyeza kiungo na uanze kucheza |
+| 7 Uboreshaji wa sasiri (wa hiari) | Tu wakati mtumiaji anataka uanachama / kipindi cha bila malipo kimekamilika: mtiririko kamili wa malipo unashughulikiwa | Chagua njia, lipa |
 | 8 Kumalizia | `cleanup` + toa utambulisho + ongoza uzoefu + pendekeza programu-jalizi | Anza kucheza |
 
 ## Hatua ya 1: Utangulizi wa bidhaa + picha (haipitiwi)
@@ -93,19 +93,30 @@ Mafanikio yaunda akaunti (hali ya pending, pamoja na beji 3 za mwanzo). Makosa y
 | 邮箱验证码错误或已过期 (nambari ya uthibitisho ya barua pepe ni mbaya au imeisha muda) | Ikipita dakika 10 → tuma tena `send-code` |
 | 发送/注册过于频繁（429） (kutuma/usajili mara nyingi mno (429)) | Subiri dakika 1 kisha jaribu tena, mwambie mtumiaji tu |
 
-## Hatua ya 6: Ingia kwa kubofya mara moja (kiungo 1) + malipo
+## Hatua 6: Kuingia kwa Bonyezo Moja (moja kwa moja kwenye ukurasa wa nyumbani baada ya usajili)
 
-1. Baada ya usajili kufanikiwa mara moja:
+1. Mara baada ya usajili kufanikiwa:
+   ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. Tuma kiungo kwa mtumiaji: **bonyeza na wewe unatua moja kwa moja kwenye ukurasa wa nyumbani, tayari umeingia**. Jukwaa kwa sasa liko katika kipindi cha majaribio bila malipo — baada ya kujiandikisha, kila kipengele kinapatikana (mlipuko, ramani, binadamu wa digitali, viingilio, n.k.), **hakuna malipo yanayohitajika**.
+3. Mwombe mtumiaji athibitishe kuwa ameingia; kuna hali mbili:
+   - **Ametua kwenye ukurasa wa nyumbani** → rukia moja kwa moja Hatua 8 kufunga kazi; usajili umekamilika;
+   - **Ametua kwenye ukurasa wa sasiri** → kipindi cha majaribio bila malipo cha jukwaa kimekamilika; mwambie mtumiaji "kipindi cha majaribio bila malipo kimeisha, sasiri ya uanachama inahitajika sasa", kisha fuata Hatua 7 kukamilisha sasiri, na urudi Hatua 8 baada ya kusajili.
+4. Kama mtumiaji mwenyewe anataka kuboresha au kusaidia jukwaa → pia nenda Hatua 7 (kusajiri ni kwa hiari; usisukume).
+## Hatua 7: Uboreshaji wa Sasiri (wa hiari — tu wakati Hatua 6 inaita)
+
+1. Kwanza tuma kiungo cha nusu-kuingia ili ukurasa wa kurudi kwa malipo uweze kuonyesha "Malipo yamefanikiwa" kwa usahihi:
    ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   Tuma kiungo kwa mtumiaji: **baada ya kubofya, kivinjari chako kinaingia moja kwa moja kwenye ukurasa wa usajili wa malipo, tayari iko hali ya imeingia** — baadaye malipo yanapofanikiwa ukurasa wa kurudi unaweza kuonyesha kwa usahihi "malipo yamefanikiwa". (Katika hali hii kurasa za maudhui bado zitazuiliwa hadi ukurasa wa usajili wa malipo, hii ni kazi ya kawaida ya ukuta wa malipo wa jukwaa, sio bug, wala hujaelezei mtumiaji utaratibu wa ndani.)
-2. **Mfanye mtumiaji achague njia ya malipo** — onyesha njia zote mbili:
-   - **Alipay (China bara / watumiaji wenye Alipay)**: ununuzi wa mara moja wa muda unaolingana, **hakuna ushamiri otomatiki**
-     - Mwezi **¥6.99** (inashauriwa kujaribu kwanza) / Robo mwaka **¥19.99** / Mwaka **¥69.99**
-   - **PayPal (nje / watumiaji wasio na Alipay)**: inashamiri otomatiki kila mwezi, batilisha wakati wowote
-     - Premium Monthly, takriban **$1/mwezi** (kama inavyooneshwa kwenye ukurasa wa usajili; inashamiri otomatiki)
-3. Mtumiaji amepochagua:
+   Tuma kiungo kwa mtumiaji: kubonyeza kunamwacha kivinjari moja kwa moja kwenye ukurasa wa sasiri, tayari ameingia.
+2. **Mwombe mtumiaji achague njia ya malipo** — onyesha njia zote mbili:
+   - **Alipay (China bara / watumiaji wenye Alipay)**: ununuzi wa mara moja wa muda unaolingana, **hakuna kujirudia kiotomatiki**
+     - Kila mwezi **¥6.99** (inapendekezwa kwa majaribio) / Kila robo **¥19.99** / Kila mwaka **¥69.99**
+   - **PayPal (nje ya nchi / watumiaji wasio na Alipay)**: hujirudia kiotomatiki kila mwezi, ghairi wakati wowote
+     - Premium Kila mwezi, karibu **$1/mwezi** (kama inavyoonyeshwa kwenye ukurasa wa sasiri; hujirudia kiotomatiki)
+3. Mara mtumiaji anapochagua moja:
    - **Alipay**:
      ```
      node scripts/powpow-register.mjs create-order --package monthly
@@ -114,29 +125,23 @@ Mafanikio yaunda akaunti (hali ya pending, pamoja na beji 3 za mwanzo). Makosa y
      ```
      node scripts/powpow-register.mjs create-order --provider paypal
      ```
-   Hati inarudisha njia ya faili ya ukurasa wa malipo; **ifungue moja kwa moja kwa amri ya mfumo** (Windows: `start <faili>`; macOS: `open <faili>`; Linux: `xdg-open <faili>`). Kivinjari kitaelekea moja kwa moja kwenye cashier rasmi ya Alipay/PayPal, ambapo mtumiaji anamiliki malipo au uidhinishaji wa bili.
-4. Endesha `query` kila sekunde 10–15 hadi irudishe `paid` au `ACTIVE` (malipo/uidhinishaji kwa kawaida hufika ndani ya sekunde chache hadi dakika moja). Mtumiaji akifunga ukurasa wa malipo katikati → endesha tu tena `create-order` (agizo la zamani / usajili wa PENDING hufungwa au mwisho baada ya saa 2; usijali).
-5. Njia ya usome msimbo wa WeChat ni ya uthibitisho wa mtu na pesa zinaweza kuchelewa; Huawei IAP inapatikana tu ndani ya App ya HarmonyOS. Skill haishughuliki hizo mbili — baada ya malipo, hurudi kwenye Hatua ya 7 kwa namna hiyo hiyo.
+   Hiti inarudisha njia ya faili ya ukurasa wa malipo; **ifungue moja kwa moja kwa amri ya mfumo** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). Kivinjari hurukia kiotomatiki kwenye kasha rasmi ya Alipay/PayPal, ambapo mtumiaji hukamilisha malipo au idhini ya bili.
+4. Endesha `query` kila sekunde 10–15 hadi irudishe `paid` au `ACTIVE` (malipo/idhini kwa kawaida hufika ndani ya sekunde chache hadi dakika moja). Kama mtumiaji anafunga ukurasa wa malipo katikati → fanya `create-order` tena (oda za zamani / sasiri zinazosubiri hufungwa au kwisha kiotomatiki baada ya masaa 2; ziondoe).
+5. Njia ya msimbo wa QR ya WeChat huthibitishwa kwa mikono na fedha zinaweza kufika marehemu; Huawei IAP inapatikana tu ndani ya Programu ya HarmonyOS. Hiti hii haiwezi kushughulikia hizi mbili — baada ya kulipa, mtumiaji anarudi na kumwambia wakala, ambaye kwanza anaendesha `whoami` kuthibitisha mapato, kisha anatuma kiungo cha ukurasa wa nyumbani kwa punto 6 hapa chini.
+6. Baada ya mapato kuthibitishwa, badilishana hali ya kuingia yenye dai la sasa la sasiri, kisha tuma kiungo moja kwa moja kwenye ukurasa wa nyumbani:
+   ```
+   POWPOW_REGISTER_PASSWORD=<password> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   Tuma kiungo kwa mtumiaji: **bonyeza na wewe unatua moja kwa moja kwenye ukurasa wa nyumbani wenye hali kamili ya uanachama**.
+## Hatua 8: Kufunga Kazi
 
-## Hatua ya 7: Ingia rasmi (kiungo 2)
-
-Baada ya malipo kuthibitishwa, kwanza badilisha hali ya ingia iliyo na tamko jipya la usajili, kisha tengeneza kiungo cha moja kwa moja cha ukurasa wa nyumbani:
-
-```
-POWPOW_REGISTER_PASSWORD=<nenosiri> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-Tuma kiungo kwa mtumiaji: **baada ya kubofya inaingia moja kwa moja kwenye ukurasa wa nyumbani, hali kamili ya mwanachama**, hapa usajili mzima umemalizika.
-
-## Hatua ya 8: Kumalizia
-
-1. `node scripts/powpow-register.mjs cleanup` kusafisha faili ya hali ya muda ya mashine hii (kitambulisho cha kikao).
-2. Mpe mtumiaji "kadi ya akaunti": jina la mtumiaji, barua pepe, muda wa mwanachama kuisha (nenosiri haionyeshwi tena — mtindo wa kutengeneza ulimwonyesha mtumiaji alihifadhi wakati wa kutengeneza; mtumiaji mwenyewe anajua ile aliyoiweka).
-3. Ongoza uzoefu: tembea ramani, tuma safari yako ya kwanza ya kusafiri (→ peleka kwa powpow-simple).
-4. Pendekeza kupanua: skill `@durenzidu/powpow-integration` na programu-jalizi `@durenzidu/openclaw-channel-powpow` — kuunganisha Povu kwenye agent yako mwenyewe; ukitaka ongeza tu amri ya usakinishaji.
-5. Malizia kwa sehemu ya "hatua inayofuata".
-
+1. `node scripts/powpow-register.mjs cleanup` kusafisha faili za hali za muda za ndani (vitambulisho vya kipindi).
+2. Mpe mtumiaji "kadi ya akaunti": jina la mtumiaji, barua pepe (nywila haionyeshwi tena — katika hali ya kuzalisha mtumiaji aliombwa kuhifadhi wakati ilizalishwa; kama mtumiaji aliweka mwenyewe, anaijua).
+3. Ukumbusho wa uanachama (sema mara moja, usisukume): hii kwa sasa ni kipindi cha majaribio bila malipo na akaunti inapatikana mara moja; kipindi cha majaribio kinapokamilika, akaunti zisizo na sasiri zinazotembelea kurasa za maudhui zitaelekezwa kwenye ukurasa wa sasiri — kwa matumizi ya muda mrefu, rudi na umtafute wakala kusajiri wakati wowote.
+4. Ongoza hatua za kwanza: vinjari ramani, chapisha jarida la kwanza la safari (→ peleka kwa powpow-simple).
+5. Pendekeza viendelezi: hati ya `@durenzidu/powpow-integration` na programu-jalizi ya `@durenzidu/openclaw-channel-powpow` — unganisha Bubble kwenye wakala mwenyewe wa mtumiaji; mpe amri ya usakinishaji akitaka.
+6. Maliza na bloku ya "hatua inayofuata".
 ## Conversation UX
 
 Endeleza sauti ya huduma ya PowPow:
@@ -157,7 +162,7 @@ Endeleza sauti ya huduma ya PowPow:
 - **Usalama wa kitambulisho**: nenosiri hutumiwa tu kupitia kigezo cha mazingira `POWPOW_REGISTER_PASSWORD` kwa hati, **kamwe** usiiandike kwenye vigezo vya amri (orodha ya mchakato inaonekana), usiiandike kwenye faili yoyote (mtindo wa kutengeneza unaonyesha mara moja ili mtumiaji ahifadhi, baadaye haitajwi tena). Nambari ya uthibitisho hutumiwa tu kwa kiolesura rasmi cha usajili, inapotumika inaachwa.
 - **Mpaka rasmi**: maombi yote yanaenda tu kwenye `https://global.powpow.online` (hati imejumuisha tayari), kamwe usitume maelezo ya mtumiaji kwa anwani yoyote ya mtu wa tatu.
 - **Mpaka wa malipo**: agent huunda agizo, hufungua cashier, hufuatilia malipo; **kamwe** haigusi akaunti ya Alipay/PayPal ya mtumiaji / kitambulisho cha malipo, wala haiahidi "kulipa badala yake".
-- **Ukuta wa malipo sio bug**: hali ya pending inaweza kuingia ukurasa wa usajili wa malipo / ukurasa wa kurudi ni ruhusa ndani ya muundo; kurasa za maudhui kuzuiliwa ni ukuta wa malipo wa jukwaa unao fanya kazi kwa kawaida, usijaribu kuuzuia.
+- **Ukuta wa malipo si hitilafu**: katika kipindi cha sasa cha majaribio bila malipo kurasa zote za maudhui zimefunguliwa; kama mtumiaji anabonyeza kiungo cha ukurasa wa nyumbani lakini anatua kwenye ukurasa wa sasiri, kipindi cha majaribio kimekamilika — mwongoze kusajili kupitia Hatua 7. Usijaribu kupita ukuta wa malipo, na usieleze mifumo ya ndani kwa mtumiaji.
 - **Uhuru wa kurudi nyuma**: hatua yoyote mtumiaji anapotaka kufanya mwenyewe, au mazingira hayasaidii hati, anaweza kurudi wakati wowote kwenye mtindo wa mwongozo mtupu — toa viungo, eleza sheria, saidia kutatua makosa.
 - Usitengeneze sheria za jukwaa: sheria za sehemu, maandishi ya makosa, vigezo vya vizuizi vyote vinatoka kwenye msimbo wa jukwaa (`references/registration-flow.md` ina chanzo cha msimbo), sasisho la jukwaa hufuata tabia halisi ya mtandaoni.
 - Picha uonyesho tumia tu zile za `assets/screenshots/` zilizofungwa pamoja na skill (matumizi ya kila picha angalia `references/screenshots.md`).

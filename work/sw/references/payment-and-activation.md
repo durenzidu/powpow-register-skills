@@ -1,6 +1,8 @@
 # Uwezeshaji wa usajili na malipo — powpow-register
 
 ## Hitimisho (jibu kwanza)
+> **Kipindi cha majaribio bila malipo (kuanzia 2026-10-18; tabia halisi ya jukwaa ndiyo inayotawala)**: katika kipindi hiki akaunti iliyosajiliwa inaweza kutumia kila kipengele moja kwa moja, na **kusajiri ni uboreshaji wa hiari sio sharti** — fuata mtiririko wa faili hili tu wakati mtumiaji mwenyewe anataka uanachama. Kipindi cha majaribio kinapokamilika, akaunti zisizo na sasiri zinazotembelea kurasa za maudhui zitaelekezwa kwenye ukurasa wa sasiri; kamilisha tu sasiri kulingana na faili hili.
+
 
 **Sasa njia zote mbili za Alipay na PayPal zinaweza kushughulikiwa na agent — kuunda agizo na kufuatilia ufikiaji wa malipo.**
 Alipay ni ununuzi wa mara moja bila ushamiri otomatiki, kwa watumiaji wa China bara na watumiaji wenye Alipay; PayPal inashamiri otomatiki kila mwezi na inaweza kubatilishwa wakati wowote, kwa watumiaji wa nje na watumiaji wasio na Alipay. Usome msimbo wa WeChat (uthibitisho wa mtu) na Huawei IAP bado zipo, lakini hazimsimamiwi na skill.

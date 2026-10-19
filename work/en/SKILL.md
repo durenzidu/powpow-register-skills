@@ -1,7 +1,7 @@
 ---
 name: powpow-register
-description: Helps users complete PowPow (Bubble) registration, Alipay/PayPal subscription activation and one-click login entirely inside the conversation. The agent fills in the form on their behalf (including avatar upload), sends the email verification code, creates the payment order and tracks it until it arrives; the user only provides basic information, checks the verification code once, and pays at the Alipay/PayPal cashier — never leaving the conversation. Triggers when the user says "register for Bubble", "sign up for a powpow account", "how do I register for Bubble", "help me create a powpow account", "sign up powpow"; also handles registration issues (verification code not received, username/email already taken) and activation issues (login says "account not activated" / pending_payment, how to subscribe/pay). Requires Node ≥ 18; automatically falls back to pure guidance mode when unavailable. Does not cover posting/creating digital humans (that's powpow-simple's job), nor code development.
-version: 2.1.0
+description: Helps users complete PowPow (Bubble) registration and one-click login entirely inside the conversation. The agent fills in the form on their behalf (including avatar upload) and sends the email verification code; the user only provides basic information and checks the verification code once — never leaving the conversation. During the platform's current free testing period, a registered account can use every feature right away; subscription payment (Alipay/PayPal) is an optional membership upgrade, which the agent can also handle with order creation and arrival tracking when needed. Triggers when the user says "register for Bubble", "sign up for a powpow account", "how do I register for Bubble", "help me create a powpow account", "sign up powpow"; also handles registration issues (verification code not received, username/email already taken) and activation issues (login says "account not activated" / pending_payment, how to subscribe/pay, is Bubble free/paid). Requires Node ≥ 18; automatically falls back to pure guidance mode when unavailable. Does not cover posting/creating digital humans (that's powpow-simple's job), nor code development.
+version: 2.2.0
 metadata:
   openclaw:
     emoji: "\U0001F4DD"
@@ -10,22 +10,22 @@ metadata:
 
 # PowPow Register (Bubble Registration Assistant)
 
-Takes a new user from "I don't know what Bubble is" to "account activated, one-click logged in, ready to play" — entirely inside the conversation. The user only leaves the conversation twice: **to check the verification code in their inbox** and **to pay at the payment cashier** (Alipay or PayPal — the agent opens the cashier page for them automatically).
+Takes a new user from "I don't know what Bubble is" to "one-click logged in, ready to play" — entirely inside the conversation. The user leaves the conversation only once: **to check the verification code in their inbox**. The platform is currently in a free testing period: once registered, every feature is usable, no payment needed; subscription payment is an optional membership upgrade (the agent also handles opening the cashier and tracking arrival).
 
-**Version 2.1.0** · 2026-10-11 (since v2 this is agent-assisted mode: script contract and full sequence in `references/agent-flow.md`; field rules, rate limits and error troubleshooting in `references/registration-flow.md`; payment channels in `references/payment-and-activation.md`; product screenshot list in `references/screenshots.md`. Since v2.1.0 PayPal subscriptions can also be handled by the agent, as an option alongside Alipay)
+**Version 2.2.0** · 2026-10-18 (since v2 this is agent-assisted mode: script contract and full sequence in `references/agent-flow.md`; field rules, rate limits and error troubleshooting in `references/registration-flow.md`; payment channels in `references/payment-and-activation.md`; product screenshot list in `references/screenshots.md`. Since v2.1.0 PayPal subscriptions can also be handled by the agent, as an option alongside Alipay. Since v2.2.0 the platform is in a free testing period: register and one-click login to start using; payment becomes an optional upgrade — if the user clicks the link and lands on the subscription page, the testing period has ended, so follow the Step 7 payment flow; the flow adapts itself, no script changes needed)
 
 ## Runtime Environment
 
 - Core script `scripts/powpow-register.mjs`: **zero dependencies**, requires **Node ≥ 18**. Run `node scripts/powpow-register.mjs status` once before starting to confirm the environment works.
 - All script requests go to the official domain `https://global.powpow.online` only.
-- **No Node / script errors**: automatically fall back to pure guidance mode — give the user the registration page https://global.powpow.online/register and the subscription page https://global.powpow.online/subscription, and guide them companionably per `references/registration-flow.md`. Don't keep retrying the script.
+- **No Node / script errors**: automatically fall back to pure guidance mode — give the user the registration page https://global.powpow.online/register and guide them alongside per `references/registration-flow.md` (during the free testing period, web registration is equally instant). Don't keep hammering the script.
 - Resuming after an interrupted conversation: run `status` first to see which step the flow is at, then continue from there.
 
 ## Trigger Conditions
 
 - Registration intent: "register for Bubble", "sign up for a powpow account", "how do I register for Bubble", "sign up powpow"
 - Stuck during registration: "not receiving the verification code", "it says the username already exists", "the password keeps failing validation"
-- Post-registration issues: "login says the account is not activated", "403 pending_payment", "how do I pay for/subscribe to Bubble"
+- Post-registration issues: "login says the account is not activated", "403 pending_payment", "how do I pay for/subscribe to Bubble", "is Bubble free/paid"
 
 **Does not trigger**: posting/creating digital humans (→ powpow-simple); web code development (see the development skills). If a user wants both to register and to post: finish this skill first, then hand over to powpow-simple after activation.
 
@@ -38,8 +38,8 @@ Takes a new user from "I don't know what Bubble is" to "account activated, one-c
 | 3 Send verification code | `send-code` | —— |
 | 4 Read back the code | —— | Check inbox for the 6-digit code, send it back |
 | 5 Submit registration | `register` (with direct avatar upload), handle errors automatically | —— |
-| 6 Half-login + payment | `login-link(pending)` → `create-order --provider alipay|paypal` → open the cashier → poll `query` | Click the link, pay |
-| 7 Full login | `refresh-login` → `login-link(home)` | Click the link into the home page |
+| 6 One-click login | `login-link(home)` straight into the home page; if it lands on the subscription page, go to Step 7 | Click the link and start playing |
+| 7 Subscription upgrade (optional) | Only when the user wants membership / the free period has ended: full payment flow handled | Pick a method, pay |
 | 8 Wrap-up | `cleanup` + deliver credentials + guide first steps + recommend extensions | Start playing |
 
 ## Step 1: Product Intro + Screenshots (do not skip)
@@ -93,13 +93,24 @@ Success creates the account (pending status, with 3 initial badges). Handle comm
 | Email verification code incorrect or expired | Over 10 minutes → `send-code` again |
 | Sending/registration too frequent (429) | Wait 1 minute and retry; just give the user a heads-up |
 
-## Step 6: One-Click Login (Link 1) + Payment
+## Step 6: One-Click Login (straight into the home page after registration)
 
-1. Immediately after successful registration:
+1. Right after successful registration:
+   ```
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+2. Send the link to the user: **click it and you land directly on the home page, already logged in**. The platform is currently in a free testing period — after registering, every feature is usable (feed, map, digital humans, check-ins, etc.), **no payment needed**.
+3. Ask the user to confirm they got in; there are two cases:
+   - **Landed on the home page** → jump straight to Step 8 to wrap up; registration is complete;
+   - **Landed on the subscription page** → the platform's free testing period has ended; tell the user "the free trial period is over, a membership subscription is required now", then follow Step 7 to complete the subscription, and come back to Step 8 after subscribing.
+4. If the user actively wants to upgrade or support the platform → also go to Step 7 (subscribing is voluntary; don't push).
+## Step 7: Subscription Upgrade (optional — only when Step 6 calls for it)
+
+1. First send the half-login link so the payment return page can correctly show "Payment successful":
    ```
    node scripts/powpow-register.mjs login-link --target pending
    ```
-   Send the link to the user: **clicking it lands the browser directly on the subscription page, already logged in** — so the return page correctly shows "Payment successful" once payment completes. (In this state, content pages are still walled off to the subscription page; that's the platform paywall working normally — not a bug, and no need to explain the internal mechanism to the user.)
+   Send the link to the user: clicking it lands the browser directly on the subscription page, already logged in.
 2. **Have the user choose a payment method** — show both channels:
    - **Alipay (mainland China / users with Alipay)**: one-time purchase of the corresponding duration, **no auto-renewal**
      - Monthly **¥6.99** (recommended for trying) / Quarterly **¥19.99** / Yearly **¥69.99**
@@ -116,27 +127,21 @@ Success creates the account (pending status, with 3 initial badges). Handle comm
      ```
    The script returns the payment page file path; **open it directly with a system command** (Windows: `start <file>`; macOS: `open <file>`; Linux: `xdg-open <file>`). The browser automatically jumps to the official Alipay/PayPal cashier, where the user completes the payment or the billing authorization.
 4. Run `query` every 10–15 seconds until it returns `paid` or `ACTIVE` (payment/authorization usually lands within a few seconds to a minute). If the user closes the payment page midway → just `create-order` again (old orders / pending subscriptions auto-close or expire after 2 hours; ignore them).
-5. The WeChat QR-code channel is manually confirmed and funds may arrive late; Huawei IAP is only available inside the HarmonyOS App. The skill doesn't handle those two — once paid, they come back to Step 7 all the same.
-
-## Step 7: Full Login (Link 2)
-
-Once payment is confirmed, first exchange for a login state carrying the latest subscription claim, then generate the link straight to the home page:
-
-```
-POWPOW_REGISTER_PASSWORD=<password> node scripts/powpow-register.mjs refresh-login
-node scripts/powpow-register.mjs login-link --target home
-```
-
-Send the link to the user: **clicking it lands directly on the home page with full membership status** — the registration flow is now complete.
-
+5. The WeChat QR-code channel is manually confirmed and funds may arrive late; Huawei IAP is only available inside the HarmonyOS App. The skill doesn't handle those two — after paying, the user comes back and tells the agent, who first runs `whoami` to confirm arrival, then sends the home-page link per point 6 below.
+6. After arrival is confirmed, exchange for a login state with the latest subscription claim, then send the link straight to the home page:
+   ```
+   POWPOW_REGISTER_PASSWORD=<password> node scripts/powpow-register.mjs refresh-login
+   node scripts/powpow-register.mjs login-link --target home
+   ```
+   Send the link to the user: **click it and you land directly on the home page with full membership status**.
 ## Step 8: Wrap-Up
 
-1. `node scripts/powpow-register.mjs cleanup` to remove the local temporary state file (session credentials).
-2. Give the user an "account card": username, email, membership expiry (don't display the password again — in generated mode the user already saved it when it was shown; if they set it themselves, they know it).
-3. Guide the first steps: explore the map, publish a first travel journal (→ hand over to powpow-simple).
-4. Recommend extensions: the `@durenzidu/powpow-integration` skill and the `@durenzidu/openclaw-channel-powpow` plugin — connecting Bubble to the user's own agent; give the install commands if they want them.
-5. End with a "next step" block.
-
+1. `node scripts/powpow-register.mjs cleanup` to clean up local temporary state files (session credentials).
+2. Give the user an "account card": username, email (the password is not shown again — in generated mode the user was asked to save it when it was generated; if the user set it themselves, they know it).
+3. Membership reminder (say it once, don't push): this is currently a free testing period and the account is usable right away; when the testing period ends, unsubscribed accounts visiting content pages will be redirected to the subscription page — for long-term use, come back and find the agent to subscribe anytime.
+4. Guide the first steps: browse the map, post the first travel journal (→ hand off to powpow-simple).
+5. Recommend extensions: the `@durenzidu/powpow-integration` skill and the `@durenzidu/openclaw-channel-powpow` plugin — connect Bubble into the user's own agent; give the install command if wanted.
+6. End with a "next step" block.
 ## Conversation UX
 
 Follow the service-first tone powpow is known for:
@@ -157,7 +162,7 @@ Follow the service-first tone powpow is known for:
 - **Credential security**: the password is passed to the script only via the `POWPOW_REGISTER_PASSWORD` environment variable, **never** as a command-line argument (visible in process lists) and never written to any file (in generated mode it's shown once so the user can save it, and never repeated). The verification code is used only for the official registration API and discarded after use.
 - **Official boundary**: all requests go to `https://global.powpow.online` only (built into the script); never send user information to any third-party address.
 - **Payment boundary**: the agent only creates orders, opens the cashier and queries arrival; **never** touches the user's Alipay/PayPal account/payment credentials, and never promises to "pay on their behalf".
-- **The paywall is not a bug**: pending accounts being able to reach the subscription/return pages is by-design allowance; content pages being walled off is the platform paywall working normally — don't try to bypass it.
+- **The paywall is not a bug**: during the current free testing period all content pages are open; if the user clicks the home-page link but lands on the subscription page, the testing period has ended — guide them to subscribe via Step 7. Don't try to bypass the paywall, and don't explain internal mechanisms to the user.
 - **Freedom to fall back**: any time the user wants to do it themselves, or the environment doesn't support the script, fall back to pure guidance mode — give links, explain rules, help troubleshoot.
 - Don't invent platform rules: field rules, error messages and rate-limit parameters all come from the platform code (`references/registration-flow.md` cites the sources); when the platform updates, actual behavior wins.
 - For images, only use the bundled screenshots in `assets/screenshots/` (rules and per-image usage in `references/screenshots.md`).

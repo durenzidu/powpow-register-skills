@@ -2,7 +2,8 @@
 
 PowPow Bubble registration helper (OpenClaw version): carry one new user from "e no know wetin Bubble be" go reach "account don activate, one-click login, start to play" — product intro (with interface screenshots), registration wey agent go do (including avatar upload), Alipay/PayPal subscription order and money-landing tracking, one-click login with two links, error troubleshooting.
 
-**From v2.0.0 na agent-do-am mode, and from v2.1.0 PayPal fit also dey handle**: di main script `scripts/powpow-register.mjs` zero dependency (Node >= 18), di user no dey comot from di chat at all, e only comot two times for small time: go email check di verification code, pay for di Alipay/PayPal cashier. When Node no dey or di user wan do am by imsef, e go fall back to guide-only mode by imsef.
+**Since v2.0.0 dis one na agent-helper mode, and since v2.2.0 e dey adapt to di platform free testing period**: di core script `scripts/powpow-register.mjs` na zero-dependency
+(Node ≥ 18); di user dey comot from di conversation only once: to check di verification code for inbox. During di current free testing period, account wey don register fit use every feature at once — subscription payment na optional upgrade; if di testing period end and di user land for di subscription page, di flow dey switch to di payment path by imself. Without Node, or wen di user prefer to do am by imself, e dey fall back by imself to pure guidance mode.
 
 ## Installation
 
@@ -14,7 +15,9 @@ openclaw skills install @durenzidu/powpow-register
 
 1. **Product intro**: about 120 words opening + interface screenshots wey dey inside di package (`assets/screenshots/` get 6 pictures under am: map page, post detail page etc., choose 1–3 to send based on di situation; no need external image host, e dey work offline).
 2. **Do-am registration**: agent go suggest username/nickname by imsef, password choose one of two (user provide am or agent generate am), send and submit di verification code, avatar direct upload (<=5MB no be SVG), common errors dem dey handle automatic (don dey take/don expire/rate limit).
-3. **One-click login (two links)**: registration success give "half-login" link wey land direct on subscription page; after money land, change to new login state then give full member link wey land direct on homepage (e pass through di platform official `me?token=` bridge, e plant HttpOnly cookie automatic).
+3. **One-click login (dual links)**: right after registration succeed, login link dey land di user directly for di home page (during di free testing period, one click and e dey usable);
+   if e land for di subscription page (testing period over) or di user want to upgrade, follow di subscription flow — after payment arrive, fresh login state dey exchange and di full-membership link land am for di home page
+   (via di platform official `me?token=` bridge, wey dey plant di HttpOnly cookie automatically).
 4. **Subscription payment**: both Alipay (monthly ¥6.99 / quarterly ¥19.99 / yearly ¥69.99, one-time buy no auto-renew) and PayPal (Premium Monthly, about $1/month, auto-renew, cancel anytime) na di agent go create order + poll money landing; overseas users fall back to PayPal; WeChat scan code/Huawei IAP just point di way.
 5. **Error troubleshooting**: verification code no dey come, username/email don dey take, 403 no activate, account lock etc. common problems, all of dem come from platform source code with location mark.
 

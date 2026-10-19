@@ -1,6 +1,8 @@
 # Aktivasi langganan lan bayaran — powpow-register
 
 ## Kesimpulan (jawaban dhisik)
+> **Wektu coba gratis (wiwit 2026-10-18; tumindak platform nyata sing absah)**: ing wektu iki akun sing wis didhaftar bisa langsung nggunakake kabeh fitur, lan **langganan iku peningkatan opsional dudu syarat** — mung tindakake alur file iki nalika pangguna dewe pengin keanggotaan. Nalika wektu coba rampung, akun tanpa langganan nalika mlebu kaca isi bakal dialihakake menyang kaca langganan; cukup ngrampungake langganan miturut file iki.
+
 
 **Saluran Alipay lan PayPal saiki loro-lorone bisa ditangani agen — kalebu nggawe pesanan lan ngawasi tekan dhuwit.**
 Alipay tuku sepisan ora langganan otomatis, kanggo panganggo ing China lan sing duwe Alipay; PayPal langganan otomatis saben wulan lan bisa dibatalake kapan wae,

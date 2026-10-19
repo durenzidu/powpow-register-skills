@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Publish work/<lang> as a new 2.1.0 version to ClawHub.
+"""Publish work/<lang> as a new 2.2.0 version to ClawHub.
 
 POST /api/v1/skills  multipart/form-data
   payload : JSON string {slug, displayName, version, changelog, tags, files:[{path,size,sha256,contentType}]}
@@ -70,6 +70,7 @@ def build_body(payload, d, paths):
 
 def publish(lang, dry=False):
     from changelog import CHANGELOG
+    from changelog2 import CHANGELOG2
     slug = 'powpow-register-' + lang if lang != 'zh' else 'powpow-register'
     d = os.path.join('work', lang)
     paths = collect(d)
@@ -84,8 +85,8 @@ def publish(lang, dry=False):
     payload = {
         'slug': slug,
         'displayName': meta['displayName'],
-        'version': '2.1.0',
-        'changelog': CHANGELOG[lang],
+        'version': '2.2.0',
+        'changelog': CHANGELOG2[lang],
         'acceptLicenseTerms': True,
         'tags': ['latest'],
         'topics': meta.get('topics') or [],

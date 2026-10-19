@@ -1,6 +1,8 @@
 # Ativação da assinatura e pagamento — powpow-register
 
 ## Conclusão (a resposta primeiro)
+> **Período de teste gratuito (a partir de 2026-10-18; vale o comportamento real da plataforma)**: durante este período uma conta registrada pode usar todos os recursos diretamente, e **assinar é uma melhoria opcional e não um requisito** — siga o fluxo deste arquivo apenas quando o usuário quiser ativamente a associação. Quando o período de teste acabar, contas sem assinatura que visitarem páginas de conteúdo serão redirecionadas para a página de assinatura; basta concluir a assinatura conforme este arquivo.
+
 
 **Tanto a assinatura por Alipay como a por PayPal podem ser gerenciadas pelo agent — criação do pedido e acompanhamento do pagamento inclusos.**
 O Alipay é compra única sem renovação automática, para usuários da China continental e com Alipay; o PayPal renova automaticamente todo mês e pode ser cancelado a qualquer momento,

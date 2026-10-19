@@ -40,15 +40,23 @@ Di page still provide three third-party login buttons: **Google, Watcha, Huawei 
 
 Di skill script dey call **di same set of public APIs** (`/api/auth/register`, `send-code`, `login`, `/api/auth/me`), e follow di exact same check, rate limit and error path as di registration page form submit — all di rules for dis file apply to di two modes same same. Script sequence and command contract see `references/agent-flow.md`.
 
-## Status flow after registration success
+## Status Flow After Registration Succeed
 
-1. Dem store di user with `accountStatus: 'pending'`, initial **3 badges** (register route).
-2. Di server plant two HttpOnly cookies at di same time: JWT (fit access `/subscription` direct) and pendingUserToken (di subscription flow identity credential).
-3. When di registration page see `pending_payment` → e jump to `/subscription` (e keep di `next` return parameter); for agent do-am mode use `me?token=…&redirect=/subscription` to get di same effect.
-4. Payment finish → `accountStatus` change to `active` (**Alipay pass notify, server-side activate automatic**; PayPal pass Webhook activate automatic; WeChat scan code na human confirm; Huawei IAP pass `activate-huawei`). Full detail see `payment-and-activation.md`.
+> **Free testing period (starting 2026-10-18; di platform real behavior dey prevail)**: new account wey don register fit **use every feature directly**
+> (feed, map, digital human, check-ins, etc.) with no payment; accounts wey no subscribe no dey wall again from content pages. Di "pending interception"
+> wey dem describe for dis section na di regular state after di testing period end — wen dat time come, di real online behavior dey prevail.
 
-User wey no activate (pending) calling core API (feed, map, digital human chat, check-in etc.) na 403 all di time; except share post link (e stay public and fit access).
+1. Di user dey store with `accountStatus: 'pending'` and **3 initial badges** (register route).
+2. Di server still dey plant two HttpOnly cookies: di JWT (fit access pages directly) and di pendingUserToken (identity credential for di subscription flow).
+3. For di regular state (testing period over / no free period), di registration page dey detect `pending_payment` → redirect to `/subscription`
+   (keeping di `next` return parameter); for agent-helper mode, `me?token=…&redirect=/subscription` dey get di same effect.
+   **During di free testing period dis step no dey trigger** — after you register, go straight to di home page and start to use am.
+4. Payment complete → `accountStatus` turn `active` (**Alipay dey activate automatically server-side via notify**;
+   PayPal dey activate via Webhook; WeChat QR code dey confirm manually; Huawei IAP dey pass through `activate-huawei`).
+   See `payment-and-activation.md` for details.
 
+For di regular state, inactive (pending) users wey dey call core APIs (feed, map, digital-human chat, check-ins, etc.) dey get 403;
+shared post links na di exception (dem dey keep am publicly accessible). During di free testing period dis interception dey suspended and everything dey open.
 ## Common error troubleshooting table
 
 | Wetin you see | Why e happen | Wetin to do |
@@ -61,7 +69,8 @@ User wey no activate (pending) calling core API (feed, map, digital human chat, 
 | 「注册请求过于频繁」 (registration request too many)/ 429 | Registration 3 times/minute/IP reach di top | Wait few minutes then try again |
 | 409「用户名或邮箱已被注册」 (409 username or email don already register) | At submit moment e clash with another person (concurrency safety) | Change username or email then retry |
 | 「图片大小不能超过5MB」/「不支持 SVG」 (picture size no fit pass 5MB / SVG no dey supported) | Avatar no correct | Change picture or skip di avatar |
-| Registration success but login 403「请完成订阅以激活账户」 (please complete subscription to activate account) | Di account still dey pending (di expected state before payment) | Before payment: dis one normal, first finish di subscription; after payment still 403: e mean say di old JWT dey use, for script mode first `refresh-login` change to new login state |
+| User click di login link but land for di subscription page (instead of di home page) | Di free testing period don end and di platform paywall don come back | Follow step 7 inside SKILL.md for di subscription payment flow; after you subscribe, run `refresh-login` and then send di home page link |
+| Register succeed but login return 403 "请完成订阅以激活账户" | Di account still dey pending, and di platform no dey inside free testing period (di expected state before payment) | E no go happen during di free testing period; if e happen, di testing period don end — complete di subscription first; if e still 403 after payment, old JWT dem use — for script mode first run `refresh-login` to exchange for new login state |
 | Login 423「账户已锁定」 (account don lock) | Password wrong 5 times straight | Wait 30 minutes |
 | Login 401「还剩 N 次尝试机会」 (N try chance remain) | Password wrong, e near lock | Think well before you try again, or go 忘记密码 (forgot password) direct |
 | 「该账号未设置密码，请使用其他方式登录」 (dis account no set password, please use another way to login) | Third-party (Google/Watcha/Huawei) account | Use di original third-party button to login |

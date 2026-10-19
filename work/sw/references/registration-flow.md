@@ -44,19 +44,23 @@ Hati za skill zinapiga simu **seti ile ile ya API za wazi** (`/api/auth/register
 `/api/auth/me`), na ukurasa wa usajili wa fomu unapita njia ile ile za ucahiliji, vizuizi, na makosa — yote
 sheria za faili hii ni sawa kwa njia zote mbili. Mlolongo na mkataba wa amri za hati angalia `references/agent-flow.md`.
 
-## Mzunguko wa hali baada ya usajili kufanikiwa
+## Mtiririko wa Hali Baada ya Usajili Kufanikiwa
 
-1. Mtumiaji huhifadhiwa na `accountStatus: 'pending'`, **beji 3 za mwanzo** (register route).
-2. Seva pia hupanda cookie mbili za HttpOnly: JWT (inaweza kufikia moja kwa moja `/subscription`) na
-   pendingUserToken (kitambulisho cha utambulisho wa mtiririko wa usajili wa malipo).
-3. Ukurasa wa usajili unagundua `pending_payment` → inaelekea `/subscription` (inaweka kudumisha `next` ya kurudi);
-   chini ya mtindo wa agent-kusaidia hutumia `me?token=…&redirect=/subscription` kufikia matokeo sawa.
-4. Malipo yakamalizika → `accountStatus` inakuwa `active` (**Alipay hupitia notify inawezesha kiotomatiki upande wa seva**;
-   PayPal hupitia Webhook inawezesha kiotomatiki; usome msimbo wa WeChat ni uthibitisho wa mtu; Huawei IAP hupitia `activate-huawei`).
-   Maelezo zaidi angalia `payment-and-activation.md`.
+> **Kipindi cha majaribio bila malipo (kuanzia 2026-10-18; tabia halisi ya jukwaa ndiyo inayotawala)**: akaunti mpya iliyosajiliwa inaweza **kutumia kila kipengele moja kwa moja**
+> (mlipuko, ramani, binadamu wa digitali, viingilio, n.k.) bila malipo yanayohitajika; akaunti zisizo na sasiri hazifungwi tena kwenye kurasa za maudhui. "Kuzuia kwa pending"
+> kunaelezewa katika sehemu hii ni hali ya kawaida baada ya kipindi cha majaribio kukamilika — wakati huo unapofika, tabia halisi ya mtandaoni ndiyo inayotawala.
 
-Mtumiaji asiyewezeshwa (pending) akipiga simu API kuu (mtiririko wa habari, ramani, mazungumzo ya mtu wa kidijitali, kupiga tikiti, n.k.) hupata 403 wakati wote; isipokuwa kiungo cha chapisho lililoshiriki (kinabaki cha wazi kufikiwa).
+1. Mtumiaji huhifadhiwa na `accountStatus: 'pending'` na **beji 3 za mwanzo** (njia ya register).
+2. Seva pia huzalisha vuki viwili vya HttpOnly: JWT (inaweza kufikia kurasa moja kwa moja) na pendingUserToken (cheti cha utambulisho cha mtiririko wa sasiri).
+3. Katika hali ya kawaida (kipindi cha majaribio kimeisha / hakuna kipindi cha bila malipo), ukurasa wa usajili hugundua `pending_payment` → inaelekeza kwenye `/subscription`
+   (ikihifadhi kigezo cha kurudi `next`); katika hali ya wakala-msaidizi, `me?token=…&redirect=/subscription` hupata athari sawa.
+   **Katika kipindi cha majaribio bila malipo hatua hii haichochei** — baada ya kujiandikisha, nenda moja kwa moja kwenye ukurasa wa nyumbani na uanze kutumia.
+4. Malipo yamekamilika → `accountStatus` inakuwa `active` (**Alipay huwasha kiotomatiki upande wa seva kupitia notify**;
+   PayPal huwasha kupitia Webhook; msimbo wa QR ya WeChat huthibitishwa kwa mikono; Huawei IAP hupitia `activate-huawei`).
+   Ona `payment-and-activation.md` kwa maelezo.
 
+Katika hali ya kawaida, watumiaji wasio na shughuli (pending) wanaoitia API za msingi (mlipuko, ramani, mazungumzo ya binadamu wa digitali, viingilio, n.k.) hupata 403;
+viungo vya machapisho yaliyogawanywa ni ubaguzi (vinahifadhiwa kupatikana hadharani). Katika kipindi cha majaribio bila malipo kuzuia hii kunasimamishwa na kila kitu kimefunguliwa.
 ## Jedwali la utatuzi wa makosa ya kawaida
 
 | Tukio | Sababu | Fanya nini |
@@ -69,7 +73,8 @@ Mtumiaji asiyewezeshwa (pending) akipiga simu API kuu (mtiririko wa habari, rama
 | 「注册请求过于频繁」/ 429 (ombi la usajili mara nyingi mno / 429) | Usajili mara 3 kwa dakika/IP umefikia kilele | Subiri dakika chache kisha jaribu |
 | 409「用户名或邮箱已被注册」 (409 jina la mtumiaji au barua pepe imeshajiliwa) | Wakati wa kuwasilisha umepigana na mwingine (ulinzi wa mshindani) | Badilisha jina la mtumiaji au barua pepe kisha jaribu tena |
 | 「图片大小不能超过5MB」/「不支持 SVG」 (picha haiwezi kuwa kubwa zaidi ya 5MB / haiungi mkono SVG) | Picha ya wasifu haifai | Badilisha picha au ruka sehemu ya picha ya wasifu |
-| Usajili umefanikiwa lakini ingia 403「请完成订阅以激活账户」 (mfano wa 请完成订阅以激活账户) | Akaunti bado ni pending (hali inayotarajiwa kabla ya kulipa) | Kabla ya kulipa: hii ni kawaida, kwanza maliza usajili wa malipo; baada ya kulipa bado 403: ina maana ume tumia JWT ya zamani, chini ya mtindo wa hati kwanza `refresh-login` kubadilisha hali ya ingia mpya |
+| Mtumiaji anabonyeza kiungo cha kuingia lakini anatua kwenye ukurasa wa sasiri (badala ya ukurasa wa nyumbani) | Kipindi cha majaribio bila malipo kimekamilika na ukuta wa malipo wa jukwaa umerudi | Fuata Hatua 7 ndani ya SKILL.md kwa mtiririko wa malipo ya sasiri; baada ya kusajiri, endesha `refresh-login` kisha tuma kiungo cha ukurasa wa nyumbani |
+| Usajili umefanikiwa lakini kuingia inarudisha 403 "请完成订阅以激活账户" | Akaunti bado iko pending, na jukwaa haliko katika kipindi cha majaribio bila malipo (hali inayotarajiwa kabla ya malipo) | Haitatokea katika kipindi cha majaribio bila malipo; ikitokea, kipindi cha majaribio kimekamilika — kamilisha sasiri kwanza; kama bado 403 baada ya malipo, JWT ya zamani ilitumika — katika hali ya hati endesha `refresh-login` kwanza kubadilishana hali mpya ya kuingia |
 | Ingia 423「账户已锁定」 (akaunti imefungwa) | Nenosiri imeshindwa mara 5 mfululizo | Subiri dakika 30 |
 | Ingia 401「还剩 N 次尝试机会」 (bado N ya nafasi za majaribio) | Nenosiri si sahihi, karibu kufungwa | Fikiria vizuri kisha jaribu, au nenda moja kwa moja kwenye "sahau nenosiri" |
 | 「该账号未设置密码，请使用其他方式登录」 (akaunti hii haijaweka nenosiri, tafadhali tumia njia nyingine ya kuingia) | Akaunti ya mtu wa tatu (Google/Watcha/Huawei) | Tumia kitufe cha mtu wa tatu cha awali cha kuingia |

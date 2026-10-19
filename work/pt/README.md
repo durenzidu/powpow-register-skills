@@ -5,10 +5,8 @@ Bolha» até «conta ativada, login com um clique, hora de jogar» — apresenta
 tela), registro delegado ao agent (com upload de avatar), pedido de assinatura via Alipay/PayPal e acompanhamento
 do pagamento, login com um clique de link duplo, diagnóstico de erros.
 
-**Desde a v2.0.0 o modo é de gestão delegada pelo agent, e desde a v2.1.0 o PayPal também**: o script principal `scripts/powpow-register.mjs`
-é zero dependências (Node ≥ 18), o usuário não sai da conversa em nenhum momento, exceto duas brezes
-ausências: ir ao e-mail ver o código de verificação e pagar no caixa do Alipay/PayPal. Sem Node, ou quando o
-usuário quer fazer por conta própria, recuo automático para o modo de orientação pura.
+**Desde a v2.0.0 modo assistido por agent, e desde a v2.2.0 adaptação ao período de teste gratuito da plataforma**: o script central `scripts/powpow-register.mjs` é de zero dependência
+(Node ≥ 18); o usuário sai da conversa apenas uma vez: para consultar o código de verificação no e-mail. Durante o período atual de teste gratuito, uma conta registrada pode usar todos os recursos imediatamente — o pagamento da assinatura é uma melhoria opcional; se o período de teste acabar e o usuário cair na página de assinatura, o fluxo muda automaticamente para o caminho de pagamento. Sem Node, ou quando o usuário prefere fazer sozinho, volta automaticamente ao modo de guia puro.
 
 ## Instalação
 
@@ -25,10 +23,9 @@ openclaw skills install @durenzidu/powpow-register
    (fornecida pelo usuário ou gerada pelo agent), envio e envio do código de verificação, upload direto do
    avatar (≤5 MB, não SVG), tratamento automático dos erros comuns (ocupado / expirado / limite de
    frequência).
-3. **Login com um clique (link duplo)**: assim que o registro dá certo, entrega-se o link de
-   «semi-sessão» que cai direto na página de assinatura; após cair o pagamento, troca-se por um novo
-   estado de sessão e entrega-se o link de membro completo que cai direto na home (pela ponte oficial
-   `me?token=` da plataforma, que planta automaticamente o cookie HttpOnly).
+3. **Login com um clique (link duplo)**: logo após o registro bem-sucedido, um link de login leva o usuário direto para a página inicial (durante o período de teste gratuito, um clique e já está usável);
+   se cair na página de assinatura (período de teste acabado) ou o usuário quiser melhorar, siga o fluxo de assinatura — após o recebimento, troque por um novo estado de login e o link de associação completa o leva à página inicial
+   (através da ponte oficial `me?token=` da plataforma, que planta o cookie HttpOnly automaticamente).
 4. **Pagamento da assinatura**: tanto no Alipay (mensal ¥6.99 /
    trimestral ¥19.99 / anual ¥69.99, compra única sem renovação automática) como no PayPal (Premium Monthly, cerca de $1/mês, renovação automática, cancele quando quiser) o agent faz o pedido e a consulta em loop até cair;
    QR code WeChat / Huawei IAP apenas indica-se o caminho.

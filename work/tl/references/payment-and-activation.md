@@ -1,6 +1,8 @@
 # Activation ng subscription at bayad — powpow-register
 
 ## Konklusyon (sagot muna)
+> **Libreng panahon ng pagsubok (simula 2026-10-18; ang aktwal na pag-uugali ng platform ang masusunod)**: sa panahong ito ang rehistradong account ay maaaring gamitin ang lahat ng feature diretso, at **ang pag-subscribe ay opsyonal na upgrade hindi requirement** — sundin lamang ang daloy ng file na ito kapag nais ng user ng membership. Kapag tapos na ang panahon ng pagsubok, ang mga account na walang subscription na bumibisita sa content page ay ire-redirect sa subscription page; kumpletuhin lang ang subscription ayon sa file na ito.
+
 
 **Ang Alipay at PayPal subscription ay parehong kayang hawakan ng agent para sa paggawa ng order at pagsubaybay sa pagdating ng bayad.**
 Ang Alipay ay one-time purchase na hindi auto-renew, para sa mainland/may Alipay na gumagamit; ang PayPal ay buwanang auto-renew na maaaring kanselahin anumang oras, para sa ibang bansa/walang Alipay. Ang WeChat QR (manual confirmation) at Huawei IAP ay nananatili, ngunit hindi ina-asikaso ng skill.

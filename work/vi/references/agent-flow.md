@@ -22,7 +22,7 @@ script **không phụ thuộc**, cần **Node ≥ 18**, mọi request chỉ gử
 | `prepare-suggest` | `--username --nickname --email` | Ghi thông tin đã xác nhận vào file trạng thái (sau đó register không cần truyền lại) |
 | `send-code` | `--email` | Kích hoạt nền tảng gửi mã xác minh 6 chữ số (hiệu lực 10 phút, thời gian chờ 60s) |
 | `register` | `--code` (bắt buộc); `--username --nickname --avatar --phone` (không bắt buộc, file trạng thái có thì khỏi truyền) | Tạo tài khoản pending; mật khẩu đi qua biến môi trường `POWPOW_REGISTER_PASSWORD`; thành công thì JWT tự lưu vào file trạng thái |
-| `login-link` | `--target pending` hoặc `--target home` | Sinh link đăng nhập một chạm (thiết kế link kép, xem dưới) |
+| `login-link` | `--target pending` hoặc `--target home` | Tạo link đăng nhập một cú click (thiết kế hai link, xem bên dưới) |
 | `create-order` | `--package monthly\|quarterly\|yearly` (mặc định là Alipay)<br>`--provider alipay\|paypal` | Tạo đơn thanh toán; Alipay trả về đường dẫn file trang thanh toán + outTradeNo; PayPal trả về đường dẫn file trang ủy quyền + subscriptionId (tự ghi vào file trạng thái) |
 | `query` | —— | Tra trạng thái đơn/gói. Alipay: `paid / pending / closed / unknown`; PayPal: `ACTIVE / PENDING`; luân phiên 10–15s |
 | `refresh-login` | Mật khẩu qua biến môi trường | Đăng nhập lại đổi **JWT mới** (tuyên bố gói từ NONE thành ACTIVE), sau khi tiền về bắt buộc phải chạy |
@@ -40,43 +40,51 @@ $env:POWPOW_REGISTER_PASSWORD = '<mật khẩu>'; node scripts/powpow-register.m
 set POWPOW_REGISTER_PASSWORD=<mật khẩu> && node scripts/powpow-register.mjs register --code 123456
 ```
 
-## Cơ chế link kép (thiết kế cốt lõi)
+## Cơ Chế Hai Link (thiết kế cốt lõi)
 
-Trạng thái đăng nhập của nền tảng là cookie HttpOnly, agent không thể trực tiếp gieo cookie hộ trình duyệt;
-cầu nối là endpoint chính thức `/api/auth/me?token=<JWT>&redirect=<đường dẫn trong site>`: kiểm tra chữ ký →
-người dùng pending được tự bổ sung session → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 ngày) →
-kiểm tra redirect (chỉ được bắt đầu bằng một gạch chéo, cấm `//` và gạch chéo ngược, sau khi phân giải phải
-cùng nguồn) → 307 tạm thời chuyển hướng đến trang đích.
+Trạng thái đăng nhập của nền tảng là cookie HttpOnly, agent không thể tự gắn vào trình duyệt; cầu nối là endpoint chính thức
+`/api/auth/me?token=<JWT>&redirect=<đường dẫn trong site>`: xác minh chữ ký → tự động tạo
+phiên → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 ngày) → kiểm tra
+redirect (phải bắt đầu bằng dấu gạch chéo đơn, cấm `//` và dấu gạch chéo ngược, sau khi parse phải cùng origin) → 307 chuyển hướng tạm sang trang đích.
 
-- **Link 1 (đưa ngay khi đăng ký thành công)**: `--target pending` → rơi `/subscription`.
-  Trình duyệt người dùng bước vào trạng thái «phiên nửa»: trang gói, trang Alipay nhảy về thấy được và thao tác
-  được; trang nội dung vẫn bị bức tường phí chặn về trang gói (ba lớp phòng hộ: kiểm tra JWT claims ở cổng →
-  tái kiểm tra DB → kiểm tra API cốt lõi, thuộc hành vi bình thường).
-- **Link 2 (đưa sau khi xác nhận paid)**: trước tiên `refresh-login` đổi JWT mới (thanh toán chỉ cập nhật DB,
-  không đổi claims của JWT đã ký phát, không đổi mới sẽ thể hiện thành «trả tiền rồi mà không có gói»), sau đó
-  `--target home` → rơi trang chủ, trạng thái thành viên đầy đủ.
+Có hai đích link, **ưu tiên sinh home trước, rồi quyết định có đi qua pending không dựa vào chỗ người dùng rơi vào**:
 
-## Trình tự đầy đủ (đường đi bình thường)
+- **link home (mặc định, `--target home` → rơi vào `/`)**: sinh và gửi cho người dùng ngay sau khi đăng ký thành công.
+  Trong giai đoạn dùng thử miễn phí, người dùng vào thẳng trang chủ, dùng được hết; **nếu bấm link lại rơi vào trang gói hội viên, nghĩa là giai đoạn dùng thử miễn phí đã kết thúc** — chuyển sang luồng thanh toán (xem bên dưới); không cần sửa script và không cần đăng ký lại.
+- **link pending (dùng trong luồng thanh toán, `--target pending` → rơi vào `/subscription`)**:
+  trình duyệt của người dùng vào trạng thái "đăng nhập nửa vời": trang gói hội viên và trang trả về sau thanh toán đều thấy và thao tác được. Sau khi tiền về,
+  chạy `refresh-login` để đổi lấy JWT mới kèm quyền lợi ACTIVE, rồi gửi link home thêm lần nữa để có trạng thái hội viên đầy đủ.
+
+## Trình Tự Đầy Đủ
+
+### Luồng Nhanh (trong giai đoạn dùng thử miễn phí — đa số trường hợp)
 
 ```
-1.  status                          # Tự kiểm môi trường
-2.  (Bước 2 xác nhận thông tin qua hội thoại, mật khẩu chọn 1 trong 2; chế độ tạo: gen-password → nhờ người dùng lưu ngay)
+1.  status                          # tự kiểm tra môi trường
+2.  (bước 2: hội thoại xác nhận thông tin, mật khẩu tùy chọn; chế độ sinh: gen-password → nhờ người dùng lưu ngay)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → Người dùng vào email xem mã (khúc duy nhất rời hội thoại ①)
+4.  send-code --email E             # → người dùng kiểm tra mã trong hộp thư (lần duy nhất rời hội thoại)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → Link 1 gửi cho người dùng
-7.  (Người dùng chọn phương thức thanh toán)
+6.  login-link --target home        # → gửi link cho người dùng; một cú click là vào trang chủ
+7.  (người dùng xác nhận đã vào) → khép lại luôn: cleanup + thẻ tài khoản + hướng dẫn bước đầu
+```
+
+### Luồng Thanh Toán (khi người dùng muốn làm hội viên, hoặc giai đoạn miễn phí đã kết thúc)
+
+```
+1–5. Giống Luồng Nhanh (trạng thái đã có token sau khi register thành công)
+6.  login-link --target pending     # → link đăng nhập nửa vời, trang trả về sau thanh toán vẫn hoạt động
+7.  (người dùng chọn phương thức thanh toán)
     # Alipay: create-order --package monthly|quarterly|yearly
     # PayPal: create-order --provider paypal
 8.  start <file trang thanh toán>   # Windows; macOS dùng open, Linux dùng xdg-open
-    # → Người dùng hoàn tất thanh toán/ủy quyền tại trang thu ngân Alipay/PayPal (khúc rời hội thoại ②)
-9.  query (cứ 10–15s) cho đến khi paid / ACTIVE
-10. refresh-login                   # Đổi JWT mới mang tuyên bố ACTIVE
-11. login-link --target home        # → Link 2 gửi cho người dùng
-12. whoami                          # Xác nhận subscriptionStatus: ACTIVE (không bắt buộc)
-13. cleanup                         # Dọn file trạng thái
+    # → người dùng hoàn tất thanh toán/uỷ quyền tại quầy Alipay/PayPal (rời hội thoại)
+9.  query (mỗi 10–15 giây) đến khi paid / ACTIVE
+10. refresh-login                   # đổi lấy JWT mới kèm quyền lợi ACTIVE
+11. login-link --target home        # → gửi link hội viên đầy đủ cho người dùng
+12. whoami                          # xác nhận subscriptionStatus: ACTIVE (tùy chọn)
+13. cleanup                         # dọn file trạng thái
 ```
-
 ## Ánh xạ lệnh → API nền tảng
 
 | Lệnh script | Giao diện nền tảng |
@@ -103,7 +111,8 @@ Xuất xứ quy tắc: trường đăng ký và giới hạn tần suất xem `r
 | Sau `create-order` người dùng đóng trang thanh toán | Chạy lại `create-order` thẳng (đơn cũ 2h tự đóng; gói PENDING của PayPal hết hạn sau 1h) |
 | `create-order --provider paypal` báo 409 | Đã có một gói PayPal chưa hoàn tất; đợi 1h cho hết hạn, hoặc hoàn tất ủy quyền cũ trong trình duyệt |
 | `query` mãi pending / PENDING | Người dùng có thể chưa trả; hỏi một câu. Thật sự đã trả → đi theo bảng xử lý trong payment-and-activation.md |
-| `refresh-login` 403 `pending_payment` | Tiền/ủy quyền chưa về, quay lại bước 9 tiếp tục luân phiên |
+| Người dùng bấm link home nhưng rơi vào trang gói hội viên | Giai đoạn dùng thử miễn phí đã kết thúc → chuyển sang luồng thanh toán: `login-link --target pending` → chọn phương thức thanh toán → `create-order` |
+| `refresh-login` 403 `pending_payment` | Giai đoạn dùng thử miễn phí đã kết thúc mà tiền chưa về; quay lại bước 9 tiếp tục poll, hoặc xác nhận người dùng đã hoàn tất thanh toán chưa |
 | File trạng thái mất (tay lỡ xóa / đổi máy) | `whoami`/`refresh-login` không dùng được; nhờ người dùng mở trình duyệt đã từng mở link 1, trực tiếp tải lại trang gói để xác nhận trạng thái, hoặc đăng nhập lại (chế độ trang web) |
 
 ## Chế độ lùi (hướng dẫn thuần)
@@ -114,6 +123,6 @@ Gặp bất kỳ tình huống nào dưới đây thì lập tức lùi về hư
 - Người dùng nói rõ «tôi tự thao tác trên trang web»;
 - Chính sách công ty/thiết bị hạn chế script nối mạng.
 
-Sau khi lùi: đưa trang đăng ký https://global.powpow.online/register và trang gói
+Sau khi chuyển về: đưa trang đăng ký https://global.powpow.online/register (trong giai đoạn dùng thử miễn phí, đăng ký trên web cũng dùng được ngay như nhau; khi cần đăng ký gói, đưa thêm trang gói hội viên https://global.powpow.online/subscription ), xử lý sự cố song song theo quy tắc trong `registration-flow.md`, giữ cùng giọng điệu, và vẫn kết thúc mỗi lượt bằng khối "bước tiếp theo".
 https://global.powpow.online/subscription , theo quy tắc trong `registration-flow.md` đồng hành xử lý lỗi,
 tông giọng không đổi, mỗi lượt vẫn kết thúc bằng khối «bước tiếp theo».

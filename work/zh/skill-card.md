@@ -50,7 +50,7 @@ Mitigation: Complete payment directly with the payment provider; do not give the
 
 ## Skill Version(s):
 
-2.1.0 (source: release metadata and skill frontmatter)
+2.2.0 (source: release metadata and skill frontmatter)
 
 ## Ethical Considerations:
 

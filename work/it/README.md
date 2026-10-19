@@ -5,10 +5,8 @@ Assistente alla registrazione PowPow Bolla (versione OpenClaw): porta un nuovo u
 dell'interfaccia), registrazione delegata all'agent (caricamento avatar incluso), ordine e accredito
 dell'abbonamento Alipay/PayPal, accesso con un clic a doppio link, risoluzione degli errori.
 
-**Dalla v2.0.0 è la modalità a operazione delegata dell'agent, e dalla v2.1.0 anche PayPal**: lo script principale `scripts/powpow-register.mjs`
-è a zero dipendenze (Node ≥ 18), l'utente non lascia mai la conversazione, se non due brevi assenze: andare
-nell'email a leggere il codice di verifica, pagare alla cassa Alipay/PayPal. Senza Node, o se l'utente vuole far da sé,
-si rientra automaticamente nella modalità di sola guida.
+**Dalla v2.0.0 modalità assistita dall'agent, e dalla v2.2.0 adattamento al periodo di prova gratuita della piattaforma**: lo script centrale `scripts/powpow-register.mjs` è a zero dipendenze
+(Node ≥ 18); l'utente esce dalla conversazione una sola volta: per controllare il codice di verifica nella propria e-mail. Nell'attuale periodo di prova gratuita, un account registrato può usare subito tutte le funzioni — il pagamento dell'abbonamento è un miglioramento opzionale; se il periodo di prova finisce e l'utente finisce sulla pagina di abbonamento, il flusso passa automaticamente al percorso di pagamento. Senza Node, o quando l'utente preferisce fare da sé, rientro automatico nella modalità di sola guida.
 
 ## Installazione
 
@@ -24,9 +22,9 @@ openclaw skills install @durenzidu/powpow-register
 2. **Registrazione delegata**: l'agent propone attivamente nome utente/nickname, password con doppia scelta
    (fornita dall'utente o generata dall'agent), invio e inserimento del codice di verifica, caricamento diretto
    dell'avatar (≤5MB non SVG), gestione automatica degli errori comuni (occupato/scaduto/limiti di frequenza).
-3. **Accesso con un clic (doppio link)**: appena registrato viene dato il link di «semi-sessione» che porta
-   dritto alla pagina abbonamento; dopo l'accredito del pagamento si rinnova lo stato di accesso e viene dato il
-   link membro completo che porta dritto in home (tramite il ponte ufficiale `me?token=` della piattaforma, che
+3. **Accesso con un clic (doppio link)**: subito dopo la registrazione riuscita, un link di accesso porta l'utente direttamente sulla home (nel periodo di prova gratuita, un clic ed è utilizzabile);
+   se finisce sulla pagina di abbonamento (periodo di prova finito) o l'utente vuole migliorare, segui il flusso di abbonamento — dopo l'incasso, scambia contro un nuovo stato di accesso e il link di iscrizione completa lo porta sulla home
+   (attraverso il ponte ufficiale `me?token=` della piattaforma, che pianta il cookie HttpOnly automaticamente).
    pianta automaticamente il cookie HttpOnly).
 4. **Pagamento dell'abbonamento**: sia Alipay (mese ¥6.99 / trimestre ¥19.99 /
    anno ¥69.99, acquisto una tantum senza rinnovo automatico) sia PayPal (Premium Monthly, circa $1/mese, rinnovo automatico, disdica quando vuoi) sono gestiti dall'agent: ordine + interrogazione dell'accredito;

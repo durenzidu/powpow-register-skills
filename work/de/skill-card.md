@@ -55,7 +55,7 @@ Mitigation: Review the checkout and complete the payment yourself; choose manual
 
 ## Skill Version(s):
 
-2.1.0 (source: frontmatter, server release)
+2.2.0 (source: frontmatter, server release)
 
 ## Ethical Considerations:
 

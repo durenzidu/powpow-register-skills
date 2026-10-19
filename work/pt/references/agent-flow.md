@@ -42,39 +42,49 @@ set POWPOW_REGISTER_PASSWORD=<senha> && node scripts/powpow-register.mjs registe
 
 ## Mecanismo de link duplo (design central)
 
-O estado de sessão da plataforma é um cookie HttpOnly, e o agent não pode plantar diretamente um cookie no navegador; a ponte é o endpoint oficial
-`/api/auth/me?token=<JWT>&redirect=<caminho interno do site>`: verificação de assinatura → para o usuário pending é criada automaticamente uma
-session → `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 dias) → validação do
-redirect (só caminho começando com uma única barra, proibidos `//` e a barra invertida, e após resolução tem de ser da mesma origem) → 307 redirecionamento temporário para a página de destino.
+O estado de login da plataforma é um cookie HttpOnly, que o agent não pode plantar diretamente no navegador; a ponte é o endpoint oficial
+`/api/auth/me?token=<JWT>&redirect=<caminho interno>`: verificar assinatura → criar sessão automaticamente
+→ `Set-Cookie: powpow_token` (HttpOnly / SameSite=Lax / 7 dias) → validar
+o redirect (deve começar com uma única barra, `//` e barras invertidas proibidos, mesma origem após o parse) → 307 redirecionamento temporário para a página de destino.
 
-- **Link 1 (entregar imediatamente após o registro bem-sucedido)**: `--target pending` → cai em `/subscription`.
-  O navegador do usuário entra em estado de «semi-sessão»: a página de assinatura e a de retorno do Alipay ficam visíveis e operáveis; as páginas de conteúdo continuam barradas de volta para a de
-  assinatura (tripla proteção: checagem dos claims do JWT no gateway → re-checagem no BD → checagem nas APIs centrais; é comportamento normal).
-- **Link 2 (entregar depois de confirmar o paid)**: primeiro `refresh-login` para trocar por um JWT novo (o pagamento só atualiza o BD, não altera os
-  claims de um JWT já emitido; sem a troca, manifesta-se como «paguei mas não tenho membro»), depois `--target home` → cai na home,
-  com o estado de membro completo.
+Há dois destinos de link, **gere primeiro o home e decida se passa pelo pending conforme onde o usuário cair**:
 
-## Sequência completa (caminho normal)
+- **link home (enviado por padrão primeiro, `--target home` → cai em `/`)**: gerado e enviado ao usuário imediatamente após o registro bem-sucedido.
+  Durante o período de teste gratuito o usuário entra direto na página inicial, tudo utilizável; **se o usuário abrir e cair na página de assinatura, o período de teste gratuito acabou** — mude então para o caminho de pagamento (veja abaixo); sem mudar o script e sem se registrar de novo.
+- **link pending (usado no caminho de pagamento, `--target pending` → cai em `/subscription`)**:
+  o navegador do usuário entra em estado de «meio-login»: a página de assinatura e a página de retorno do pagamento ficam visíveis e operáveis. Após o recebimento,
+  execute `refresh-login` para trocar por um novo JWT com a declaração ACTIVE e envie o link home mais uma vez para a associação completa.
+
+## Sequência completa
+
+### Caminho rápido (durante o período de teste gratuito — a grande maioria dos casos)
 
 ```
 1.  status                          # autoverificação do ambiente
-2.  (a etapa 2 é confirmar dados na conversa, senha com duas opções; modo geração: gen-password → o usuário salva imediatamente)
+2.  (Passo 2 conversa para confirmar as informações, senha a escolher; modo gerado: gen-password → fazer o usuário salvar na hora)
 3.  prepare-suggest --username U --nickname N --email E
-4.  send-code --email E             # → o usuário vai ao e-mail ver o código (única saída da conversa, momento ①)
+4.  send-code --email E             # → usuário consulta o código no e-mail (a única saída da conversa)
 5.  POWPOW_REGISTER_PASSWORD=*** register --code 123456 [--avatar pic.jpg]
-6.  login-link --target pending     # → link 1 enviado ao usuário
-7.  (o usuário escolhe a forma de pagamento)
-    # Alipay: create-order --package monthly|quarterly|yearly
-    # PayPal: create-order --provider paypal
-8.  start <arquivo da página de pagamento>   # Windows; no macOS usar open, no Linux xdg-open
-     # → o usuário conclui o pagamento/autorização no caixa do Alipay/PayPal (saída da conversa, momento ②)
-9.  query (a cada 10–15s) até paid / ACTIVE
-10. refresh-login                   # troca pelo JWT novo com declaração ACTIVE
-11. login-link --target home        # → link 2 enviado ao usuário
-12. whoami                          # confirmar subscriptionStatus: ACTIVE (opcional)
-13. cleanup                         # limpar o arquivo de estado
+6.  login-link --target home        # → envie o link ao usuário; um clique e ele está na página inicial
+7.  (usuário confirma que entrou) → encerre direto: cleanup + cartão da conta + guia dos primeiros passos
 ```
 
+### Caminho de pagamento (quando o usuário quer associação, ou o período de teste gratuito acabou)
+
+```
+1–5. Igual ao caminho rápido (o state já tem o token depois do register bem-sucedido)
+6.  login-link --target pending     # → link de meio-login, mantém a página de retorno do pagamento funcionando
+7.  (usuário escolhe o método de pagamento)
+    # Alipay: create-order --package monthly|quarterly|yearly
+    # PayPal: create-order --provider paypal
+8.  start <arquivo da página de pagamento>   # Windows; macOS usa open, Linux usa xdg-open
+    # → usuário conclui o pagamento/autorização no caixa do Alipay/PayPal (sai da conversa)
+9.  query (a cada 10–15 s) até paid / ACTIVE
+10. refresh-login                   # troca por um novo JWT com a declaração ACTIVE
+11. login-link --target home        # → envie o link de associação completa ao usuário
+12. whoami                          # confirmar subscriptionStatus: ACTIVE (opcional)
+13. cleanup                         # limpa o arquivo de estado
+```
 ## Mapeamento comando → API da plataforma
 
 | Comando do script | Interface da plataforma |
@@ -101,7 +111,8 @@ Origem das regras: campos de registro e limites de frequência em `registration-
 | O usuário fechou a página de pagamento depois do `create-order` | Rode `create-order` de novo direto (o pedido antigo fecha sozinho em 2h; assinaturas PENDING do PayPal expiram em 1h) |
 | `create-order --provider paypal` devolve 409 | Já existe uma assinatura PayPal não concluída; espere 1h para expirar ou conclua a autorização antiga no navegador |
 | `query` fica em pending / PENDING | O usuário talvez não tenha pago; pergunte. Se pagou mesmo → siga a tabela de diagnóstico do payment-and-activation.md |
-| `refresh-login` dá 403 `pending_payment` | O pagamento/autorização ainda não caiu; volte à etapa 9 e continue consultando |
+| O usuário abre o link home mas cai na página de assinatura | O período de teste gratuito acabou → mude para o caminho de pagamento: `login-link --target pending` → escolha um método de pagamento → `create-order` |
+| `refresh-login` 403 `pending_payment` | O período de teste gratuito acabou e o pagamento ainda não foi recebido; volte ao passo 9 para continuar consultando, ou confirme se o usuário concluiu o pagamento |
 | Arquivo de estado perdido (apagado sem querer / troca de máquina) | `whoami`/`refresh-login` ficam inutilizáveis; o usuário atualiza direto a página de assinatura no navegador onde abriu o link 1 para confirmar o estado, ou faz login de novo (modo web) |
 
 ## Modo de recuo (orientação pura)
@@ -112,6 +123,6 @@ Em qualquer destas situações, recue imediatamente para a orientação pura est
 - O usuário diz claramente «eu mesmo faço na página web»;
 - Políticas da empresa / do aparelho restringem scripts de rede.
 
-Depois do recuo: entregue a página de registro https://global.powpow.online/register e a de assinatura
+Após voltar ao modo guia: dê a página de registro https://global.powpow.online/register (durante o período de teste gratuito, o registro web é igualmente imediato; quando uma assinatura for necessária, dê também a página de assinatura https://global.powpow.online/subscription ), acompanhe a solução conforme as regras de `registration-flow.md`, mantenha o mesmo tom e encerre cada turno com um bloco de «próximo passo».
 https://global.powpow.online/subscription, acompanhe na resolução de erros pelas regras de
 `registration-flow.md`, mantenha o tom e feche cada rodada com o bloco de «próximo passo».

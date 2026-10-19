@@ -44,19 +44,23 @@ Iwe skill n pe **ṣeto kanna ti awọn API gbangba** (`/api/auth/register`, `se
 `/api/auth/me`), ati pe ifisilẹ fọọmu oju-iwe n lọ nipasẹ awọn ayẹwo, ihamọ, ati ọna aṣiṣe kanna — gbogbo
 awọn ofin faili yii ko ṣe iyatọ si awọn ọna mejeeji. Ṣiṣan akoko ati adehun aṣẹ iwe wo `references/agent-flow.md`.
 
-## Ṣiṣan ipo lẹhin iforukosile aṣeyọri
+## Ilana Ipo Lẹhin Iforukọsilẹ Ṣaṣeyọri
 
-1. Olumulo wa pẹlu `accountStatus: 'pending'`, **baaji 3 ibẹrẹ** (register route).
-2. Olupin tun fi awọn cookie HttpOnly meji: JWT (le wọle taara si `/subscription`) ati
-   pendingUserToken (ẹri idanimọ ṣiṣan iforukosile alaisanfarasin).
-3. Oju-iwe iforukosile ṣe akiyesi `pending_payment` → darí si `/subscription` (tọju `next` ti ipadabọ);
-   labẹ ipo agent-oluranlọwọ a lo `me?token=…&redirect=/subscription` lati de abajade kanna.
-4. Isanwo pari → `accountStatus` di `active` (**Alipay n lo notify lati mu ṣiṣẹ laifọwọyi ni ẹgbẹ olupin**;
-   PayPal n lo Webhook lati mu ṣiṣẹ laifọwọyi; iwo-koodu WeChat jẹ timo-ọkọnrin; Huawei IAP n lo `activate-huawei`).
-   Wo `payment-and-activation.md` fun awọn alaye.
+> **Akoko idanwo ọfẹ (bẹrẹ 2026-10-18; ihuwasi sajoo gidi ni o ṣe): akanti tuntun ti o forukọsilẹ le **lo gbogbo ẹya taara**
+> (ifeede, maapu, ẹda oni-nọmba, awọn abẹwo, ati bẹbẹ) laisi owo; awọn akanti ti ko sập ko ni idi mọ lori ojú-iwe akoonu. "Idinamọ pending"
+> ti a ṣalaye ni abala yii jẹ ipo deede lẹhin akoko idanwo pari — nigbati akoko na de, ihuwasi ori-ayelujara gidi ni o ṣe.
 
-Olumulo ti ko mu ṣiṣẹ (pending) ti o ba pe API pataki (ṣiṣan ifo, maapu, ibaraẹnisọrọ eniyan oni-nọmba, titẹ aami, ati bẹbẹ) gbogbo igba gba 403; ayafi ọna asopọ ifiweranṣẹ ti a pinpin (o wa ni gbangba lati wọle).
+1. Olumulo fi pamọ pẹlu `accountStatus: 'pending'` ati **aami ipilẹ 3** (ọna forukọsilẹ).
+2. Olupin gbin kuki HttpOnly meji pẹlu: JWT (le wọle ojú-iwe taara) ati pendingUserToken (ẹri idanimọ fun ilana sập).
+3. Ni ipo deede (akoko idanwo pari / ko si akoko ọfẹ), ojú-iwe iforukọsilẹ ri `pending_payment` → pada si `/subscription`
+   (ti ipadabọ `next`); ni ipo iranlọwọ-ajanṣan, `me?token=…&redirect=/subscription` gba ipa kan.
+   **Ni akoko idanwo ọfẹ igba yii ko ṣiṣẹ** — lẹhin forukọsilẹ, lọ taara si ojú-iwe ile ki o bẹrẹ lilo.
+4. Owo pari → `accountStatus` di `active` (**Alipay ṣiṣẹ laifọwọyi ẹgbẹ olupin nipasẹ notify**;
+   PayPal ṣiṣẹ nipasẹ Webhook; koodu WeChat QR jẹrisi ni ọwọ; Huawei IAP kọja nipasẹ `activate-huawei`).
+   Wo `payment-and-activation.md` fun alaye.
 
+Ni ipo deede, awọn olumulo ti ko ṣiṣẹ (pending) ti n pe API ipilẹ (ifeede, maapu, iwiregba ẹda oni-nọmba, awọn abẹwo, ati bẹbẹ) gba 403;
+awọn ọna ifiweranṣẹ pinyẹẹ jẹ aṣẹ (jẹ gbangba). Ni akoko idanwo ọfẹ idinamọ yii duro ati gbogbo rẹ ṣi.
 ## Tabili ṣiṣayẹwo awọn aṣiṣe ti o wọpọ
 
 | Iṣẹlẹ | Idi | Kí lè ṣe |
@@ -69,7 +73,8 @@ Olumulo ti ko mu ṣiṣẹ (pending) ti o ba pe API pataki (ṣiṣan ifo, maap
 | 「注册请求过于频繁」/ 429 (ibiṣẹ iforukosile pupọ ju / 429) | Iforukosile 3 igba/iṣẹmu/IP ti de | Duro iṣẹju diẹ ki o to tun gbiyanju |
 | 409「用户名或邮箱已被注册」 (409 oruko olumulo tabi imeeli ti forukosile) | Ni akoko ifisilẹ o ja pẹlu ẹlomiran (aabo ifẹhinti) | Paṣẹ oruko olumulo tabi imeeli miran ki o to tun gbiyanju |
 | 「图片大小不能超过5MB」/「不支持 SVG」 (aworan ko le tobi ju 5MB / ko ṣe atilẹyin SVG) | Aworan profaili ko tọ | Paṣẹ aworan miran tabi fo apakan aworan profaili |
-| Iforukosile aṣeyọri ṣugbọn wiwọle 403「请完成订阅以激活账户」 (apẹẹrẹ ti 请完成订阅以激活账户) | Akọọlẹ tun jẹ pending (ipo ti a n reti ṣaaju isanwo) | Ṣaaju isanwo: eyi deede, kọkọ pari ṣiṣe alaisanfarasin; lẹhin isanwo tun 403: o tumọ si pe o lo JWT atijọ, labẹ ipo iwe kọkọ `refresh-login` ṣe paṣipaarọ ipo wiwọle tuntun |
+| Olumulo tẹ ọna iwọle ṣugbọn gbalẹ lori ojú-iwe sập (dipo ojú-iwe ile) | Akoko idanwo ọfẹ ti pari ati odidi owo sajoo pada | Tẹle Igba 7 ninu SKILL.md fun ilana owo sập; lẹhin sập, ṣiṣẹ `refresh-login` lẹhinna fi ọna ojú-iwe ile ranṣẹ |
+| Forukọsilẹ ṣaṣeyọri ṣugbọn iwọle pada 403 "请完成订阅以激活账户" | Akanti wa ni pending, ati sajoo ko si ni akoko idanwo ọfẹ (ipo ti a reti ṣaaju owo) | Ko ṣẹlẹ ni akoko idanwo ọfẹ; ti o ba ṣẹlẹ, akoko idanwo ti pari — pari sập kọọkan; ti 504 ba wa lẹhin owo, JWT atijọ lo — ni ipo iwe ṣiṣẹ `refresh-login` kọọkan lati paṣiparọ fun ipo iwọle titun |
 | Wiwọle 423「账户已锁定」 (akọọlẹ ti dii pa) | Ọrọ igbaniwọle kuna ni itẹlera 5 | Duro iṣẹmu 30 |
 | Wiwọle 401「还剩 N 次尝试机会」 (o ku N awọn aye igbiyanju) | Ọrọ igbaniwọle ko tọ, sunmọ didii pa | Ronu daradara ki o to gbiyanju, tabi lọ taara si "igbagbe ọrọ igbaniwọle" |
 | 「该账号未设置密码，请使用其他方式登录」 (akọọlẹ yii ko ṣe eto ọrọ igbaniwọle, jọwọ lo ọna wiwọle miiran) | Akọọlẹ ẹnikẹta (Google/Watcha/Huawei) | Lo bọtini wiwọle ẹnikẹta atilẹba |

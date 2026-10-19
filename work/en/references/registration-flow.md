@@ -45,18 +45,21 @@ this file applies equally to both modes. Script sequence and command contract: `
 
 ## Status Flow After Successful Registration
 
+> **Free testing period (starting 2026-10-18; actual platform behavior prevails)**: a newly registered account can **use every feature directly**
+> (feed, map, digital humans, check-ins, etc.) with no payment required; unsubscribed accounts are no longer walled off from content pages. The "pending interception"
+> described in this section is the regular state after the testing period ends — when that time comes, actual online behavior prevails.
+
 1. The user is stored with `accountStatus: 'pending'` and **3 initial badges** (register route).
-2. The server simultaneously sets two HttpOnly cookies: JWT (enables direct access to `/subscription`) and
-   pendingUserToken (identity credential for the subscription flow).
-3. The registration page detects `pending_payment` → redirects to `/subscription` (preserving the `next` return parameter);
-   in agent-assisted mode, `me?token=…&redirect=/subscription` achieves the same effect.
+2. The server also plants two HttpOnly cookies: the JWT (can access pages directly) and the pendingUserToken (identity credential for the subscription flow).
+3. In the regular state (testing period over / no free period), the registration page detects `pending_payment` → redirects to `/subscription`
+   (keeping the `next` return parameter); in agent-assisted mode, `me?token=…&redirect=/subscription` achieves the same effect.
+   **During the free testing period this step doesn't trigger** — after registering, go straight to the home page and start using.
 4. Payment complete → `accountStatus` becomes `active` (**Alipay activates automatically server-side via notify**;
-   PayPal activates automatically via Webhook; WeChat QR code is manually confirmed; Huawei IAP goes through `activate-huawei`).
-   See `payment-and-activation.md`.
+   PayPal activates via Webhook; WeChat QR code is manually confirmed; Huawei IAP goes through `activate-huawei`).
+   See `payment-and-activation.md` for details.
 
-Calls to core APIs (feed, map, digital human chat, check-ins, etc.) by an inactivated (pending) user all return 403;
-shared post links are the exception (they stay publicly accessible).
-
+In the regular state, inactive (pending) users calling core APIs (feed, map, digital-human chat, check-ins, etc.) get 403;
+shared post links are the exception (kept publicly accessible). During the free testing period this interception is suspended and everything is open.
 ## Common Error Lookup Table
 
 | Message | Cause | What to do |
@@ -69,7 +72,8 @@ shared post links are the exception (they stay publicly accessible).
 | 「注册请求过于频繁」/ 429 (Registration requests too frequent) | Hit the 3 registrations/min/IP cap | Wait a few minutes and try again |
 | 409「用户名或邮箱已被注册」(Username or email already registered) | Collided with another user at submit time (concurrency fallback) | Change the username or email and retry |
 | 「图片大小不能超过5MB」/「不支持 SVG」(Image size cannot exceed 5MB / SVG not supported) | Avatar doesn't comply | Use a different image or skip the avatar |
-| Registered successfully but login 403「请完成订阅以激活账户」(Please complete your subscription to activate your account) | Account is still pending (expected state before payment) | Before paying: this is normal — complete the subscription first; still 403 after paying: an old JWT is in use — in script mode run `refresh-login` first to get a new login state |
+| User clicks the login link but lands on the subscription page (instead of the home page) | The free testing period has ended and the platform paywall is back | Follow Step 7 in SKILL.md for the subscription payment flow; after subscribing, run `refresh-login` and then send the home-page link |
+| Registered successfully but login returns 403 "请完成订阅以激活账户" | The account is still pending, and the platform is not in a free testing period (the expected state before payment) | Won't happen during the free testing period; if it does, the testing period has ended — complete the subscription first; if still 403 after payment, an old JWT was used — in script mode run `refresh-login` first to exchange for a new login state |
 | Login 423「账户已锁定」(Account locked) | Password entered incorrectly 5 times | Wait 30 minutes |
 | Login 401「还剩 N 次尝试机会」(N attempts remaining) | Wrong password, close to being locked | Think carefully before trying again, or go straight to "Forgot password" |
 | 「该账号未设置密码，请使用其他方式登录」(This account has no password set, please use another login method) | Third-party (Google/Watcha/Huawei) account | Log in with the original third-party button |

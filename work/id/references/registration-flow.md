@@ -50,21 +50,23 @@ Skrip skill memanggil **batch API publik yang sama** (`/api/auth/register`, `sen
 formulir halaman pendaftaran — semua aturan dalam file ini berlaku sama untuk kedua mode. Urutan dan kontrak
 perintah skrip lihat `references/agent-flow.md`.
 
-## Alur status setelah pendaftaran berhasil
+## Alur Status Setelah Pendaftaran Berhasil
 
-1. Pengguna masuk basis data dengan `accountStatus: 'pending'`, awalnya **3 lencana** (register route).
-2. Sisi server sekaligus menanam dua cookie HttpOnly: JWT (bisa langsung mengakses `/subscription`) dan
-   pendingUserToken (kredensial identitas alur langganan).
-3. Halaman pendaftaran mendeteksi `pending_payment` → mengalihkan ke `/subscription` (mempertahankan parameter
-   lompat-balik `next`); dalam mode pengerjaan agent memakai `me?token=…&redirect=/subscription` mencapai efek
-   yang sama.
-4. Pembayaran selesai → `accountStatus` berubah menjadi `active` (**Alipay lewat notify diaktifkan otomatis sisi
-   server; PayPal lewat Webhook diaktifkan otomatis; pindai WeChat dikonfirmasi manual; Huawei IAP lewat
-   `activate-huawei`**). Rincian lihat `payment-and-activation.md`.
+> **Masa uji coba gratis (mulai 2026-10-18; perilaku aktual platform yang berlaku)**: akun yang baru terdaftar bisa **langsung memakai semua fitur**
+> (feed, peta, manusia digital, check-in, dll.) tanpa perlu bayar; akun tanpa langganan tidak lagi dipisahkan dari halaman konten. "Pencegahan pending"
+> yang dijelaskan di bagian ini adalah status normal setelah masa uji coba berakhir — saat itu tiba, perilaku aktual daring yang berlaku.
 
-Pengguna belum aktif (pending) yang memanggil API inti (feed, peta, percakapan manusia digital, absen, dsb.)
-selalu 403; kecuali tautan bagikan postingan (tetap bisa diakses publik).
+1. Pengguna disimpan dengan `accountStatus: 'pending'` dan **3 lencana awal** (rute register).
+2. Server juga menanam dua cookie HttpOnly: JWT (bisa langsung mengakses halaman) dan pendingUserToken (kredensial identitas untuk alur langganan).
+3. Pada status normal (masa uji coba berakhir / tidak ada masa gratis), halaman pendaftaran mendeteksi `pending_payment` → dialihkan ke `/subscription`
+   (dengan mempertahankan parameter kembali `next`); pada mode perantara agent, `me?token=…&redirect=/subscription` memberi efek yang sama.
+   **Selama masa uji coba gratis langkah ini tidak terpicu** — setelah mendaftar, langsung menuju beranda dan mulai pakai.
+4. Pembayaran selesai → `accountStatus` menjadi `active` (**Alipay mengaktifkan otomatis di sisi server melalui notify**;
+   PayPal mengaktifkan melalui Webhook; kode QR WeChat dikonfirmasi manual; Huawei IAP lewat `activate-huawei`).
+   Detailnya ada di `payment-and-activation.md`.
 
+Pada status normal, akun tidak aktif (pending) yang memanggil API inti (feed, peta, chat manusia digital, check-in, dll.) mendapat 403;
+pengecualiannya link posting yang dibagikan (tetap bisa diakses publik). Selama masa uji coba gratis pencegahan ini ditangguhkan dan semuanya terbuka.
 ## Tabel penelusuran galat umum
 
 | Gejala | Penyebab | Apa yang dilakukan |
@@ -77,7 +79,8 @@ selalu 403; kecuali tautan bagikan postingan (tetap bisa diakses publik).
 | 「注册请求过于频繁」 (permintaan pendaftaran terlalu sering) / 429 | Pendaftaran 3 kali/menit/IP menyentuh batas | Tunggu beberapa menit lalu coba lagi |
 | 409 「用户名或邮箱已被注册」 (nama pengguna atau email sudah terdaftar) | Bertabrakan nama dengan orang lain di saat mengirim (jaring pengaman konkurensi) | Ganti nama pengguna atau email lalu coba lagi |
 | 「图片大小不能超过5MB」 (ukuran gambar tidak boleh melebihi 5MB) / 「不支持 SVG」 (SVG tidak didukung) | Foto profil tidak sesuai ketentuan | Ganti gambar atau lewati foto profil |
-| Pendaftaran berhasil tapi login 403 「请完成订阅以激活账户」 (selesaikan langganan untuk mengaktifkan akun) | Akun masih pending (status yang diharapkan sebelum membayar) | Sebelum membayar: ini normal, lebih dulu selesaikan langganan; setelah membayar tetap 403: berarti memakai JWT lama, dalam mode skrip lebih dulu `refresh-login` menukar status login baru |
+| Pengguna mengklik link login tapi mendarat di halaman langganan (bukan beranda) | Masa uji coba gratis telah berakhir dan paywall platform kembali | Ikuti alur langganan dari langkah 7 di SKILL.md; setelah berlangganan, jalankan `refresh-login` lalu kirim link beranda |
+| Terdaftar berhasil tapi login mengembalikan 403 "请完成订阅以激活账户" | Akun masih pending, dan platform tidak sedang dalam masa uji coba gratis (status yang diharapkan sebelum bayar) | Selama masa uji coba gratis tidak akan terjadi; jika terjadi berarti masa uji coba telah berakhir — selesaikan langganan dulu; jika setelah bayar masih 403 berarti memakai JWT lama — pada mode skrip jalankan `refresh-login` dulu untuk menukar dengan status login terbaru |
 | Login 423 「账户已锁定」 (akun terkunci) | Kata sandi salah 5 kali berturut-turut | Tunggu 30 menit |
 | Login 401 「还剩 N 次尝试机会」 (tersisa N kali kesempatan mencoba) | Kata sandi salah, mendekati penguncian | Pikirkan matang-matang baru coba, atau langsung lewat «lupa kata sandi» |
 | 「该账号未设置密码，请使用其他方式登录」 (akun ini belum mengatur kata sandi, silakan login dengan cara lain) | Akun pihak ketiga (Google/Watcha/Huawei) | Login dengan tombol pihak ketiga yang semula |

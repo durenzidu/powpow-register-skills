@@ -2,7 +2,8 @@
 
 Pambantu registrasi PowPow Gelembung (versi OpenClaw): ngeterake panganggo anyar saka "ora ngerti Gelembung iku apa" nganti "akun wis aktif, mlebu sapisan klik, miwiti dolanan" — pratelan produk (kalebu tangkapan layar antarmuka), registrasi ditangani agen (kalebu unggah avatar), pesanan langganan Alipay/PayPal lan ngawasi tekan dhuwit, mlebu sapisan klik tautan dobel, diagnostik kesalahan.
 
-**Wiwit v2.0.0 nganggo mode agen-ditindakake, lan wiwit v2.1.0 PayPal uga bisa ditangani**: skrip inti `scripts/powpow-register.mjs` tanpa dependensi (Node >= 18), panganggo ora metu saka obrolan, mung ping pindho metu sauntara: menyang email ndeleng kode verifikasi, mbayar ing kasir Alipay/PayPal. Yen ora ana Node utawa panganggo arep dhewe nindakake, otomatis bali menyang mode pandhuan murni.
+**Wiwit v2.0.0 iki mode bantuan agen, lan wiwit v2.2.0 nyetel dhewe karo wektu coba gratis platform**: skrip inti `scripts/powpow-register.mjs` tanpa dependensi
+(Node ≥ 18); pangguna mung ninggal rembugan sepisan: kanggo ndelok kode verifikasi ing inbox. Ing wektu coba gratis saiki, akun sing wis didhaftar bisa langsung nggunakake kabeh fitur — pambayaran langganan iku peningkatan opsional; yen wektu coba rampung lan pangguna mandheg ing kaca langganan, alur pindhah menyang alur pambayaran kanthi otomatis. Tanpa Node, utawa nalika pangguna luwih seneng dewe, otomatis bali menyang mode pandhuan murni.
 
 ## Instalasi
 
@@ -14,7 +15,9 @@ openclaw skills install @durenzidu/powpow-register
 
 1. **Pratelan produk**: pratelan udakara 120 tembung + tangkapan layar antarmuka sing dibundel ing paket (`assets/screenshots/` isi 6 gambar: kaca peta, kaca detail kiriman, lsp., pilih kirim 1–3 gambar miturut skenario; tanpa layanan gambar njaba, bisa offline).
 2. **Registrasi ditangani agen**: agen aktif nyaranake jeneng panganggo/julukan, tembung sandhi milih siji (panganggo menehi utawa agen nggawe), ngirim lan ngirimake kode verifikasi, unggah avatar langsung (≤5MB dudu SVG), kesalahan umum ditangani otomatis (wis dienggo/kedaluwarsa/watesan laju).
-3. **Mlebu sapisan klik (tautan dobel)**: begja registrasi sukses langsung diwenehi tautan "mlebu setengah" langsung menyang kaca langganan; sawise bayaran tekan ngganti status mlebu anyar banjur diwenehi tautan anggota lengkap langsung menyang kaca ngarep (liwat jembatan resmi platform `me?token=`, otomatis nandur cookie HttpOnly).
+3. **Mlebu siji klik (rong link)**: sawise registrasi kasil, link mlebu langsung nggawa pangguna menyang kaca ngarep (ing wektu coba gratis, siji klik langsung bisa dipa);
+   yen mandheg ing kaca langganan (wektu coba rampung) utawa pangguna pengin nambah, tindakake alur langganan — sawise pambayaran mlebu, kahanan mleku anyar digentiak lan link keanggotaan lengkap nggawa menyang kaca ngarep
+   (liwat jembatan resmi `me?token=` platform, sing nancepake cookie HttpOnly kanthi otomatis).
 4. **Langganan bayaran**: Alipay (wulan ¥6.99 / kuartal ¥19.99 / taunan ¥69.99, tuku langsung ora langganan otomatis) lan PayPal (Premium Monthly, kira-kira $1/sasi, langganan otomatis, bisa dibatalake kapan wae) loro-lorone ditangani agen nganggo nggawe pesanan + polling tekan dhuwit; pindai kode WeChat / Huawei IAP mung tuduhake dalan.
 5. **Diagnostik kesalahan**: kode verifikasi ora tekan, jeneng panganggo/email wis dienggo, 403 durung aktif, akun dikunci lsp. masalah umum, kabeh asale saka kode sumber platform lan diwenehi sumber.
 

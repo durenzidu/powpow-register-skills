@@ -1,6 +1,8 @@
 # Ṣiṣe alaisanfarasin ati isanwo — powpow-register
 
 ## Ipari (sọ idahun kọkọ)
+> **Akoko idanwo ọfẹ (bẹrẹ 2026-10-18; ihuwasi sajoo gidi ni o ṣe): ni akoko yii akanti ti o forukọsilẹ le lo gbogbo ẹya taara, ati **sập jẹ ilọsi aṣayan kii jẹ ibeere** — tẹle ilana faili yii nigbati olumulo fẹ ọmọ-ẹyọn nikan. Nigbati akoko idanwo pari, awọn akanti ti ko sập ti n bẹ ojú-iwe akoonu yoo pada si ojú-iwe sập; pari nikan sập gẹgẹbi faili yii.
+
 
 **Awọn ọna isanwo Alipay ati PayPal mejeeji le ṣe itọsọna nipasẹ agent lati ṣẹda aṣẹ ati tọpa isanwo.**
 Alipay jẹ rira-lẹẹkan laisi isọdọtun laifọwọyi, fun olumulo Ilu China/ti o ni Alipay; PayPal jẹ isọdọtun oṣu laifọwọyi ti a le fagilee nigbakugba, fun olumulo okeere/laisi Alipay. Iwo-koodu WeChat (timọ-ọkọnrin) ati Huawei IAP tun wa, ṣugbọn skill ko ṣe iranlọwọ wọn.
